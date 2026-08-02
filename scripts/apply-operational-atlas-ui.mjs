@@ -18,7 +18,7 @@ const finalMarkerChecks = [
   ["src/client/components/PlayPage.ts", "command-steam-promo-slot"],
   ["src/client/hud/layers/BuildMenu.ts", "command-build-dock"],
   ["src/client/styles/operational-atlas.css", "Keep routed play page hidden"],
-  ["src/client/styles/operational-atlas.css", "Size setup to the modal section"],
+  ["src/client/styles/operational-atlas.css", "Match setup height to modal chrome"],
 ];
 
 function absolute(relativePath) {
@@ -46,6 +46,18 @@ function appendOnce(relativePath, marker, addition) {
   let content = fs.readFileSync(file, "utf8");
   if (content.includes(marker)) return;
   content = `${content.trimEnd()}\n\n${addition.trim()}\n`;
+  fs.writeFileSync(file, content);
+}
+
+function replaceOrAppend(relativePath, before, after) {
+  const file = absolute(relativePath);
+  let content = fs.readFileSync(file, "utf8");
+  if (content.includes(after)) return;
+  if (content.includes(before)) {
+    content = content.replace(before, after);
+  } else {
+    content = `${content.trimEnd()}\n\n${after.trim()}\n`;
+  }
   fs.writeFileSync(file, content);
 }
 
@@ -137,9 +149,8 @@ appendOnce(
   display: none !important;
 }`,
 );
-appendOnce(
+replaceOrAppend(
   "src/client/styles/operational-atlas.css",
-  "Size setup to the modal section",
   `/* Size setup to the modal section, not the outer viewport. The modal header
    already consumes part of 100dvh; a second viewport subtraction pushed the
    desktop action bar by one pixel and the tablet action bar below the fold. */
@@ -147,6 +158,15 @@ appendOnce(
   .command-single-player {
     height: 100%;
     max-height: 100%;
+  }
+}`,
+  `/* Match setup height to modal chrome. At sm+ the modal reserves 16px above
+   and below plus a 56px header and borders; using 100dvh for the slotted body
+   leaves its footer outside the section's scroll viewport. */
+@media (min-width: 640px) {
+  .command-single-player {
+    height: calc(100dvh - 90px);
+    max-height: calc(100dvh - 90px);
   }
 }`,
 );
