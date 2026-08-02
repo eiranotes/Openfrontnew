@@ -109,6 +109,12 @@ if (fs.existsSync(touchScript)) {
     "background: rgba(10, 15, 20, 0.97);",
     "background: #0a0f14;",
   );
+
+  const mobileChromeMarker = "/* Mobile tactical chrome compression. */";
+  if (!commandUi.includes(mobileChromeMarker)) {
+    commandUi += `\n\n${mobileChromeMarker}\n@media (max-width: 639px) {\n  game-left-sidebar aside,\n  game-right-sidebar aside {\n    min-height: 52px;\n    gap: 0 !important;\n    padding: 4px 6px !important;\n    border-top: 0 !important;\n    background: #0a0f14 !important;\n    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.24) !important;\n  }\n\n  game-left-sidebar aside {\n    border-left: 0 !important;\n    border-radius: 0 0 7px 0 !important;\n  }\n\n  game-right-sidebar aside {\n    border-right: 0 !important;\n    border-radius: 0 0 0 7px !important;\n  }\n\n  game-right-sidebar aside > div:first-child {\n    min-width: 58px;\n    padding-inline: 8px;\n    color: #cbd5e1;\n    font-size: 13px;\n    font-variant-numeric: tabular-nums;\n  }\n\n  game-left-sidebar [role=\"button\"],\n  game-right-sidebar .cursor-pointer {\n    min-width: 44px;\n    min-height: 44px;\n    border-radius: 4px !important;\n  }\n\n  game-left-sidebar img,\n  game-right-sidebar img {\n    width: 18px !important;\n    height: 18px !important;\n    opacity: 0.9;\n  }\n}\n`;
+  }
+
   write(commandUiPath, commandUi);
 }
 
