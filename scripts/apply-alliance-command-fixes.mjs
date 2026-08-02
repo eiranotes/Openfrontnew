@@ -45,4 +45,18 @@ if (!fortressTest.includes(currentAssertion)) {
   write(fortressTestPath, fortressTest);
 }
 
-console.log("Applied alliance support rounding and touch-test fixes.");
+const eventsPath = "src/client/hud/layers/EventsDisplay.ts";
+let events = read(eventsPath);
+const arrayAtExpression =
+  "const compactEvent = tier1Events.at(-1) ?? tier2Events.at(-1);";
+const indexedExpression =
+  "const compactEvent =\n      tier1Events[tier1Events.length - 1] ??\n      tier2Events[tier2Events.length - 1];";
+if (!events.includes(indexedExpression)) {
+  if (!events.includes(arrayAtExpression)) {
+    throw new Error("Alliance fix anchor missing: compact event selection");
+  }
+  events = events.replace(arrayAtExpression, indexedExpression);
+  write(eventsPath, events);
+}
+
+console.log("Applied alliance support, touch-test, and compatibility fixes.");
