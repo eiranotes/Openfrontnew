@@ -28,7 +28,8 @@ jobs:
           00abeef556f680169474eeaeeceba1056ed60d776e40b1e35d583e598d6ba18b  .patches/fortress-ui/001a.part
           728d77213a37ed4cbce77d2dc32319c2561b35d1305e4e1d3386c370843a122b  .patches/fortress-ui/001b.part
           0fc184e0f593f37315a0a4f966df365cdc5d78db2bb9c626ee184ed68ebcfb73  .patches/fortress-ui/002a.part
-          5a60e64201214e4d79a740911a3a671c3087e493fc08590b93c4e815a72837c6  .patches/fortress-ui/002b.part
+          baa2b93d2631d7105522003f5f37a88ca5bbfc3688f67de7b83ca1ab6d079515  .patches/fortress-ui/002b0.part
+          a70d1f55e12154b2885fa526e464dc3824ddf173bcb69f22024e94ad3ece1d2b  .patches/fortress-ui/002b1.part
           580a8aeaf3ce803aa432a579cf7aba5368a00d20e45ac4fa2ada4979cd006caa  .patches/fortress-ui/003a.part
           5a74271ef688281d884ee01023af9953e6b010777b8615382a29ae7506671a1e  .patches/fortress-ui/003b.part
           EOF
@@ -38,7 +39,8 @@ jobs:
             .patches/fortress-ui/001a.part \
             .patches/fortress-ui/001b.part \
             .patches/fortress-ui/002a.part \
-            .patches/fortress-ui/002b.part \
+            .patches/fortress-ui/002b0.part \
+            .patches/fortress-ui/002b1.part \
             .patches/fortress-ui/003a.part \
             .patches/fortress-ui/003b.part \
             .patches/fortress-ui/004.part \
