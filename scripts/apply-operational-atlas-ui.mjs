@@ -10,16 +10,30 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const markerChecks = [
   ["src/client/Main.ts", 'import "./styles/operational-atlas.css";'],
   ["src/client/styles/operational-atlas.css", "Operational Atlas"],
+  ["src/client/components/PlayPage.ts", "command-steam-promo-slot"],
+  ["src/client/hud/layers/BuildMenu.ts", "command-build-dock"],
   ["src/client/hud/layers/BuildMenu.ts", "bottom: max(14px, env(safe-area-inset-bottom))"],
   ["tests/OperationalAtlasUi.test.ts", "Operational Atlas UI system"],
 ];
 
+function absolute(relativePath) {
+  return path.join(root, relativePath);
+}
+
 function contains(relativePath, marker) {
-  const absolutePath = path.join(root, relativePath);
-  return (
-    fs.existsSync(absolutePath) &&
-    fs.readFileSync(absolutePath, "utf8").includes(marker)
-  );
+  const file = absolute(relativePath);
+  return fs.existsSync(file) && fs.readFileSync(file, "utf8").includes(marker);
+}
+
+function replaceOnce(relativePath, before, after, label) {
+  const file = absolute(relativePath);
+  let content = fs.readFileSync(file, "utf8");
+  if (content.includes(after)) return;
+  if (!content.includes(before)) {
+    throw new Error(`Operational Atlas alias anchor missing: ${label}`);
+  }
+  content = content.replace(before, after);
+  fs.writeFileSync(file, content);
 }
 
 if (markerChecks.every(([relativePath, marker]) => contains(relativePath, marker))) {
@@ -85,6 +99,19 @@ if (check.status === 0) {
     );
   }
 }
+
+replaceOnce(
+  "src/client/components/PlayPage.ts",
+  'class="command-home-steam lg:hidden"',
+  'class="command-home-steam command-steam-promo-slot lg:hidden"',
+  "compact Steam slot",
+);
+replaceOnce(
+  "src/client/hud/layers/BuildMenu.ts",
+  'class="build-menu ${this._hidden ? "hidden" : ""}"',
+  'class="build-menu command-build-dock ${this._hidden ? "hidden" : ""}"',
+  "nonmodal build dock",
+);
 
 for (const [relativePath, marker] of markerChecks) {
   if (!contains(relativePath, marker)) {
