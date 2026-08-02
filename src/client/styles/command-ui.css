@@ -1470,3 +1470,11 @@ game-right-sidebar .cursor-pointer:active {
     transform: scaleY(0.985);
   }
 }
+
+
+/* Preserve full control geometry throughout dock entrance. */
+@keyframes command-dock-enter {
+  from {
+    opacity: 0;
+  }
+}
