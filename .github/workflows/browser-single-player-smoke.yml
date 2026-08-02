@@ -1,10 +1,11 @@
 name: Browser responsive single-player smoke
 
-# Release candidate: compact development balance and touch-first combat.
+# UI system audit: validate the map-first command interface at desktop,
+# tablet and mobile breakpoints.
 on:
   workflow_dispatch:
   pull_request:
-    branches: [main]
+    branches: [main, agent/project-handoff-2026-08-02]
     types: [opened, synchronize, reopened]
     paths:
       - 'src/client/**'
@@ -16,6 +17,8 @@ on:
       - 'map-generator/**'
       - 'vite.config.ts'
       - 'tests/FortressBalance.test.ts'
+      - 'tests/AllianceCoordination.test.ts'
+      - 'tests/LandingOperations.test.ts'
       - 'tests/SinglePlayerOptions.test.ts'
       - 'tests/WorkerAssetBase.test.ts'
       - 'scripts/apply-*.mjs'
@@ -36,6 +39,9 @@ jobs:
           - name: desktop
             width: 1440
             height: 900
+          - name: tablet
+            width: 1024
+            height: 768
           - name: mobile
             width: 390
             height: 844
@@ -72,6 +78,7 @@ jobs:
           npx vitest run
           tests/FortressBalance.test.ts
           tests/AllianceCoordination.test.ts
+          tests/LandingOperations.test.ts
           tests/SinglePlayerOptions.test.ts
           tests/WorkerAssetBase.test.ts
 
