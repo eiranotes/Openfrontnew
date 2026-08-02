@@ -59,4 +59,20 @@ if (!events.includes(indexedExpression)) {
   write(eventsPath, events);
 }
 
-console.log("Applied alliance support, touch-test, and compatibility fixes.");
+const playerPanelPath = "src/client/hud/layers/PlayerPanel.ts";
+let playerPanel = read(playerPanelPath);
+const unguardedCoordinate =
+  "const canCoordinateAttack = !!this.actions?.interaction?.canTarget;";
+const guardedCoordinate =
+  "const canCoordinateAttack =\n      !!this.actions?.interaction?.canTarget && my.allies().length > 0;";
+if (!playerPanel.includes(guardedCoordinate)) {
+  if (!playerPanel.includes(unguardedCoordinate)) {
+    throw new Error("Alliance fix anchor missing: coordinated attack visibility");
+  }
+  playerPanel = playerPanel.replace(unguardedCoordinate, guardedCoordinate);
+  write(playerPanelPath, playerPanel);
+}
+
+console.log(
+  "Applied alliance support, touch-test, compatibility, and command visibility fixes.",
+);
