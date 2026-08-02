@@ -1,0 +1,33 @@
+name: Export UI overhaul branch source
+
+on:
+  pull_request:
+    branches:
+      - agent/project-handoff-2026-08-02
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: github.head_ref == 'agent/ui-system-overhaul-2026-08-02' || github.ref_name == 'agent/ui-system-overhaul-2026-08-02'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout UI branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Archive current source
+        shell: bash
+        run: git archive --format=tar.gz --output=openfront-ui-overhaul-source.tar.gz HEAD
+
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: openfront-ui-overhaul-source
+          path: openfront-ui-overhaul-source.tar.gz
+          if-no-files-found: error
+          retention-days: 7
