@@ -1457,3 +1457,16 @@ game-right-sidebar .cursor-pointer:active {
     opacity: 0.9;
   }
 }
+
+
+/* Keep the dock entrance animation inside the viewport. */
+.command-player-dock {
+  transform-origin: bottom center;
+}
+
+@keyframes command-dock-enter {
+  from {
+    opacity: 0;
+    transform: scaleY(0.985);
+  }
+}
