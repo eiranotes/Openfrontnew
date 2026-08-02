@@ -1,6 +1,6 @@
 name: Browser responsive single-player smoke
 
-# Final regression: generated command UI at desktop and touch-first mobile sizes.
+# Release candidate: flat command UI, wordmark, and mobile HUD polish.
 on:
   workflow_dispatch:
   pull_request:
