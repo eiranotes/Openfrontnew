@@ -6,38 +6,99 @@ on:
     types: [opened, synchronize, reopened]
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
   verify-live-site:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for the configurable solo bundle on GitHub Pages
+      - name: Inspect the latest main deployment run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          curl --fail --silent --show-error --location \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${api}/actions/workflows/fortress-pages.yml/runs?branch=main&event=push&per_page=10" \
+            -o /tmp/main-runs.json
+
+          python3 - <<'PY'
+          import json
+          data = json.load(open('/tmp/main-runs.json'))
+          runs = data.get('workflow_runs', [])
+          print('Recent main deployment runs:')
+          for run in runs:
+              print(
+                  f"run={run['run_number']} id={run['id']} "
+                  f"status={run['status']} conclusion={run.get('conclusion')} "
+                  f"sha={run['head_sha'][:8]} title={run['display_title']}"
+              )
+          if not runs:
+              raise SystemExit('No main push workflow runs found')
+          open('/tmp/main-run-id', 'w').write(str(runs[0]['id']))
+          PY
+
+          run_id=$(cat /tmp/main-run-id)
+          curl --fail --silent --show-error --location \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${api}/actions/runs/${run_id}/jobs?per_page=100" \
+            -o /tmp/main-jobs.json
+
+          python3 - <<'PY'
+          import json
+          data = json.load(open('/tmp/main-jobs.json'))
+          jobs = data.get('jobs', [])
+          print('Latest main run jobs:')
+          for job in jobs:
+              print(
+                  f"job={job['name']} id={job['id']} "
+                  f"status={job['status']} conclusion={job.get('conclusion')}"
+              )
+              for step in job.get('steps', []):
+                  print(
+                      f"  step={step['number']} {step['name']}: "
+                      f"{step['status']}/{step.get('conclusion')}"
+                  )
+          failed = next(
+              (job for job in jobs if job.get('conclusion') not in (None, 'success', 'skipped')),
+              None,
+          )
+          if failed:
+              open('/tmp/failed-job-id', 'w').write(str(failed['id']))
+          PY
+
+          if [[ -s /tmp/failed-job-id ]]; then
+            failed_job_id=$(cat /tmp/failed-job-id)
+            curl --fail --silent --show-error --location \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${api}/actions/jobs/${failed_job_id}/logs" \
+              -o /tmp/failed-job.log
+            echo 'Failure excerpts:'
+            grep -Ei -C 3 'error|failed|failure|cancelled|conflict' \
+              /tmp/failed-job.log | tail -n 120 || true
+          fi
+
+      - name: Check the live configurable solo bundle
         shell: bash
         env:
           SITE_URL: https://eiranotes.github.io/Openfrontnew/
           EXPECTED_ASSET: /Openfrontnew/assets/index-BdLRMiFB.js
         run: |
           set -euo pipefail
-          for attempt in $(seq 1 36); do
-            curl --fail --location --silent --show-error \
-              --max-time 20 "${SITE_URL}?solo-options-check=${GITHUB_RUN_ID}-${attempt}" \
-              -o /tmp/openfront-index.html
-            live_asset=$(grep -oE '/Openfrontnew/assets/index-[^" ]+\.js' \
-              /tmp/openfront-index.html | head -n 1 || true)
-            echo "Attempt ${attempt}: ${live_asset:-missing}"
-            if [[ "${live_asset}" == "${EXPECTED_ASSET}" ]]; then
-              curl --fail --location --silent --show-error --max-time 30 \
-                "https://eiranotes.github.io${live_asset}" \
-                -o /tmp/openfront-app.js
-              test -s /tmp/openfront-app.js
-              echo "Verified deployed solo-options bundle: ${live_asset}"
-              exit 0
-            fi
-            sleep 5
-          done
-
-          echo "Expected ${EXPECTED_ASSET}, but Pages is still serving:" >&2
-          grep -oE '/Openfrontnew/assets/index-[^" ]+\.js' \
-            /tmp/openfront-index.html | head -n 1 >&2 || true
-          exit 1
+          curl --fail --location --silent --show-error \
+            --max-time 20 "${SITE_URL}?solo-options-check=${GITHUB_RUN_ID}" \
+            -o /tmp/openfront-index.html
+          live_asset=$(grep -oE '/Openfrontnew/assets/index-[^" ]+\.js' \
+            /tmp/openfront-index.html | head -n 1 || true)
+          echo "Live asset: ${live_asset:-missing}"
+          test "${live_asset}" = "${EXPECTED_ASSET}"
+          curl --fail --location --silent --show-error --max-time 30 \
+            "https://eiranotes.github.io${live_asset}" \
+            -o /tmp/openfront-app.js
+          test -s /tmp/openfront-app.js
