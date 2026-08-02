@@ -30,6 +30,7 @@ export class MainRadialMenu implements Controller {
   private chatIntegration: ChatIntegration;
 
   private clickedTile: TileRef | null = null;
+  private selectionRequest = 0;
 
   getTickIntervalMs() {
     return 500;
@@ -85,20 +86,45 @@ export class MainRadialMenu implements Controller {
       if (this.game.myPlayer() === null) {
         return;
       }
-      this.clickedTile = this.game.ref(worldCoords.x, worldCoords.y);
-      this.game
-        .myPlayer()!
-        .actions(this.clickedTile)
-        .then((actions) => {
-          this.updatePlayerActions(
-            this.game.myPlayer()!,
-            actions,
-            this.clickedTile!,
-            event.x,
-            event.y,
-          );
-        });
+      const myPlayer = this.game.myPlayer()!;
+      const tile = this.game.ref(worldCoords.x, worldCoords.y);
+      const requestID = ++this.selectionRequest;
+      this.clickedTile = tile;
+
+      const tileOwner = this.game.owner(tile);
+      const recipient = tileOwner.isPlayer()
+        ? (tileOwner as PlayerView)
+        : null;
+      if (this.shouldUseCommandSheet(myPlayer, recipient)) {
+        this.radialMenu.hideRadialMenu();
+        this.playerPanel.beginSelection(tile);
+      }
+
+      void myPlayer.actions(tile).then((actions) => {
+        if (requestID !== this.selectionRequest || this.clickedTile !== tile) {
+          return;
+        }
+        this.updatePlayerActions(
+          myPlayer,
+          actions,
+          tile,
+          event.x,
+          event.y,
+        );
+      });
     });
+  }
+
+
+  private shouldUseCommandSheet(
+    myPlayer: PlayerView,
+    recipient: PlayerView | null,
+  ): boolean {
+    return (
+      recipient !== null &&
+      recipient !== myPlayer &&
+      (window.matchMedia?.("(pointer: coarse)").matches ?? false)
+    );
   }
 
   private async updatePlayerActions(
@@ -117,12 +143,7 @@ export class MainRadialMenu implements Controller {
       this.chatIntegration.setupChatModal(myPlayer, recipient);
     }
 
-    const useTouchCommandSheet =
-      recipient !== null &&
-      recipient !== myPlayer &&
-      (window.matchMedia?.("(pointer: coarse)").matches ?? false);
-
-    if (useTouchCommandSheet) {
+    if (this.shouldUseCommandSheet(myPlayer, recipient)) {
       this.radialMenu.hideRadialMenu();
       this.playerPanel.show(actions, tile);
       return;
@@ -167,16 +188,13 @@ export class MainRadialMenu implements Controller {
 
   async tick() {
     if (!this.radialMenu.isMenuVisible() || this.clickedTile === null) return;
-    this.game
-      .myPlayer()!
-      .actions(this.clickedTile)
-      .then((actions) => {
-        this.updatePlayerActions(
-          this.game.myPlayer()!,
-          actions,
-          this.clickedTile!,
-        );
-      });
+    const tile = this.clickedTile;
+    const myPlayer = this.game.myPlayer();
+    if (!myPlayer) return;
+    void myPlayer.actions(tile).then((actions) => {
+      if (this.clickedTile !== tile) return;
+      this.updatePlayerActions(myPlayer, actions, tile);
+    });
   }
 
   closeMenu() {

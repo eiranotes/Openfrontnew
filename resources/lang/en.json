@@ -99,7 +99,9 @@
     "inbox": "Alliance requests",
     "collapse": "Collapse",
     "more_requests": "{count} more",
-    "more_notifications": "{count} more notifications"
+    "more_notifications": "{count} more notifications",
+    "details": "Details",
+    "allied": "Allied"
   },
   "build_menu": {
     "desc": {

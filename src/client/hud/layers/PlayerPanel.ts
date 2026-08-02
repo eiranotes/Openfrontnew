@@ -57,6 +57,8 @@ const targetIcon = assetUrl("images/TargetIconWhite.svg");
 const startTradingIcon = assetUrl("images/TradingIconWhite.png");
 const traitorIcon = assetUrl("images/TraitorIconLightRed.svg");
 const breakAllianceIcon = assetUrl("images/TraitorIconWhite.svg");
+const goldIcon = assetUrl("images/GoldCoinIcon.svg");
+const troopIcon = assetUrl("images/TroopIconWhite.svg");
 
 @customElement("player-panel")
 export class PlayerPanel extends LitElement implements Controller {
@@ -83,6 +85,8 @@ export class PlayerPanel extends LitElement implements Controller {
   // Whether this game is a publicly listed lobby. Kept out of
   // GameStartInfo (never touches records), so it's fetched from the worker.
   @state() private gameListed = false;
+  @state() private detailsExpanded = false;
+  @state() private selectionLoading = false;
 
   setRole(role: string | null): void {
     this.playerRole = role;
@@ -170,13 +174,36 @@ export class PlayerPanel extends LitElement implements Controller {
     }
   }
 
+  public beginSelection(tile: TileRef) {
+    const owner = this.g.owner(tile);
+    const nextPlayer = owner.isPlayer() ? (owner as PlayerView) : null;
+    if (nextPlayer === null) return;
+    const changedPlayer = this.selectedPlayer?.id() !== nextPlayer.id();
+    this.actions = null;
+    this.tile = tile;
+    this.selectedPlayer = nextPlayer;
+    this.selectionLoading = true;
+    this.moderationTarget = null;
+    if (changedPlayer) {
+      this.detailsExpanded = false;
+      this.otherProfile = null;
+      this._profileForPlayerId = null;
+    }
+    this.isVisible = true;
+    this.requestUpdate();
+  }
+
   public show(actions: PlayerActions, tile: TileRef) {
+    const owner = this.g.owner(tile);
+    const nextPlayer = owner.isPlayer() ? (owner as PlayerView) : null;
+    const changedPlayer = this.selectedPlayer?.id() !== nextPlayer?.id();
     this.actions = actions;
     this.tile = tile;
-    const owner = this.g.owner(tile);
-    this.selectedPlayer = owner.isPlayer() ? (owner as PlayerView) : null;
+    this.selectedPlayer = nextPlayer;
+    this.selectionLoading = false;
     this.moderationTarget = null;
-    this.isVisible = true;
+    if (changedPlayer) this.detailsExpanded = false;
+    this.isVisible = nextPlayer !== null;
     this.requestUpdate();
   }
 
@@ -217,6 +244,8 @@ export class PlayerPanel extends LitElement implements Controller {
     this.sendTarget = null;
     this.selectedPlayer = null;
     this.moderationTarget = null;
+    this.detailsExpanded = false;
+    this.selectionLoading = false;
     this.requestUpdate();
   }
 
@@ -423,42 +452,26 @@ export class PlayerPanel extends LitElement implements Controller {
   private identityChipProps(type: PlayerType) {
     switch (type) {
       case PlayerType.Nation:
-        return {
-          labelKey: "player_type.nation",
-          classes: "border-indigo-400/25 bg-indigo-500/10 text-indigo-200",
-          icon: "🏛️",
-        };
+        return { labelKey: "player_type.nation", classes: "text-sky-300" };
       case PlayerType.Bot:
-        return {
-          labelKey: "player_type.bot",
-          classes: "border-purple-400/25 bg-purple-500/10 text-purple-200",
-          icon: "⚔️",
-        };
+        return { labelKey: "player_type.bot", classes: "text-violet-300" };
       case PlayerType.Human:
       default:
-        return {
-          labelKey: "player_type.player",
-          classes: "border-zinc-400/20 bg-zinc-500/5 text-zinc-300",
-          icon: "👤",
-        };
+        return { labelKey: "player_type.player", classes: "text-slate-300" };
     }
   }
 
   private getRelationClass(relation: Relation): string {
-    const base =
-      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 " +
-      "shadow-[inset_0_0_8px_rgba(255,255,255,0.04)]";
-
     switch (relation) {
       case Relation.Hostile:
-        return `${base} border-red-400/30 bg-red-500/10 text-red-200`;
+        return "text-red-300";
       case Relation.Distrustful:
-        return `${base} border-red-300/40 bg-red-300/10 text-red-300`;
+        return "text-amber-300";
       case Relation.Friendly:
-        return `${base} border-emerald-400/30 bg-emerald-500/10 text-emerald-200`;
+        return "text-emerald-300";
       case Relation.Neutral:
       default:
-        return `${base} border-zinc-400/30 bg-zinc-500/10 text-zinc-200`;
+        return "text-slate-300";
     }
   }
 
@@ -477,52 +490,26 @@ export class PlayerPanel extends LitElement implements Controller {
   }
 
   private getExpiryColorClass(seconds: number | null): string {
-    if (seconds === null) return "text-white"; // Default color
-
-    if (seconds <= 30) return "text-red-400"; // Last 30 seconds: Red
-    if (seconds <= 60) return "text-yellow-400"; // Last 60 seconds: Yellow
-    return "text-emerald-400"; // More than 60 seconds: Green
+    if (seconds === null) return "text-slate-200";
+    if (seconds <= 30) return "text-red-300";
+    if (seconds <= 60) return "text-amber-300";
+    return "text-emerald-300";
   }
 
   private getTraitorRemainingSeconds(player: PlayerView): number | null {
     const ticksLeft = player.getTraitorRemainingTicks();
     if (!player.isTraitor() || ticksLeft <= 0) return null;
-    return Math.ceil(ticksLeft / 10); // 10 ticks = 1 second
+    return Math.ceil(ticksLeft / 10);
   }
 
   private renderTraitorBadge(other: PlayerView) {
     if (!other.isTraitor()) return html``;
-
     const secs = this.getTraitorRemainingSeconds(other);
-    const label = secs !== null ? renderDuration(secs) : null;
-    const dotCls =
-      secs !== null
-        ? `mx-1 size-1 rounded-full bg-red-400/70 ${secs <= 10 ? "animate-pulse" : ""}`
-        : "";
-
-    return html`
-      <div class="mt-1" role="status" aria-live="polite" aria-atomic="true">
-        <span
-          class="inline-flex items-center gap-2 rounded-full border border-red-400/30
-            bg-red-500/10 px-2.5 py-0.5 text-sm font-semibold text-red-200
-            shadow-[inset_0_0_8px_rgba(239,68,68,0.12)]"
-          title=${translateText("player_panel.traitor")}
-        >
-          <img src=${traitorIcon} alt="" aria-hidden="true" class="size-4.5" />
-          <span class="tracking-tight"
-            >${translateText("player_panel.traitor")}</span
-          >
-          ${label
-            ? html`<span class=${dotCls}></span>
-                <span
-                  class="tabular-nums font-bold text-red-100 whitespace-nowrap text-sm"
-                >
-                  ${label}
-                </span>`
-            : ""}
-        </span>
-      </div>
-    `;
+    return html`<span class="command-player-warning">
+      <img src=${traitorIcon} alt="" aria-hidden="true" />
+      ${translateText("player_panel.traitor")}
+      ${secs !== null ? html`<span>${renderDuration(secs)}</span>` : ""}
+    </span>`;
   }
 
   private renderModeration(
@@ -552,21 +539,19 @@ export class PlayerPanel extends LitElement implements Controller {
   }
 
   private renderRelationPillIfNation(other: PlayerView, my: PlayerView) {
-    if (other.type() !== PlayerType.Nation) return html``;
     if (other.isTraitor()) return html``;
-    if (my?.isAlliedWith && my.isAlliedWith(other)) return html``;
+    if (my?.isAlliedWith && my.isAlliedWith(other)) {
+      return html`<span class="text-emerald-300">
+        ${translateText("alliance_commands.allied")}
+      </span>`;
+    }
+    if (other.type() !== PlayerType.Nation) return html``;
     if (!this.otherProfile || !my) return html``;
-
     const relation =
       this.otherProfile.relations?.[my.smallID()] ?? Relation.Neutral;
-    const cls = this.getRelationClass(relation);
-    const name = this.getRelationName(relation);
-
-    return html`
-      <div class="mt-1">
-        <span class="text-sm font-semibold ${cls}">${name}</span>
-      </div>
-    `;
+    return html`<span class=${this.getRelationClass(relation)}>
+      ${this.getRelationName(relation)}
+    </span>`;
   }
 
   private renderIdentityRow(other: PlayerView, my: PlayerView) {
@@ -575,79 +560,45 @@ export class PlayerPanel extends LitElement implements Controller {
       typeof flagCode === "string"
         ? Countries.find((c) => c.code === flagCode)
         : undefined;
-
-    const chip =
-      other.type() === PlayerType.Human
-        ? null
-        : this.identityChipProps(other.type());
+    const chip = this.identityChipProps(other.type());
 
     return html`
-      <div class="flex items-center gap-2.5 flex-wrap">
+      <div class="command-player-identity">
         ${country && typeof flagCode === "string"
           ? html`<img
               src=${assetUrl(`flags/${encodeURIComponent(flagCode)}.svg`)}
               alt=${country?.name ?? "Flag"}
-              class="h-10 w-10 rounded-full object-cover"
+              class="command-player-flag"
               @error=${(e: Event) => {
                 (e.target as HTMLImageElement).style.display = "none";
               }}
             />`
-          : ""}
-
-        <div class="flex-1 min-w-0">
-          <h2
-            class="text-xl font-bold tracking-[-0.01em] text-zinc-50 truncate"
-            title=${other.displayName()}
-          >
-            ${other.displayName()}
-          </h2>
+          : html`<div class="command-player-flag command-player-flag-fallback"></div>`}
+        <div class="min-w-0 flex-1">
+          <h2 title=${other.displayName()}>${other.displayName()}</h2>
+          <div class="command-player-meta">
+            <span class=${chip.classes}>${translateText(chip.labelKey)}</span>
+            <span aria-hidden="true">·</span>
+            ${this.renderRelationPillIfNation(other, my)}
+          </div>
         </div>
-        ${chip
-          ? html`<span
-              class=${`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-semibold ${chip.classes}`}
-              role="status"
-              aria-label=${translateText(chip.labelKey)}
-              title=${translateText(chip.labelKey)}
-            >
-              <span aria-hidden="true" class="leading-none">${chip.icon}</span>
-              <span class="tracking-tight"
-                >${translateText(chip.labelKey)}</span
-              >
-            </span>`
-          : html``}
+        ${this.renderTraitorBadge(other)}
       </div>
-      ${this.renderTraitorBadge(other)}
-      ${this.renderRelationPillIfNation(other, my)}
     `;
   }
 
   private renderResources(other: PlayerView) {
     return html`
-      <div class="mb-1 flex justify-between gap-2">
-        <div
-          class="inline-flex items-center gap-1.5 rounded-lg bg-white/4 px-3 py-1.5 shrink-0
-                    text-white w-35"
-        >
-          <span class="mr-0.5">💰</span>
-          <span translate="no" class="tabular-nums w-[5ch] font-semibold">
-            ${renderNumber(other.gold() || 0)}
-          </span>
-          <span class="text-zinc-200 whitespace-nowrap">
-            ${translateText("player_panel.gold")}</span
-          >
+      <div class="command-player-metrics" aria-label="Resources">
+        <div>
+          <img src=${goldIcon} alt="" aria-hidden="true" />
+          <span>${translateText("player_panel.gold")}</span>
+          <strong translate="no">${renderNumber(other.gold() || 0)}</strong>
         </div>
-
-        <div
-          class="inline-flex items-center gap-1.5 rounded-lg bg-white/4 px-3 py-1.5
-                    text-white w-35 shrink-0"
-        >
-          <span class="mr-0.5">🛡️</span>
-          <span translate="no" class="tabular-nums w-[5ch] font-semibold">
-            ${renderTroops(other.troops() || 0)}
-          </span>
-          <span class="text-zinc-200 whitespace-nowrap">
-            ${translateText("player_panel.troops")}</span
-          >
+        <div>
+          <img src=${troopIcon} alt="" aria-hidden="true" />
+          <span>${translateText("player_panel.troops")}</span>
+          <strong translate="no">${renderTroops(other.troops() || 0)}</strong>
         </div>
       </div>
     `;
@@ -677,97 +628,38 @@ export class PlayerPanel extends LitElement implements Controller {
 
   private renderStats(other: PlayerView, my: PlayerView) {
     return html`
-      <!-- Betrayals -->
-      <div class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
-        <div
-          class="flex items-center gap-2 text-[15px] font-medium text-zinc-100 leading-snug"
-        >
-          <span aria-hidden="true">⚠️</span>
-          <span>${translateText("player_panel.betrayals")}</span>
+      <dl class="command-player-detail-list">
+        <div>
+          <dt>${translateText("player_panel.betrayals")}</dt>
+          <dd>${other.betrayals()}</dd>
         </div>
-        <div class="text-right text-[14px] font-semibold text-zinc-200">
-          ${other.betrayals()}
+        <div>
+          <dt>${translateText("player_panel.trading")}</dt>
+          <dd class=${other.hasEmbargoAgainst(my) ? "text-amber-300" : "text-sky-300"}>
+            ${other.hasEmbargoAgainst(my)
+              ? translateText("player_panel.stopped")
+              : translateText("player_panel.active")}
+          </dd>
         </div>
-      </div>
-
-      <!-- Trading / Embargo -->
-      <div class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2">
-        <div
-          class="flex items-center gap-2 text-[15px] font-medium text-zinc-100 leading-snug"
-        >
-          <span aria-hidden="true">⚓</span>
-          <span>${translateText("player_panel.trading")}</span>
-        </div>
-        <div
-          class="flex items-center justify-end gap-2 text-[14px] font-semibold"
-        >
-          ${other.hasEmbargoAgainst(my)
-            ? html`<span class="text-amber-400"
-                >${translateText("player_panel.stopped")}</span
-              >`
-            : html`<span class="text-blue-400"
-                >${translateText("player_panel.active")}</span
-              >`}
-        </div>
-      </div>
+      </dl>
     `;
   }
 
   private renderAlliances(other: PlayerView) {
-    const allies = other.allies();
-
-    const nameCollator = new Intl.Collator(undefined, { sensitivity: "base" });
-    const alliesSorted = [...allies].sort((a, b) =>
-      nameCollator.compare(a.displayName(), b.displayName()),
+    const allies = [...other.allies()].sort((a, b) =>
+      a.displayName().localeCompare(b.displayName()),
     );
-
     return html`
-      <div class="select-none">
-        <div class="flex items-center justify-between mb-2">
-          <div
-            id="alliances-title"
-            class="text-[15px] font-medium text-zinc-200"
-          >
-            ${translateText("player_panel.alliances")}
-          </div>
-          <span
-            aria-labelledby="alliances-title"
-            class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-[10px]
-                 text-[12px] text-zinc-100 bg-white/10 border border-white/20"
-          >
-            ${allies.length}
-          </span>
+      <div class="command-player-allies">
+        <div>
+          <span>${translateText("player_panel.alliances")}</span>
+          <strong>${allies.length}</strong>
         </div>
-
-        <div
-          class="rounded-lg bg-zinc-800/70 ring-1 ring-zinc-700/60 w-full min-w-0"
-        >
-          <ul
-            class="max-h-30 overflow-y-auto p-2
-                 flex flex-wrap gap-1.5
-                 scrollbar-thin scrollbar-thumb-zinc-600 hover:scrollbar-thumb-zinc-500 scrollbar-track-zinc-800"
-            role="list"
-            aria-labelledby="alliances-title"
-            translate="no"
-          >
-            ${alliesSorted.length === 0
-              ? html`<li class="text-zinc-400 text-[14px] px-1">
-                  ${translateText("common.none")}
-                </li>`
-              : alliesSorted.map(
-                  (p) =>
-                    html`<li
-                      class="max-w-full inline-flex items-center gap-1.5
-                             rounded-md border border-white/10 bg-white/5
-                             px-2.5 py-1 text-[14px] text-zinc-100
-                             hover:bg-white/8 active:scale-[0.99] transition"
-                      title=${p.displayName()}
-                    >
-                      <span class="truncate">${p.displayName()}</span>
-                    </li>`,
-                )}
-          </ul>
-        </div>
+        ${allies.length === 0
+          ? html`<p>${translateText("common.none")}</p>`
+          : html`<ul translate="no">
+              ${allies.map((ally) => html`<li>${ally.displayName()}</li>`)}
+            </ul>`}
       </div>
     `;
   }
@@ -803,7 +695,6 @@ export class PlayerPanel extends LitElement implements Controller {
         : this.actions?.interaction?.canSendEmoji;
     const canBreakAlliance = this.actions?.interaction?.canBreakAlliance;
     const canEmbargo = this.actions?.interaction?.canEmbargo;
-
     const canAttack = !!this.actions?.canAttack;
     const canCoordinateAttack =
       !!this.actions?.interaction?.canTarget && my.allies().length > 0;
@@ -814,83 +705,86 @@ export class PlayerPanel extends LitElement implements Controller {
       ) ?? false);
     const isAllied = other.isAlliedWith(my);
 
+    if (this.selectionLoading || this.actions === null) {
+      return html`<div class="command-player-loading" aria-live="polite">
+        <span></span><span></span><span></span>
+      </div>`;
+    }
+
     return html`
-      <div class="command-player-actions flex flex-col gap-2.5">
+      <div class="command-player-actions">
         ${other !== my && (canAttack || canCoordinateAttack || canLand)
-          ? html`
-              <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                ${canAttack
-                  ? actionButton({
-                      onClick: (e: MouseEvent) =>
-                        this.handleGroundAttack(e, my, other),
-                      icon: targetIcon,
-                      iconAlt: "Attack",
-                      title: translateText("alliance_commands.attack_now"),
-                      label: translateText("alliance_commands.attack_now"),
-                      type: "red",
-                    })
-                  : ""}
-                ${canLand
-                  ? actionButton({
-                      onClick: (e: MouseEvent) => this.handleBoatAttack(e, my),
-                      icon: targetIcon,
-                      iconAlt: "Landing",
-                      title: translateText("alliance_commands.land_now"),
-                      label: translateText("alliance_commands.land_now"),
-                      type: "red",
-                    })
-                  : ""}
-                ${canCoordinateAttack
-                  ? actionButton({
-                      onClick: (e: MouseEvent) =>
-                        this.handleCoordinateAttack(e, other),
-                      icon: targetIcon,
-                      iconAlt: "Coordinate attack",
-                      title: translateText(
-                        "alliance_commands.coordinate_attack",
-                      ),
-                      label: translateText(
-                        "alliance_commands.coordinate_attack",
-                      ),
-                      type: "indigo",
-                    })
-                  : ""}
-              </div>
-              <ui-divider></ui-divider>
-            `
+          ? html`<div class="command-player-primary-actions">
+              ${canAttack
+                ? actionButton({
+                    onClick: (e: MouseEvent) =>
+                      this.handleGroundAttack(e, my, other),
+                    icon: targetIcon,
+                    iconAlt: "Attack",
+                    title: translateText("alliance_commands.attack_now"),
+                    label: translateText("alliance_commands.attack_now"),
+                    type: "red",
+                    priority: "primary",
+                  })
+                : ""}
+              ${canLand
+                ? actionButton({
+                    onClick: (e: MouseEvent) => this.handleBoatAttack(e, my),
+                    icon: targetIcon,
+                    iconAlt: "Landing",
+                    title: translateText("alliance_commands.land_now"),
+                    label: translateText("alliance_commands.land_now"),
+                    type: "red",
+                    priority: canAttack ? "secondary" : "primary",
+                  })
+                : ""}
+              ${canCoordinateAttack
+                ? actionButton({
+                    onClick: (e: MouseEvent) =>
+                      this.handleCoordinateAttack(e, other),
+                    icon: targetIcon,
+                    iconAlt: "Coordinate attack",
+                    title: translateText("alliance_commands.coordinate_attack"),
+                    label: translateText("alliance_commands.coordinate_attack"),
+                    type: "indigo",
+                    priority: "secondary",
+                  })
+                : ""}
+            </div>`
           : ""}
+
         ${other !== my && isAllied
-          ? html`
-              <div class="grid grid-cols-2 gap-2">
-                ${actionButton({
-                  onClick: (e: MouseEvent) =>
-                    this.handleResourceRequest(e, other, "gold"),
-                  icon: donateGoldIcon,
-                  iconAlt: "Request gold",
-                  title: translateText("alliance_commands.request_gold"),
-                  label: translateText("alliance_commands.request_gold"),
-                  type: "normal",
-                })}
-                ${actionButton({
-                  onClick: (e: MouseEvent) =>
-                    this.handleResourceRequest(e, other, "troops"),
-                  icon: donateTroopIcon,
-                  iconAlt: "Request troops",
-                  title: translateText("alliance_commands.request_troops"),
-                  label: translateText("alliance_commands.request_troops"),
-                  type: "normal",
-                })}
-              </div>
-              <ui-divider></ui-divider>
-            `
+          ? html`<div class="command-player-support-actions">
+              ${actionButton({
+                onClick: (e: MouseEvent) =>
+                  this.handleResourceRequest(e, other, "gold"),
+                icon: donateGoldIcon,
+                iconAlt: "Request gold",
+                title: translateText("alliance_commands.request_gold"),
+                label: translateText("alliance_commands.request_gold"),
+                priority: "secondary",
+              })}
+              ${actionButton({
+                onClick: (e: MouseEvent) =>
+                  this.handleResourceRequest(e, other, "troops"),
+                icon: donateTroopIcon,
+                iconAlt: "Request troops",
+                title: translateText("alliance_commands.request_troops"),
+                label: translateText("alliance_commands.request_troops"),
+                priority: "secondary",
+              })}
+            </div>`
           : ""}
-        <div class="grid auto-cols-fr grid-flow-col gap-1">
+
+        <div class="command-player-quick-actions">
           ${actionButton({
             onClick: (e: MouseEvent) => this.handleChat(e, my, other),
             icon: chatIcon,
             iconAlt: "Chat",
             title: translateText("player_panel.chat"),
             label: translateText("player_panel.chat"),
+            priority: "quiet",
+            layout: "stacked",
           })}
           ${canSendEmoji
             ? actionButton({
@@ -899,7 +793,8 @@ export class PlayerPanel extends LitElement implements Controller {
                 iconAlt: "Emoji",
                 title: translateText("player_panel.emotes"),
                 label: translateText("player_panel.emotes"),
-                type: "normal",
+                priority: "quiet",
+                layout: "stacked",
               })
             : ""}
           ${canDonateTroops
@@ -910,7 +805,8 @@ export class PlayerPanel extends LitElement implements Controller {
                 iconAlt: "Troops",
                 title: translateText("player_panel.send_troops"),
                 label: translateText("player_panel.troops"),
-                type: "normal",
+                priority: "quiet",
+                layout: "stacked",
               })
             : ""}
           ${canDonateGold
@@ -921,89 +817,82 @@ export class PlayerPanel extends LitElement implements Controller {
                 iconAlt: "Gold",
                 title: translateText("player_panel.send_gold"),
                 label: translateText("player_panel.gold"),
-                type: "normal",
+                priority: "quiet",
+                layout: "stacked",
               })
             : ""}
         </div>
-        <ui-divider></ui-divider>
+
         ${other === my
-          ? html``
-          : html`
-              <div class="grid auto-cols-fr grid-flow-col gap-1">
-                ${canEmbargo
-                  ? actionButton({
-                      onClick: (e: MouseEvent) =>
-                        this.handleEmbargoClick(e, my, other),
-                      icon: stopTradingIcon,
-                      iconAlt: "Stop Trading",
-                      title: translateText("player_panel.stop_trade"),
-                      label: translateText("player_panel.stop_trade"),
-                      type: "yellow",
-                    })
-                  : actionButton({
-                      onClick: (e: MouseEvent) =>
-                        this.handleStopEmbargoClick(e, my, other),
-                      icon: startTradingIcon,
-                      iconAlt: "Start Trading",
-                      title: translateText("player_panel.start_trade"),
-                      label: translateText("player_panel.start_trade"),
-                      type: "green",
-                    })}
-                ${canBreakAlliance
-                  ? actionButton({
-                      onClick: (e: MouseEvent) =>
-                        this.handleBreakAllianceClick(e, my, other),
-                      icon: breakAllianceIcon,
-                      iconAlt: "Break Alliance",
-                      title: translateText("player_panel.break_alliance"),
-                      label: translateText("player_panel.break_alliance"),
-                      type: "red",
-                    })
-                  : ""}
-                ${canSendAllianceRequest
-                  ? actionButton({
-                      onClick: (e: MouseEvent) =>
-                        this.handleAllianceClick(e, my, other),
-                      icon: allianceIcon,
-                      iconAlt: "Alliance",
-                      title: translateText("player_panel.send_alliance"),
-                      label: translateText("player_panel.send_alliance"),
-                      type: "indigo",
-                    })
-                  : ""}
-              </div>
-            `}
-        ${other === my
-          ? html`<div class="grid auto-cols-fr grid-flow-col gap-1">
+          ? html`<div class="command-player-diplomacy-actions">
               ${actionButton({
                 onClick: (e: MouseEvent) => this.onStopTradingAllClick(e),
                 icon: stopTradingIcon,
                 iconAlt: "Stop Trading With All",
-                title: !this.actions?.canEmbargoAll
-                  ? `${translateText("player_panel.stop_trade_all")} - ${translateText("cooldown")}`
-                  : translateText("player_panel.stop_trade_all"),
-                label: !this.actions?.canEmbargoAll
-                  ? `${translateText("player_panel.stop_trade_all")} ⏳`
-                  : translateText("player_panel.stop_trade_all"),
+                title: translateText("player_panel.stop_trade_all"),
+                label: translateText("player_panel.stop_trade_all"),
                 type: "yellow",
+                priority: "quiet",
                 disabled: !this.actions?.canEmbargoAll,
               })}
               ${actionButton({
                 onClick: (e: MouseEvent) => this.onStartTradingAllClick(e),
                 icon: startTradingIcon,
                 iconAlt: "Start Trading With All",
-                title: !this.actions?.canEmbargoAll
-                  ? `${translateText("player_panel.start_trade_all")} - ${translateText("cooldown")}`
-                  : translateText("player_panel.start_trade_all"),
-                label: !this.actions?.canEmbargoAll
-                  ? `${translateText("player_panel.start_trade_all")} ⏳`
-                  : translateText("player_panel.start_trade_all"),
+                title: translateText("player_panel.start_trade_all"),
+                label: translateText("player_panel.start_trade_all"),
                 type: "green",
+                priority: "quiet",
                 disabled: !this.actions?.canEmbargoAll,
               })}
             </div>`
-          : ""}
-        ${this.renderModeration(my, other, this.isAdminRole)}
+          : html`<div class="command-player-diplomacy-actions">
+              ${canSendAllianceRequest
+                ? actionButton({
+                    onClick: (e: MouseEvent) =>
+                      this.handleAllianceClick(e, my, other),
+                    icon: allianceIcon,
+                    iconAlt: "Alliance",
+                    title: translateText("player_panel.send_alliance"),
+                    label: translateText("player_panel.send_alliance"),
+                    type: "indigo",
+                    priority: canAttack ? "secondary" : "primary",
+                  })
+                : ""}
+              ${canEmbargo
+                ? actionButton({
+                    onClick: (e: MouseEvent) =>
+                      this.handleEmbargoClick(e, my, other),
+                    icon: stopTradingIcon,
+                    iconAlt: "Stop Trading",
+                    title: translateText("player_panel.stop_trade"),
+                    label: translateText("player_panel.stop_trade"),
+                    type: "yellow",
+                    priority: "quiet",
+                  })
+                : actionButton({
+                    onClick: (e: MouseEvent) =>
+                      this.handleStopEmbargoClick(e, my, other),
+                    icon: startTradingIcon,
+                    iconAlt: "Start Trading",
+                    title: translateText("player_panel.start_trade"),
+                    label: translateText("player_panel.start_trade"),
+                    type: "green",
+                    priority: "quiet",
+                  })}
+              ${canBreakAlliance
+                ? actionButton({
+                    onClick: (e: MouseEvent) =>
+                      this.handleBreakAllianceClick(e, my, other),
+                    icon: breakAllianceIcon,
+                    iconAlt: "Break Alliance",
+                    title: translateText("player_panel.break_alliance"),
+                    label: translateText("player_panel.break_alliance"),
+                    type: "red",
+                    priority: "quiet",
+                  })
+                : ""}
+            </div>`}
       </div>
     `;
   }
@@ -1018,151 +907,96 @@ export class PlayerPanel extends LitElement implements Controller {
       const owner = this.g.owner(this.tile);
       if (owner?.isPlayer()) other = owner as PlayerView;
     }
-    if (!other) {
-      this.hide();
-      console.warn("No player selected");
-      return html``;
-    }
+    if (!other) return html``;
+
     const myGoldNum = my.gold();
     const myTroopsNum = Number(my.troops());
 
     return html`
-      <style>
-        /* Soft glowing ring animation for traitors */
-        .traitor-ring {
-          border-radius: 1rem;
-          box-shadow:
-            0 0 0 2px rgba(239, 68, 68, 0.34),
-            0 0 12px 4px rgba(239, 68, 68, 0.22),
-            inset 0 0 14px rgba(239, 68, 68, 0.13);
-          animation: glowPulse 2.4s ease-in-out infinite;
-        }
-        @keyframes glowPulse {
-          0%,
-          100% {
-            box-shadow:
-              0 0 0 2px rgba(239, 68, 68, 0.22),
-              0 0 8px 2px rgba(239, 68, 68, 0.15),
-              inset 0 0 8px rgba(239, 68, 68, 0.07);
-          }
-          50% {
-            box-shadow:
-              0 0 0 4px rgba(239, 68, 68, 0.38),
-              0 0 18px 6px rgba(239, 68, 68, 0.26),
-              inset 0 0 18px rgba(239, 68, 68, 0.15);
-          }
-        }
-      </style>
-
-      <div
-        class="fixed inset-0 z-10001 flex items-end justify-center overflow-hidden
-               bg-black/5 pointer-events-auto sm:items-center sm:overflow-auto sm:bg-black/15 sm:backdrop-brightness-110"
-        @contextmenu=${(e: MouseEvent) => e.preventDefault()}
-        @wheel=${(e: MouseEvent) => e.stopPropagation()}
-        @click=${() => this.hide()}
-      >
-        <div
-          class="pointer-events-auto w-full max-w-none px-0 pb-[env(safe-area-inset-bottom)] sm:max-h-[90vh] sm:min-w-75 sm:max-w-100 sm:px-4 sm:py-2"
-          @click=${(e: MouseEvent) => e.stopPropagation()}
+      <div class="command-player-layer fixed inset-0 z-10001">
+        <section
+          class=${`command-player-sheet command-player-dock ${
+            other.isTraitor() ? "is-traitor" : ""
+          }`}
+          role="dialog"
+          aria-modal="false"
+          aria-label=${other.displayName()}
+          @contextmenu=${(e: MouseEvent) => e.preventDefault()}
+          @wheel=${(e: WheelEvent) => e.stopPropagation()}
         >
-          <div class="relative">
-            <div
-              class="absolute inset-2 -z-10 hidden rounded-2xl bg-black/25 backdrop-blur-[2px] sm:block"
-            ></div>
-            <div
-              class=${`command-player-sheet relative w-full bg-zinc-900/98 rounded-t-xl text-zinc-100 shadow-2xl shadow-black/50 sm:rounded-2xl
-                 ${other.isTraitor() ? "traitor-ring" : "ring-1 ring-white/5"}`}
+          <div class="command-player-scroll">
+            <header class="command-player-header">
+              ${this.renderIdentityRow(other, my)}
+              <button
+                class="command-player-close"
+                @click=${this.handleClose}
+                aria-label=${translateText("common.close") || "Close"}
+                title=${translateText("common.close") || "Close"}
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </header>
+
+            ${this.renderResources(other)}
+            ${this.renderActions(my, other)}
+
+            <button
+              class="command-player-details-toggle"
+              aria-expanded=${this.detailsExpanded}
+              @click=${(e: Event) => {
+                e.stopPropagation();
+                this.detailsExpanded = !this.detailsExpanded;
+              }}
             >
-              <div class="overflow-visible">
-                <div
-                  class="overflow-auto [-webkit-overflow-scrolling:touch] max-h-[min(72dvh,640px)] sm:resize-y sm:max-h-[calc(100vh-120px-env(safe-area-inset-bottom))]"
-                >
-                  <div class="sticky top-0 z-20 flex justify-end p-2">
-                    <button
-                      @click=${this.handleClose}
-                      class="absolute right-3 top-3 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-700 text-white shadow-sm hover:bg-red-500 transition-colors"
-                      aria-label=${translateText("common.close") || "Close"}
-                      title=${translateText("common.close") || "Close"}
-                    >
-                      ✕
-                    </button>
-                  </div>
+              <span>${translateText("alliance_commands.details")}</span>
+              <span aria-hidden="true">${this.detailsExpanded ? "−" : "+"}</span>
+            </button>
 
-                  <div
-                    class="p-4 pb-5 flex flex-col gap-2 font-sans antialiased text-[14.5px] leading-relaxed sm:p-6"
-                  >
-                    <!-- Identity (flag, name, type, traitor, relation) -->
-                    <div class="mb-1">${this.renderIdentityRow(other, my)}</div>
-
-                    <!-- Primary commands stay above fold on mobile. -->
-                    ${this.renderActions(my, other)}
-
-                    ${this.sendTarget
-                      ? html`
-                          <send-resource-modal
-                            .open=${this.sendMode !== "none"}
-                            .mode=${this.sendMode}
-                            .total=${this.sendMode === "troops"
-                              ? myTroopsNum
-                              : myGoldNum}
-                            .uiState=${this.uiState}
-                            .myPlayer=${my}
-                            .target=${this.sendTarget}
-                            .gameView=${this.g}
-                            .eventBus=${this.eventBus}
-                            .format=${this.sendMode === "troops"
-                              ? renderTroops
-                              : renderNumber}
-                            @confirm=${this.confirmSend}
-                            @close=${this.closeSend}
-                          ></send-resource-modal>
-                        `
-                      : ""}
-                    ${this.moderationTarget
-                      ? html`
-                          <player-moderation-modal
-                            .open=${true}
-                            .myPlayer=${my}
-                            .target=${this.moderationTarget}
-                            .eventBus=${this.eventBus}
-                            .isAdmin=${this.isAdminRole}
-                            .alreadyKicked=${this.kickedPlayerIDs.has(
-                              String(this.moderationTarget.id()),
-                            )}
-                            @close=${this.closeModeration}
-                            @kicked=${this.handleModerationKicked}
-                          ></player-moderation-modal>
-                        `
-                      : ""}
-
-                    <ui-divider></ui-divider>
-
-                    <!-- Resources -->
-                    ${this.renderResources(other)}
-
-                    <!-- Rocket direction toggle -->
-                    ${other === my ? this.renderRocketDirectionToggle() : ""}
-
-                    <ui-divider></ui-divider>
-
-                    <!-- Stats: betrayals / trading -->
-                    ${this.renderStats(other, my)}
-
-                    <ui-divider></ui-divider>
-
-                    <!-- Alliances list -->
-                    ${this.renderAlliances(other)}
-
-                    <!-- Alliance time remaining -->
-                    ${this.renderAllianceExpiry()}
-
-                  </div>
-                </div>
-              </div>
-            </div>
+            ${this.detailsExpanded
+              ? html`<div class="command-player-details">
+                  ${this.renderStats(other, my)}
+                  ${this.renderAlliances(other)}
+                  ${this.renderAllianceExpiry()}
+                  ${other === my ? this.renderRocketDirectionToggle() : ""}
+                  ${this.renderModeration(my, other, this.isAdminRole)}
+                </div>`
+              : ""}
           </div>
-        </div>
+        </section>
+
+        ${this.sendTarget
+          ? html`<send-resource-modal
+              class="pointer-events-auto"
+              .open=${this.sendMode !== "none"}
+              .mode=${this.sendMode}
+              .total=${this.sendMode === "troops" ? myTroopsNum : myGoldNum}
+              .uiState=${this.uiState}
+              .myPlayer=${my}
+              .target=${this.sendTarget}
+              .gameView=${this.g}
+              .eventBus=${this.eventBus}
+              .format=${this.sendMode === "troops" ? renderTroops : renderNumber}
+              @confirm=${this.confirmSend}
+              @close=${this.closeSend}
+            ></send-resource-modal>`
+          : ""}
+        ${this.moderationTarget
+          ? html`<player-moderation-modal
+              class="pointer-events-auto"
+              .open=${true}
+              .myPlayer=${my}
+              .target=${this.moderationTarget}
+              .eventBus=${this.eventBus}
+              .isAdmin=${this.isAdminRole}
+              .alreadyKicked=${this.kickedPlayerIDs.has(
+                String(this.moderationTarget.id()),
+              )}
+              @close=${this.closeModeration}
+              @kicked=${this.handleModerationKicked}
+            ></player-moderation-modal>`
+          : ""}
       </div>
     `;
   }
+
 }

@@ -230,6 +230,7 @@ export class InputHandler {
   private lastGestureScale: number | null = null;
 
   private pointerDown: boolean = false;
+  private touchPanActive: boolean = false;
 
   private alternateView = false;
 
@@ -256,6 +257,7 @@ export class InputHandler {
   private readonly PAN_SPEED = 5;
   private readonly ZOOM_SPEED = 10;
   private readonly DRAG_THRESHOLD_PX = 10;
+  private readonly TOUCH_TAP_SLOP_PX = 22;
 
   private readonly userSettings: UserSettings = new UserSettings();
 
@@ -450,7 +452,7 @@ export class InputHandler {
 
     this.canvas.addEventListener("pointerdown", (e) => this.onPointerDown(e));
     window.addEventListener("pointerup", (e) => this.onPointerUp(e));
-    window.addEventListener("pointercancel", (e) => this.onPointerUp(e));
+    window.addEventListener("pointercancel", (e) => this.onPointerCancel(e));
     this.canvas.addEventListener(
       "wheel",
       (e) => {
@@ -503,6 +505,7 @@ export class InputHandler {
         this.eventBus.emit(new AlternateViewEvent(false));
       }
       this.pointerDown = false;
+      this.touchPanActive = false;
       this.pointers.clear();
       this.lastGestureScale = null;
       if (this.longPressTimer !== null) {
@@ -731,6 +734,7 @@ export class InputHandler {
     this.pointers.set(event.pointerId, event);
 
     if (this.pointers.size === 1) {
+      if (event.pointerType === "touch") this.touchPanActive = false;
       this.lastPointerX = event.clientX;
       this.lastPointerY = event.clientY;
 
@@ -773,6 +777,24 @@ export class InputHandler {
     }
   }
 
+  private onPointerCancel(event: PointerEvent) {
+    if (event.button > 0) return;
+    this.pointerDown = false;
+    this.touchPanActive = false;
+    this.pointers.clear();
+    if (this.longPressTimer !== null) {
+      clearTimeout(this.longPressTimer);
+      this.longPressTimer = null;
+    }
+    this.longPressActive = false;
+    this.suppressNextTap = false;
+    if (this.selectionBoxActive) {
+      this.selectionBoxActive = false;
+      this.eventBus.emit(new WarshipSelectionBoxCancelEvent());
+    }
+    this.canvas.style.cursor = "";
+  }
+
   onPointerUp(event: PointerEvent) {
     if (event.button === 1) {
       event.preventDefault();
@@ -782,7 +804,9 @@ export class InputHandler {
     if (event.button > 0) {
       return;
     }
+    const wasTouchPan = this.touchPanActive;
     this.pointerDown = false;
+    this.touchPanActive = false;
     this.pointers.clear();
 
     // Clean up long-press state
@@ -832,10 +856,15 @@ export class InputHandler {
       return;
     }
 
-    const dist =
-      Math.abs(event.x - this.lastPointerDownX) +
-      Math.abs(event.y - this.lastPointerDownY);
-    if (dist < this.DRAG_THRESHOLD_PX) {
+    const dist = Math.hypot(
+      event.x - this.lastPointerDownX,
+      event.y - this.lastPointerDownY,
+    );
+    const tapThreshold =
+      event.pointerType === "touch"
+        ? this.TOUCH_TAP_SLOP_PX
+        : this.DRAG_THRESHOLD_PX;
+    if (dist < tapThreshold && !wasTouchPan) {
       if (event.pointerType === "touch") {
         if (this.suppressNextTap) {
           this.suppressNextTap = false;
@@ -941,15 +970,35 @@ export class InputHandler {
       const deltaX = event.clientX - this.lastPointerX;
       const deltaY = event.clientY - this.lastPointerY;
 
-      // Cancel long-press if finger moved significantly before timer fires
-      if (this.longPressTimer !== null) {
-        const moveDist =
-          Math.abs(event.clientX - this.lastPointerDownX) +
-          Math.abs(event.clientY - this.lastPointerDownY);
-        if (moveDist >= this.DRAG_THRESHOLD_PX) {
-          clearTimeout(this.longPressTimer);
-          this.longPressTimer = null;
-        }
+      const moveDist = Math.hypot(
+        event.clientX - this.lastPointerDownX,
+        event.clientY - this.lastPointerDownY,
+      );
+      const moveThreshold =
+        event.pointerType === "touch"
+          ? this.TOUCH_TAP_SLOP_PX
+          : this.DRAG_THRESHOLD_PX;
+
+      // A resting finger is noisy. Do not pan or cancel a long press until the
+      // pointer leaves the touch slop region.
+      if (
+        event.pointerType === "touch" &&
+        !this.touchPanActive &&
+        !this.longPressActive &&
+        moveDist < this.TOUCH_TAP_SLOP_PX
+      ) {
+        this.lastPointerX = event.clientX;
+        this.lastPointerY = event.clientY;
+        return;
+      }
+      if (event.pointerType === "touch" && moveDist >= this.TOUCH_TAP_SLOP_PX) {
+        this.touchPanActive = true;
+      }
+
+      // Cancel long-press only after the relevant pointer threshold is crossed.
+      if (this.longPressTimer !== null && moveDist >= moveThreshold) {
+        clearTimeout(this.longPressTimer);
+        this.longPressTimer = null;
       }
 
       // If shift is held OR touch long-press is active OR selection box already
