@@ -960,6 +960,9 @@ control-panel input[type="range"]::-webkit-slider-thumb {
 /* Map-first country selection and refined command surfaces. */
 .command-player-layer {
   pointer-events: none;
+  box-sizing: border-box;
+  padding: 0 !important;
+  margin: 0 !important;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -973,7 +976,7 @@ control-panel input[type="range"]::-webkit-slider-thumb {
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-bottom: 0;
   border-radius: 8px 8px 0 0;
-  background: rgba(10, 15, 20, 0.97);
+  background: #0a0f14;
   color: #f8fafc;
   box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.28);
   animation: command-dock-enter 160ms ease-out;
