@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -34,6 +34,7 @@ jobs:
           grep -Fq 'import "./styles/operational-atlas.css"' src/client/Main.ts
           grep -Fq 'Operational Atlas' src/client/styles/operational-atlas.css
           grep -Fq 'command-build-dock' src/client/hud/layers/BuildMenu.ts
+          grep -Fq 'Show one Steam promotion per viewport' src/client/styles/operational-atlas.css
           ! grep -Rq 'fonts/OpenFront.ttf' src/client
           ! grep -Rq 'images/OpenFrontLogo.svg' src/client
 
@@ -105,6 +106,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Verify the live Pages deployment
+        id: verify
         env:
           SITE_URL: ${{ steps.deployment.outputs.page_url }}
         shell: bash
@@ -146,5 +148,48 @@ jobs:
           ! grep -q 'images/OpenFrontLogo.svg' /tmp/pages-app.js /tmp/pages-app.css
           grep -q -- '--command-surface-panel' /tmp/pages-app.css
 
-          printf 'Verified UI preview: %s\nJS: %s\nCSS: %s\n' \
-            "${SITE_URL}" "${js_path}" "${css_path}"
+          echo "site_url=${SITE_URL}" >> "${GITHUB_OUTPUT}"
+          echo "js_path=${js_path}" >> "${GITHUB_OUTPUT}"
+          echo "css_path=${css_path}" >> "${GITHUB_OUTPUT}"
+          echo "js_bytes=$(wc -c < /tmp/pages-app.js | tr -d ' ')" >> "${GITHUB_OUTPUT}"
+          echo "css_bytes=$(wc -c < /tmp/pages-app.css | tr -d ' ')" >> "${GITHUB_OUTPUT}"
+
+      - name: Record verified preview status
+        uses: actions/checkout@v6
+        with:
+          ref: agent/ui-system-overhaul-2026-08-02
+          fetch-depth: 0
+
+      - name: Commit UI preview verification
+        env:
+          SITE_URL: ${{ steps.verify.outputs.site_url }}
+          JS_PATH: ${{ steps.verify.outputs.js_path }}
+          CSS_PATH: ${{ steps.verify.outputs.css_path }}
+          JS_BYTES: ${{ steps.verify.outputs.js_bytes }}
+          CSS_BYTES: ${{ steps.verify.outputs.css_bytes }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --rebase origin agent/ui-system-overhaul-2026-08-02
+          verified_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          cat > UI_PREVIEW_STATUS.md <<EOF
+          # Operational Atlas UI preview
+
+          - Status: verified
+          - URL: ${SITE_URL}
+          - Verified at: ${verified_at}
+          - Source commit: ${GITHUB_SHA}
+          - Workflow run: ${GITHUB_RUN_ID}
+          - JavaScript: ${JS_PATH} (${JS_BYTES} bytes)
+          - CSS: ${CSS_PATH} (${CSS_BYTES} bytes)
+          - Design token probe: --command-surface-panel
+          - Missing legacy font/logo requests: none
+          EOF
+
+          git config user.name 'openai-codex[bot]'
+          git config user.email 'openai-codex[bot]@users.noreply.github.com'
+          git add UI_PREVIEW_STATUS.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record verified UI preview [skip ci]'
+            git push origin HEAD:agent/ui-system-overhaul-2026-08-02
+          fi
