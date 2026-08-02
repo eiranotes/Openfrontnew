@@ -109,6 +109,12 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
+      - name: Install Playwright Chromium
+        if: github.event_name == 'pull_request'
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+
       - name: Run Fortress and single-player tests
         run: npx vitest run tests/FortressBalance.test.ts tests/SinglePlayerOptions.test.ts
 
@@ -123,6 +129,36 @@ jobs:
           DOMAIN: localhost
           NUM_WORKERS: '2'
         run: npm run build-dev
+
+      - name: Start configured single-player game in Chromium
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/openfront-site/Openfrontnew
+          cp -a static/. /tmp/openfront-site/Openfrontnew/
+          python3 -m http.server 4173 --directory /tmp/openfront-site \
+            >/tmp/openfront-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill ${server_pid} || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent \
+              http://127.0.0.1:4173/Openfrontnew/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          SMOKE_SITE_URL=http://127.0.0.1:4173/Openfrontnew/ \
+          SMOKE_SCREENSHOT=browser-single-player-smoke.png \
+            node scripts/browser-single-player-smoke.mjs
+
+      - name: Upload gameplay screenshot
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-single-player-smoke
+          path: browser-single-player-smoke.png
+          if-no-files-found: ignore
 
       - name: Add Pages fallbacks
         run: |
