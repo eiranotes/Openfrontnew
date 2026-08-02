@@ -18,7 +18,7 @@ const finalMarkerChecks = [
   ["src/client/components/PlayPage.ts", "command-steam-promo-slot"],
   ["src/client/hud/layers/BuildMenu.ts", "command-build-dock"],
   ["src/client/styles/operational-atlas.css", "Keep routed play page hidden"],
-  ["src/client/styles/operational-atlas.css", "Match setup height to modal chrome"],
+  ["src/client/styles/operational-atlas.css", "Fit inline setup beneath navigation"],
 ];
 
 function absolute(relativePath) {
@@ -151,15 +151,6 @@ appendOnce(
 );
 replaceOrAppend(
   "src/client/styles/operational-atlas.css",
-  `/* Size setup to the modal section, not the outer viewport. The modal header
-   already consumes part of 100dvh; a second viewport subtraction pushed the
-   desktop action bar by one pixel and the tablet action bar below the fold. */
-@media (min-width: 640px) {
-  .command-single-player {
-    height: 100%;
-    max-height: 100%;
-  }
-}`,
   `/* Match setup height to modal chrome. At sm+ the modal reserves 16px above
    and below plus a 56px header and borders; using 100dvh for the slotted body
    leaves its footer outside the section's scroll viewport. */
@@ -167,6 +158,14 @@ replaceOrAppend(
   .command-single-player {
     height: calc(100dvh - 90px);
     max-height: calc(100dvh - 90px);
+  }
+}`,
+  `/* Fit inline setup beneath navigation, page inset and modal header. The
+   settings list scrolls while the start action remains fully visible. */
+@media (min-width: 640px) {
+  .command-single-player {
+    height: calc(100dvh - 130px);
+    max-height: calc(100dvh - 130px);
   }
 }`,
 );
