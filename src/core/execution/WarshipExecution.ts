@@ -319,8 +319,9 @@ export class WarshipExecution implements Execution {
         }
       }
 
+      // Hostile escorts must be cleared before transports can be farmed.
       const typePriority =
-        type === UnitType.TransportShip ? 0 : type === UnitType.Warship ? 1 : 2;
+        type === UnitType.Warship ? 0 : type === UnitType.TransportShip ? 1 : 2;
 
       if (
         bestUnit === undefined ||
@@ -635,10 +636,7 @@ export class WarshipExecution implements Execution {
     this.warship.updateWarshipState({ isInCombat: true });
     const shellAttackRate = this.mg.config().warshipShellAttackRate();
     if (this.mg.ticks() - this.lastShellAttack > shellAttackRate) {
-      if (this.warship.targetUnit()?.type() !== UnitType.TransportShip) {
-        // Warships don't need to reload when attacking transport ships.
-        this.lastShellAttack = this.mg.ticks();
-      }
+      this.lastShellAttack = this.mg.ticks();
       this.mg.addExecution(
         new ShellExecution(
           this.warship.tile(),

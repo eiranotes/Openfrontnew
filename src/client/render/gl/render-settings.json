@@ -298,11 +298,11 @@
     "converge": 0.7
   },
   "samRadius": {
-    "strokeWidth": 1.5,
-    "dashLen": 12,
-    "gapLen": 6,
-    "rotationSpeed": 14,
-    "alpha": 0.8,
+    "strokeWidth": 2.75,
+    "dashLen": 14,
+    "gapLen": 5,
+    "rotationSpeed": 10,
+    "alpha": 0.95,
     "outlineWidth": 0.4,
     "outlineSoftness": 0.15
   },

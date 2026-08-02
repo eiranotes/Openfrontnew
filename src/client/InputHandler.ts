@@ -245,7 +245,7 @@ export class InputHandler {
   private longPressTimer: ReturnType<typeof setTimeout> | null = null;
   private longPressActive: boolean = false;
   private suppressNextTap: boolean = false;
-  private readonly LONG_PRESS_MS = 800;
+  private readonly LONG_PRESS_MS = 500;
 
   private moveInterval: NodeJS.Timeout | null = null;
   private activeKeys = new Set<string>();

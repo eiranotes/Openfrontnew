@@ -6,7 +6,10 @@ import { EventBus } from "../../../core/EventBus";
 import { ClientID } from "../../../core/Schemas";
 import { Config } from "../../../core/configuration/Config";
 import { GameMode, GameType, Gold } from "../../../core/game/Game";
-import { militaryProfile } from "../../../core/game/FortressBalance";
+import {
+  compactStateProfile,
+  militaryProfile,
+} from "../../../core/game/FortressBalance";
 import { TileRef } from "../../../core/game/GameMap";
 import { GameUpdateType } from "../../../core/game/GameUpdates";
 import { UserSettings } from "../../../core/game/UserSettings";
@@ -67,6 +70,9 @@ export class ControlPanel extends LitElement implements Controller {
 
   @state()
   private _trainingCapacity = 0;
+
+  @state()
+  private _developmentEfficiencyBonus = 0;
 
   @state()
   private _goldGain: bigint | null = null;
@@ -137,6 +143,9 @@ export class ControlPanel extends LitElement implements Controller {
     this._militaryQuality = military.quality;
     this._trainingCoverage = military.coverage;
     this._trainingCapacity = military.trainingCapacity;
+    this._developmentEfficiencyBonus = Math.round(
+      (compactStateProfile(player).reinforcementMultiplier - 1) * 100,
+    );
     this.troopRate = config.troopIncreaseRate(player) * 10;
 
     const helpEnabled = new UserSettings().helpMessages();
@@ -539,6 +548,9 @@ export class ControlPanel extends LitElement implements Controller {
           <span class="text-sky-300/70 tabular-nums">${Math.round(
             this._trainingCoverage * 100,
           )}%</span>
+          <span class="text-emerald-300/80 tabular-nums"
+            >효율 +${this._developmentEfficiencyBonus}%</span
+          >
         </div>
         <div
           class="command-resource flex w-[8.25rem] shrink-0 cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-sm font-semibold text-white"
@@ -634,7 +646,10 @@ export class ControlPanel extends LitElement implements Controller {
           >×${this._militaryQuality.toFixed(2)}</span
         >
         <span class="shrink-0 tabular-nums text-sky-300/70"
-          >${Math.round(this._trainingCoverage * 100)}%</span
+          >훈련 ${Math.round(this._trainingCoverage * 100)}%</span
+        >
+        <span class="shrink-0 tabular-nums text-emerald-300/80"
+          >효율 +${this._developmentEfficiencyBonus}%</span
         >
       </div>
     `;

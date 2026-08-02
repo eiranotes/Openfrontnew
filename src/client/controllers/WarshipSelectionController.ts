@@ -208,8 +208,8 @@ export class WarshipSelectionController implements Controller {
   }
 
   /**
-   * Touch handler mirroring mouse-up. On dry land with no selection, falls
-   * back to opening the radial menu.
+   * Enemy or neutral land uses the desktop direct-attack path. Owned land
+   * retains the build menu, so mobile combat no longer needs a radial detour.
    */
   private onTouch(event: TouchEvent) {
     const cell = this.transformHandler.screenToWorldCoordinates(
@@ -226,7 +226,16 @@ export class WarshipSelectionController implements Controller {
       return;
     }
     if (!this.game.isWater(clickRef)) {
-      this.eventBus.emit(new ContextMenuEvent(event.x, event.y));
+      const myPlayer = this.game.myPlayer();
+      const isOwnedByMe =
+        myPlayer !== null &&
+        this.game.hasOwner(clickRef) &&
+        this.game.owner(clickRef) === myPlayer;
+      this.eventBus.emit(
+        isOwnedByMe
+          ? new ContextMenuEvent(event.x, event.y)
+          : new MouseUpEvent(event.x, event.y),
+      );
       return;
     }
     if (this.selectedUnit || this.multiSelectedWarships.length > 0) {
