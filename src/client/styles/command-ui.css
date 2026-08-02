@@ -848,12 +848,24 @@ control-panel input[type="range"]::-webkit-slider-thumb {
 /* Keep the single-player action bar inside the mobile viewport. */
 @media (max-width: 639px) {
   single-player-modal .command-single-player {
-    height: calc(100dvh - 56px);
-    max-height: calc(100dvh - 56px);
+    height: calc(100dvh - 60px);
+    max-height: calc(100dvh - 60px);
   }
 
   single-player-modal .command-settings-scroll {
     padding-bottom: 12px;
+  }
+
+  single-player-modal button,
+  single-player-modal input:not([type="range"]),
+  single-player-modal select,
+  single-player-modal [role="button"],
+  single-player-modal [role="tab"] {
+    min-height: 44px !important;
+  }
+
+  single-player-modal input[type="range"] {
+    min-height: 44px;
   }
 }
 
