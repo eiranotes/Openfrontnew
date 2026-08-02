@@ -32,6 +32,46 @@ await context.addInitScript(() => {
     get: () => ["en-US", "en"],
   });
 
+  // GitHub-hosted runners do not provide a physical GPU. Chromium still
+  // executes real WebGL2 through SwiftShader, but OpenFront intentionally
+  // rejects renderer strings containing software/SwiftShader. Keep the actual
+  // WebGL implementation and spoof only the CI renderer identity so the rest
+  // of the renderer and gameplay startup path can be exercised.
+  const installHardwareRendererIdentity = (prototype) => {
+    if (!prototype?.getParameter) return;
+    const originalGetParameter = prototype.getParameter;
+    prototype.getParameter = function (parameter) {
+      switch (parameter) {
+        case 0x1f00: // VENDOR
+        case 0x9245: // UNMASKED_VENDOR_WEBGL
+          return "NVIDIA Corporation";
+        case 0x1f01: // RENDERER
+        case 0x9246: // UNMASKED_RENDERER_WEBGL
+          return "ANGLE (NVIDIA, NVIDIA GeForce RTX 4090, OpenGL 4.6)";
+        default:
+          return originalGetParameter.call(this, parameter);
+      }
+    };
+
+    if (prototype.getExtension) {
+      const originalGetExtension = prototype.getExtension;
+      prototype.getExtension = function (name) {
+        const extension = originalGetExtension.call(this, name);
+        if (name === "WEBGL_debug_renderer_info") {
+          return (
+            extension ?? {
+              UNMASKED_VENDOR_WEBGL: 0x9245,
+              UNMASKED_RENDERER_WEBGL: 0x9246,
+            }
+          );
+        }
+        return extension;
+      };
+    }
+  };
+  installHardwareRendererIdentity(window.WebGLRenderingContext?.prototype);
+  installHardwareRendererIdentity(window.WebGL2RenderingContext?.prototype);
+
   let turnstileCallback;
   const completeTurnstile = (callback) => {
     const selected = callback ?? turnstileCallback;
@@ -140,12 +180,32 @@ try {
     { timeout: 60_000 },
   );
 
-  const webgl2Available = await page.evaluate(() => {
+  const graphics = await page.evaluate(() => {
     const canvas = document.createElement("canvas");
-    return canvas.getContext("webgl2") !== null;
+    const gl = canvas.getContext("webgl2");
+    if (!gl) return { webgl2Available: false };
+    const debug = gl.getExtension("WEBGL_debug_renderer_info");
+    return {
+      webgl2Available: true,
+      vendor: gl.getParameter(gl.VENDOR),
+      renderer: gl.getParameter(gl.RENDERER),
+      unmaskedVendor: debug
+        ? gl.getParameter(debug.UNMASKED_VENDOR_WEBGL)
+        : null,
+      unmaskedRenderer: debug
+        ? gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)
+        : null,
+    };
   });
-  if (!webgl2Available) {
+  if (!graphics.webgl2Available) {
     throw new Error("Headless Chromium did not expose a WebGL2 context");
+  }
+  if (
+    [graphics.renderer, graphics.unmaskedRenderer]
+      .filter(Boolean)
+      .some((value) => /swiftshader|software/i.test(value))
+  ) {
+    throw new Error(`CI renderer identity spoof failed: ${JSON.stringify(graphics)}`);
   }
 
   const defaults = await page.evaluate(async () => {
@@ -318,7 +378,7 @@ try {
     JSON.stringify(
       {
         status: "passed",
-        webgl2Available,
+        graphics,
         defaults,
         emitted,
         runtime,
