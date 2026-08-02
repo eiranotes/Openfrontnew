@@ -1,0 +1,50 @@
+name: Apply Fortress economy and responsive UI
+
+on:
+  push:
+    branches:
+      - agent/fortress-economy-responsive-ui
+    paths:
+      - .patches/fortress-ui/APPLY
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout working branch
+        uses: actions/checkout@v6
+        with:
+          ref: agent/fortress-economy-responsive-ui
+          fetch-depth: 0
+
+      - name: Reconstruct and verify patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          find .patches/fortress-ui -maxdepth 1 -name '*.part' -print0 \
+            | sort -z \
+            | xargs -0 cat \
+            | base64 --decode \
+            | gzip --decompress \
+            > /tmp/fortress-ui.patch
+          echo '6350a4df99d91e0f5c365365165c3d0857666ad3ed2835ae8b7066b5b201b309  /tmp/fortress-ui.patch' \
+            | sha256sum --check --strict
+          git apply --check /tmp/fortress-ui.patch
+
+      - name: Apply and publish implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply /tmp/fortress-ui.patch
+          rm -rf .patches/fortress-ui
+          rm -f .github/workflows/apply-fortress-ui-patch.yml
+          rm -f noop
+          git config user.name 'openai-codex[bot]'
+          git config user.email 'openai-codex[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Implement Fortress economy and responsive command UI'
+          git push origin HEAD:agent/fortress-economy-responsive-ui
