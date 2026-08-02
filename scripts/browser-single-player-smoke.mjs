@@ -8,6 +8,7 @@ const artifactPrefix =
   process.env.SMOKE_ARTIFACT_PREFIX ?? screenshotPath.replace(/\.png$/i, "");
 const viewportWidth = Number(process.env.SMOKE_VIEWPORT_WIDTH ?? 1440);
 const viewportHeight = Number(process.env.SMOKE_VIEWPORT_HEIGHT ?? 900);
+const mobileViewport = viewportWidth <= 430;
 
 const browser = await chromium.launch({
   headless: true,
@@ -24,6 +25,9 @@ const browser = await chromium.launch({
 const context = await browser.newContext({
   viewport: { width: viewportWidth, height: viewportHeight },
   locale: "en-US",
+  isMobile: mobileViewport,
+  hasTouch: mobileViewport,
+  deviceScaleFactor: mobileViewport ? 2 : 1,
 });
 
 await context.addInitScript(() => {
@@ -197,7 +201,7 @@ try {
 
     const startButton = modal.querySelector("o-button button");
     const footer = modal.querySelector(".command-settings-footer");
-    const modalShell = modal.querySelector("o-modal")?.shadowRoot?.querySelector("[role='dialog'] > div");
+    const modalShell = modal.querySelector("o-modal")?.shadowRoot?.querySelector("aside > div");
     const interactive = [...modal.querySelectorAll("button, input, select")]
       .map((element) => element.getBoundingClientRect())
       .filter((rect) => rect.width > 0 && rect.height > 0);
@@ -228,6 +232,9 @@ try {
   }
   if (uiLayout.viewport.width <= 430 && uiLayout.startButtonHeight < 44) {
     throw new Error(`Mobile start button is too small: ${JSON.stringify(uiLayout)}`);
+  }
+  if (uiLayout.viewport.width <= 430 && uiLayout.minInteractiveHeight < 44) {
+    throw new Error(`Mobile interactive target is too small: ${JSON.stringify(uiLayout)}`);
   }
   if (!uiLayout.footerVisible) {
     throw new Error(`Single-player footer is not visible: ${JSON.stringify(uiLayout)}`);

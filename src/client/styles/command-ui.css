@@ -845,6 +845,18 @@ control-panel input[type="range"]::-webkit-slider-thumb {
   }
 }
 
+/* Keep the single-player action bar inside the mobile viewport. */
+@media (max-width: 639px) {
+  single-player-modal .command-single-player {
+    height: calc(100dvh - 56px);
+    max-height: calc(100dvh - 56px);
+  }
+
+  single-player-modal .command-settings-scroll {
+    padding-bottom: 12px;
+  }
+}
+
 @media (pointer: coarse) {
   button,
   [role="button"],
