@@ -11,17 +11,13 @@ function write(relativePath, content) {
   fs.writeFileSync(path.join(root, relativePath), content);
 }
 
-function replaceOnce(content, before, after, label) {
-  if (content.includes(after)) return content;
-  if (!content.includes(before)) {
-    throw new Error(`Command wordmark anchor missing: ${label}`);
-  }
-  return content.replace(before, after);
-}
-
-const wordmark = `<span class="command-wordmark" aria-label="OpenFront">
+const desktopWordmark = `<span class="command-wordmark" aria-label="OpenFront">
               <span>OPEN</span><span class="command-wordmark__accent">FRONT</span>
             </span>`;
+const mobileTopbarWordmark = `<span class="command-wordmark command-wordmark--mobile" aria-label="OpenFront">
+                <span>OPEN</span><span class="command-wordmark__accent">FRONT</span>
+              </span>`;
+const logoPattern = /<img\s+[^>]*src=\$\{assetUrl\("images\/OpenFrontLogo\.svg"\)\}[^>]*alt="OpenFront"[^>]*\/>/m;
 
 for (const file of [
   "src/client/components/DesktopNavBar.ts",
@@ -29,43 +25,21 @@ for (const file of [
   "src/client/components/PlayPage.ts",
 ]) {
   let content = read(file);
-  content = content.replace(
-    'import { assetUrl } from "../../core/AssetUrls";\n',
-    "",
-  );
-
-  if (file.endsWith("DesktopNavBar.ts")) {
-    content = replaceOnce(
-      content,
-      `<img
-              src=${assetUrl("images/OpenFrontLogo.svg")}
-              alt="OpenFront"
-            />`,
-      wordmark,
-      "desktop logo",
-    );
-  } else if (file.endsWith("MobileNavBar.ts")) {
-    content = replaceOnce(
-      content,
-      `<img src=${assetUrl("images/OpenFrontLogo.svg")} alt="OpenFront" />`,
-      wordmark,
-      "mobile drawer logo",
-    );
-  } else {
-    content = replaceOnce(
-      content,
-      `<img
-                src=${assetUrl("images/OpenFrontLogo.svg")}
-                alt="OpenFront"
-                class="h-7 w-auto max-w-[150px]"
-              />`,
-      `<span class="command-wordmark command-wordmark--mobile" aria-label="OpenFront">
-                <span>OPEN</span><span class="command-wordmark__accent">FRONT</span>
-              </span>`,
-      "mobile topbar logo",
+  if (!content.includes("command-wordmark")) {
+    if (!logoPattern.test(content)) {
+      throw new Error(`Command wordmark logo anchor missing: ${file}`);
+    }
+    content = content.replace(
+      logoPattern,
+      file.endsWith("PlayPage.ts") ? mobileTopbarWordmark : desktopWordmark,
     );
   }
-
+  if (!content.includes('assetUrl("')) {
+    content = content.replace(
+      'import { assetUrl } from "../../core/AssetUrls";\n',
+      "",
+    );
+  }
   write(file, content);
 }
 
