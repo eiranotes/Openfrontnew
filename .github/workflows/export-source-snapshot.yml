@@ -56,8 +56,8 @@ jobs:
             > /tmp/fortress-ui.patch
           echo '6350a4df99d91e0f5c365365165c3d0857666ad3ed2835ae8b7066b5b201b309  /tmp/fortress-ui.patch' \
             | sha256sum --check --strict
-          git apply --check /tmp/fortress-ui.patch
-          git apply /tmp/fortress-ui.patch
+          git apply --check --exclude=.github/workflows/export-source-snapshot.yml /tmp/fortress-ui.patch
+          git apply --exclude=.github/workflows/export-source-snapshot.yml /tmp/fortress-ui.patch
           rm -rf .patches/fortress-ui
           rm -f .github/workflows/apply-fortress-ui-patch.yml
           rm -f .github/workflows/export-source-snapshot.yml
