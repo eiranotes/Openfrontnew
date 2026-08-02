@@ -70,6 +70,9 @@ jobs:
             touch .fortress-hud
           fi
 
+      - name: Restore original single-player options
+        run: node scripts/apply-single-player-options.mjs .
+
       - name: Verify patch anchors
         run: |
           node scripts/verify-fortress.mjs
@@ -84,7 +87,7 @@ jobs:
           git config user.email 'openai-codex[bot]@users.noreply.github.com'
           git add -A
           if ! git diff --cached --quiet; then
-            git commit -m 'Bootstrap OpenFront Fortress source [skip ci]'
+            git commit -m 'Restore configurable single-player options [skip ci]'
             git push origin "HEAD:${target_branch}"
           fi
 
@@ -97,8 +100,8 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Run Fortress balance tests
-        run: npx vitest run tests/FortressBalance.test.ts
+      - name: Run Fortress and single-player tests
+        run: npx vitest run tests/FortressBalance.test.ts tests/SinglePlayerOptions.test.ts
 
       - name: Type-check
         run: npx tsc --noEmit
