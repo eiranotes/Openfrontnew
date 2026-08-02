@@ -576,7 +576,7 @@ export class ControlPanel extends LitElement implements Controller {
       ${this.renderNotification()}
       <div class="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-2">
         <div
-          class="command-resource relative flex min-h-10 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-yellow-300"
+          class="command-resource relative flex min-h-11 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-yellow-300"
           translate="no"
         >
           ${this._goldGain !== null
@@ -594,9 +594,9 @@ export class ControlPanel extends LitElement implements Controller {
         <div class="min-w-0">${this.renderMobileTroopBar()}</div>
       </div>
 
-      <div class="mt-2 grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2">
+      <div class="mt-2 grid grid-cols-[76px_minmax(0,1fr)] items-center gap-2">
         <div
-          class="command-resource flex min-h-10 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-white"
+          class="command-resource flex min-h-11 items-center justify-center gap-1 rounded-md border px-2 text-sm font-semibold text-white"
           translate="no"
         >
           <img
@@ -610,11 +610,6 @@ export class ControlPanel extends LitElement implements Controller {
           <span class="tabular-nums"
             >${(this.attackRatio * 100).toFixed(0)}%</span
           >
-          <span class="truncate text-[10px] text-white/50">
-            ${renderTroops(
-              (this.game?.myPlayer()?.troops() ?? 0) * this.attackRatio,
-            )}
-          </span>
         </div>
         <input
           type="range"
@@ -624,7 +619,7 @@ export class ControlPanel extends LitElement implements Controller {
           .value=${String(Math.round(this.attackRatio * 100))}
           @input=${(e: Event) => this.handleRatioSliderInput(e)}
           @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
-          class="h-10 w-full accent-aquarius"
+          class="h-11 w-full accent-aquarius"
         />
       </div>
 

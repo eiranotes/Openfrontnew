@@ -1,6 +1,5 @@
 import { LitElement, html } from "lit";
 import { customElement } from "lit/decorators.js";
-import { assetUrl } from "../../core/AssetUrls";
 import { crazyGamesSDK } from "../CrazyGamesSDK";
 import "./CosmeticBackground";
 import "./NewsBox";
@@ -54,11 +53,9 @@ export class PlayPage extends LitElement {
             </button>
 
             <div class="flex min-w-0 items-center justify-center">
-              <img
-                src=${assetUrl("images/OpenFrontLogo.svg")}
-                alt="OpenFront"
-                class="h-7 w-auto max-w-[150px]"
-              />
+              <span class="command-wordmark command-wordmark--mobile" aria-label="OpenFront">
+                <span>OPEN</span><span class="command-wordmark__accent">FRONT</span>
+              </span>
             </div>
 
             ${crazyGamesSDK.isOnCrazyGames()

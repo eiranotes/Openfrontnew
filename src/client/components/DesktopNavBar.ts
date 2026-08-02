@@ -1,6 +1,5 @@
 import { LitElement, TemplateResult, html } from "lit";
 import { customElement } from "lit/decorators.js";
-import { assetUrl } from "../../core/AssetUrls";
 import { NavNotificationsController } from "./NavNotificationsController";
 
 @customElement("desktop-nav-bar")
@@ -55,10 +54,9 @@ export class DesktopNavBar extends LitElement {
       <nav class="command-desktop-nav relative z-50">
         <div class="command-desktop-nav__inner">
           <div class="command-desktop-nav__brand">
-            <img
-              src=${assetUrl("images/OpenFrontLogo.svg")}
-              alt="OpenFront"
-            />
+            <span class="command-wordmark" aria-label="OpenFront">
+              <span>OPEN</span><span class="command-wordmark__accent">FRONT</span>
+            </span>
             <span
               id="game-version"
               class="game-version-display text-[10px] tabular-nums text-white/35"

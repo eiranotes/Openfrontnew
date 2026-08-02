@@ -1,6 +1,5 @@
 import { html, LitElement, TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
-import { assetUrl } from "../../core/AssetUrls";
 import { NavNotificationsController } from "./NavNotificationsController";
 
 @customElement("mobile-nav-bar")
@@ -53,7 +52,9 @@ export class MobileNavBar extends LitElement {
     return html`
       <div class="command-mobile-nav">
         <div class="command-mobile-nav__brand">
-          <img src=${assetUrl("images/OpenFrontLogo.svg")} alt="OpenFront" />
+          <span class="command-wordmark" aria-label="OpenFront">
+              <span>OPEN</span><span class="command-wordmark__accent">FRONT</span>
+            </span>
           <span
             id="game-version"
             class="game-version-display ml-auto text-[10px] tabular-nums text-white/35"
