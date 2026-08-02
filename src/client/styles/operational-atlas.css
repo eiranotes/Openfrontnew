@@ -1118,3 +1118,11 @@ control-panel [class*="hover:scale"] {
     max-height: calc(100dvh - 130px);
   }
 }
+
+/* Show one Steam promotion per viewport: the compact body slot on smaller
+   screens and the persistent footer module on desktop-class layouts. */
+@media (min-width: 1024px) {
+  .command-steam-promo-slot {
+    display: none !important;
+  }
+}
