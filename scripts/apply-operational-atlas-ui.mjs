@@ -44,7 +44,7 @@ const encoded = partNames
   .replace(/\s/g, "");
 const encodedDigest = createHash("sha256").update(`${encoded}\n`).digest("hex");
 const expectedEncodedDigest =
-  "53d3f022e521e6631bc1ff67637364f7be5ec6a11fce0396e5b5b9915096bc89";
+  "75b3b47369fa28685e8bfeaad7e87ca049d1990dc645ea959db3ae1571801f73";
 if (encodedDigest !== expectedEncodedDigest) {
   throw new Error(
     `Operational Atlas encoded patch checksum mismatch: ${encodedDigest}`,
