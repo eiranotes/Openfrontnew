@@ -1,0 +1,27 @@
+name: Locate game worker sources
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  locate-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Locate worker entrypoints and error handlers
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== worker-like source paths ==='
+          find src -type f | grep -Ei 'worker|game.*runner|runner.*game' | sort || true
+          echo '=== Worker constructor references ==='
+          grep -RIn --include='*.ts' --include='*.tsx' --include='*.js' 'new Worker\|Worker\.worker\|SharedWorker' src || true
+          echo '=== worker rejection/error logging ==='
+          grep -RIn --include='*.ts' --include='*.tsx' --include='*.js' 'Unhandled promise rejection\|unhandledrejection\|PromiseRejectionEvent\|messageerror' src || true
+          echo '=== worker entry imports ==='
+          grep -RIn --include='*.ts' --include='*.tsx' --include='*.js' 'worker?\|worker&\|\.worker' src || true
