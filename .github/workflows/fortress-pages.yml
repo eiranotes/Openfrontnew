@@ -89,7 +89,7 @@ jobs:
           cat scripts/command-ui-patch.part-* \
             | tr -d '[:space:]' \
             | base64 -d > /tmp/command-ui-patch.tar.gz
-          echo 'd86ee98890564a59279217a20202f1227fd4e39a7fc8b77972ec2814c7a039  /tmp/command-ui-patch.tar.gz' \
+          echo 'd86ee98890564a59279217a20202f1227fd4e39a7fcaf8b77972ec2814c7a039  /tmp/command-ui-patch.tar.gz' \
             | sha256sum -c -
           tar -xzf /tmp/command-ui-patch.tar.gz
           node --check scripts/apply-responsive-mobile-fix.mjs
