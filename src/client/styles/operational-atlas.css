@@ -1110,12 +1110,11 @@ control-panel [class*="hover:scale"] {
   display: none !important;
 }
 
-/* Match setup height to modal chrome. At sm+ the modal reserves 16px above
-   and below plus a 56px header and borders; using 100dvh for the slotted body
-   leaves its footer outside the section's scroll viewport. */
+/* Fit inline setup beneath navigation, page inset and modal header. The
+   settings list scrolls while the start action remains fully visible. */
 @media (min-width: 640px) {
   .command-single-player {
-    height: calc(100dvh - 90px);
-    max-height: calc(100dvh - 90px);
+    height: calc(100dvh - 130px);
+    max-height: calc(100dvh - 130px);
   }
 }
