@@ -635,7 +635,9 @@ export class EventsDisplay extends LitElement implements Controller {
     const allEvents = [...tier1Events, ...tier2Events].sort(
       (a, b) => b.createdAt - a.createdAt,
     );
-    const compactEvent = tier1Events.at(-1) ?? tier2Events.at(-1);
+    const compactEvent =
+      tier1Events[tier1Events.length - 1] ??
+      tier2Events[tier2Events.length - 1];
     const visibleTier1 = this.expanded ? tier1Events.slice(-6) : [];
     const visibleTier2 = this.expanded ? tier2Events.slice(-4) : [];
 
