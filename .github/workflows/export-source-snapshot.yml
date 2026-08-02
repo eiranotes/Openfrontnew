@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/fortress-economy-responsive-ui
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
