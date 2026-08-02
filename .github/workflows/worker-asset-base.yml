@@ -31,15 +31,24 @@ jobs:
           grep -q 'resolveWorkerAssetBase(getCdnBase(), window.location.origin)' \
             src/core/worker/WorkerClient.ts
 
+      - name: Apply alliance compatibility fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f scripts/apply-alliance-command-fixes.mjs ]]; then
+            node --check scripts/apply-alliance-command-fixes.mjs
+            node scripts/apply-alliance-command-fixes.mjs .
+          fi
+
       - name: Commit patched Worker client
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'openai-codex[bot]'
           git config user.email 'openai-codex[bot]@users.noreply.github.com'
-          git add src/core/worker/WorkerClient.ts
+          git add src/core/worker/WorkerClient.ts src/client/hud/layers/EventsDisplay.ts src/core/game/AllianceCoordination.ts tests/FortressBalance.test.ts
           if ! git diff --cached --quiet; then
-            git commit -m 'Resolve Worker assets against page origin [skip ci]'
+            git commit -m 'Resolve Worker and alliance compatibility [skip ci]'
             git push origin "HEAD:${GITHUB_HEAD_REF}"
           fi
 
@@ -52,10 +61,11 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Run balance, solo, and Worker URL tests
+      - name: Run balance, alliance, solo, and Worker URL tests
         run: >-
           npx vitest run
           tests/FortressBalance.test.ts
+          tests/AllianceCoordination.test.ts
           tests/SinglePlayerOptions.test.ts
           tests/WorkerAssetBase.test.ts
 
