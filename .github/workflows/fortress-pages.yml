@@ -96,6 +96,8 @@ jobs:
           node scripts/apply-responsive-mobile-fix.mjs .
           node --check scripts/apply-alliance-command.mjs
           node scripts/apply-alliance-command.mjs .
+          node --check scripts/apply-alliance-command-fixes.mjs
+          node scripts/apply-alliance-command-fixes.mjs .
           grep -q 'import "./styles/command-ui.css"' src/client/Main.ts
           grep -q 'command-settings-grid' src/client/SinglePlayerModal.ts
           grep -q 'command-control-panel' src/client/hud/layers/ControlPanel.ts
