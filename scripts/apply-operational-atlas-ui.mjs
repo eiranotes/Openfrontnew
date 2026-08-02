@@ -19,6 +19,7 @@ const finalMarkerChecks = [
   ["src/client/hud/layers/BuildMenu.ts", "command-build-dock"],
   ["src/client/styles/operational-atlas.css", "Keep routed play page hidden"],
   ["src/client/styles/operational-atlas.css", "Fit inline setup beneath navigation"],
+  ["src/client/styles/operational-atlas.css", "Show one Steam promotion per viewport"],
 ];
 
 function absolute(relativePath) {
@@ -166,6 +167,17 @@ replaceOrAppend(
   .command-single-player {
     height: calc(100dvh - 130px);
     max-height: calc(100dvh - 130px);
+  }
+}`,
+);
+appendOnce(
+  "src/client/styles/operational-atlas.css",
+  "Show one Steam promotion per viewport",
+  `/* Show one Steam promotion per viewport: the compact body slot on smaller
+   screens and the persistent footer module on desktop-class layouts. */
+@media (min-width: 1024px) {
+  .command-steam-promo-slot {
+    display: none !important;
   }
 }`,
 );
