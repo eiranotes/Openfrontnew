@@ -1,0 +1,118 @@
+name: Bootstrap, test, and deploy Fortress
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+env:
+  UPSTREAM_REPOSITORY: openfrontio/OpenFrontIO
+  UPSTREAM_COMMIT: 753c66ef9463970616b17b625146b26a7154085d
+  PAGES_BASE: /Openfrontnew
+
+concurrency:
+  group: fortress-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Populate the empty repository from OpenFrontIO
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f .fortress-source ]]; then
+            git clone "https://github.com/${UPSTREAM_REPOSITORY}.git" upstream
+            git -C upstream checkout "${UPSTREAM_COMMIT}"
+            rsync -a \
+              --exclude='.git' \
+              --exclude='.github/workflows' \
+              upstream/ ./
+            rm -rf upstream
+            printf '%s\n' "${UPSTREAM_COMMIT}" > .fortress-source
+          fi
+
+      - name: Restore Fortress patch script
+        shell: bash
+        run: |
+          base64 -d scripts/apply-fortress.mjs.gz.b64 | gzip -d > scripts/apply-fortress.mjs
+          node --check scripts/apply-fortress.mjs
+
+      - name: Apply Fortress balance patch
+        run: node scripts/apply-fortress.mjs .
+
+      - name: Verify patch anchors
+        run: node scripts/verify-fortress.mjs
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run Fortress balance tests
+        run: npx vitest run tests/FortressBalance.test.ts
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build static single-player site
+        env:
+          GITHUB_PAGES: 'true'
+          CDN_BASE: /Openfrontnew
+          GAME_ENV: dev
+          DOMAIN: localhost
+          NUM_WORKERS: '2'
+        run: npm run build-dev
+
+      - name: Add Pages fallbacks
+        run: |
+          touch static/.nojekyll
+          cp static/index.html static/404.html
+
+      - name: Commit populated and patched source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'openai-codex[bot]'
+          git config user.email 'openai-codex[bot]@users.noreply.github.com'
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m 'Bootstrap OpenFront Fortress fork [skip ci]'
+            git push origin HEAD:main
+          fi
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: static
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
