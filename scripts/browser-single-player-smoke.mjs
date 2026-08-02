@@ -1,6 +1,8 @@
 import { chromium } from "playwright";
 
 const siteUrl = process.env.SMOKE_SITE_URL ?? "http://127.0.0.1:4173/Openfrontnew/";
+const screenshotPath =
+  process.env.SMOKE_SCREENSHOT ?? "browser-single-player-smoke.png";
 const browser = await chromium.launch({
   headless: true,
   args: [
@@ -12,6 +14,7 @@ const browser = await chromium.launch({
 
 const context = await browser.newContext({
   viewport: { width: 1440, height: 900 },
+  locale: "en-US",
 });
 
 await context.addInitScript(() => {
@@ -25,24 +28,65 @@ await context.addInitScript(() => {
   };
   window.PageOS = { session: { newPageView() {} } };
   window.adsEnabled = false;
+  window.ramp = {
+    que: [],
+    passiveMode: true,
+    async destroyUnits() {},
+    spaAddAds() {},
+    spaNewPage() {},
+    spaAds() {},
+    async addUnits() {},
+    displayUnits() {},
+    onPlayerReady: null,
+  };
+  window.googletag = { cmd: [], pubads: () => ({ set() {} }) };
+  window.Bolt = {
+    on() {},
+    BOLT_AD_REQUEST_START: "",
+    BOLT_AD_IMPRESSION: "",
+    BOLT_AD_STARTED: "",
+    BOLT_FIRST_QUARTILE: "",
+    BOLT_MIDPOINT: "",
+    BOLT_THIRD_QUARTILE: "",
+    BOLT_AD_COMPLETE: "",
+    BOLT_AD_ERROR: "",
+    BOLT_AD_PAUSED: "",
+    BOLT_AD_CLICKED: "",
+    SHOW_HIDDEN_CONTAINER: "",
+  };
 });
 
 const page = await context.newPage();
 const pageErrors = [];
 const consoleErrors = [];
+const criticalErrors = [];
 
 page.on("pageerror", (error) => {
-  pageErrors.push(error.stack ?? error.message);
+  const text = error.stack ?? error.message;
+  pageErrors.push(text);
+  console.log(`[pageerror] ${text}`);
 });
 page.on("console", (message) => {
-  if (message.type() === "error") consoleErrors.push(message.text());
-  console.log(`[browser:${message.type()}] ${message.text()}`);
+  const text = message.text();
+  if (message.type() === "error") {
+    consoleErrors.push(text);
+    if (
+      /error creating client game|GLUnavailable|WebGL2.*unavailable/i.test(text)
+    ) {
+      criticalErrors.push(text);
+    }
+  }
+  console.log(`[browser:${message.type()}] ${text}`);
 });
 page.on("requestfailed", (request) => {
   const url = request.url();
   if (url.startsWith(new URL(siteUrl).origin)) {
     console.log(`[requestfailed] ${url}: ${request.failure()?.errorText}`);
   }
+});
+page.on("worker", (worker) => {
+  console.log(`[worker] created ${worker.url()}`);
+  worker.on("close", () => console.log(`[worker] closed ${worker.url()}`));
 });
 
 const allowedOrigin = new URL(siteUrl).origin;
@@ -59,6 +103,7 @@ await page.route("**/*", async (route) => {
   }
 });
 
+let passed = false;
 try {
   await page.goto(siteUrl, {
     waitUntil: "domcontentloaded",
@@ -161,37 +206,52 @@ try {
     undefined,
     { timeout: 120_000 },
   );
-  const canvas = page.locator("#app canvas").first();
-  await canvas.waitFor({ state: "visible", timeout: 60_000 });
 
+  // OpenFront inserts the WebGL canvas directly as the first child of body,
+  // not under #app. Wait for that renderer and verify it has a real viewport.
+  const canvas = page.locator("#webgl-debug-canvas");
+  await canvas.waitFor({ state: "visible", timeout: 90_000 });
   const box = await canvas.boundingBox();
   if (!box || box.width < 100 || box.height < 100) {
     throw new Error(`Invalid game canvas bounds: ${JSON.stringify(box)}`);
   }
 
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-  await page.waitForTimeout(8_000);
+  await page.waitForTimeout(10_000);
 
-  const runtime = await page.evaluate(() => ({
-    inGame: document.body.classList.contains("in-game"),
-    path: window.location.pathname,
-    canvasCount: document.querySelectorAll("#app canvas").length,
-    appChildren: document.querySelector("#app")?.childElementCount ?? 0,
-  }));
-
-  if (!runtime.inGame || runtime.canvasCount < 1 || runtime.appChildren < 1) {
-    throw new Error(`Game runtime did not remain active: ${JSON.stringify(runtime)}`);
-  }
-
-  await page.screenshot({
-    path: process.env.SMOKE_SCREENSHOT ?? "browser-single-player-smoke.png",
-    fullPage: true,
+  const runtime = await page.evaluate(() => {
+    const canvases = [...document.querySelectorAll("canvas")].map((canvas) => ({
+      id: canvas.id,
+      width: canvas.width,
+      height: canvas.height,
+      clientWidth: canvas.clientWidth,
+      clientHeight: canvas.clientHeight,
+      connected: canvas.isConnected,
+    }));
+    const glCanvas = document.querySelector("#webgl-debug-canvas");
+    return {
+      inGame: document.body.classList.contains("in-game"),
+      path: window.location.pathname,
+      canvasCount: canvases.length,
+      canvases,
+      webglCanvasConnected: glCanvas?.isConnected ?? false,
+      startingModalHidden:
+        document.querySelector("game-starting-modal")?.classList.contains("hidden") ??
+        false,
+    };
   });
 
-  if (pageErrors.length > 0) {
-    throw new Error(`Browser page errors:\n${pageErrors.join("\n\n")}`);
+  if (
+    !runtime.inGame ||
+    !runtime.webglCanvasConnected ||
+    runtime.canvasCount < 1
+  ) {
+    throw new Error(`Game runtime did not remain active: ${JSON.stringify(runtime)}`);
+  }
+  if (criticalErrors.length > 0) {
+    throw new Error(`Critical browser errors:\n${criticalErrors.join("\n")}`);
   }
 
+  passed = true;
   console.log(
     JSON.stringify(
       {
@@ -199,12 +259,35 @@ try {
         defaults,
         emitted,
         runtime,
+        pageErrorCount: pageErrors.length,
         consoleErrorCount: consoleErrors.length,
       },
       null,
       2,
     ),
   );
+} catch (error) {
+  const diagnostics = await page
+    .evaluate(() => ({
+      bodyClass: document.body.className,
+      path: window.location.pathname,
+      canvasSummary: [...document.querySelectorAll("canvas")].map((canvas) => ({
+        id: canvas.id,
+        width: canvas.width,
+        height: canvas.height,
+        clientWidth: canvas.clientWidth,
+        clientHeight: canvas.clientHeight,
+      })),
+      appChildren: document.querySelector("#app")?.childElementCount ?? 0,
+      visibleText: document.body.innerText.slice(0, 2000),
+    }))
+    .catch(() => null);
+  console.error("Smoke diagnostics:", JSON.stringify(diagnostics, null, 2));
+  throw error;
 } finally {
+  await page
+    .screenshot({ path: screenshotPath, fullPage: true })
+    .catch((error) => console.error("Screenshot failed", error));
   await browser.close();
+  if (!passed) console.error("Browser single-player smoke did not pass.");
 }
