@@ -1,0 +1,187 @@
+import "./apply-command-wordmark.mjs";
+import fs from "node:fs";
+import path from "node:path";
+
+const root = path.resolve(process.argv[2] ?? ".");
+
+function read(relativePath) {
+  return fs.readFileSync(path.join(root, relativePath), "utf8");
+}
+
+function write(relativePath, content) {
+  fs.writeFileSync(path.join(root, relativePath), content);
+}
+
+function replaceOnce(content, before, after, label) {
+  if (content.includes(after)) return content;
+  if (!content.includes(before)) {
+    throw new Error(`Responsive mobile patch anchor missing: ${label}`);
+  }
+  return content.replace(before, after);
+}
+
+const cssPath = "src/client/styles/command-ui.css";
+let css = read(cssPath);
+const oldMobileViewportRule = `/* Keep the single-player action bar inside the mobile viewport. */
+@media (max-width: 639px) {
+  single-player-modal .command-single-player {
+    height: calc(100dvh - 56px);
+    max-height: calc(100dvh - 56px);
+  }
+
+  single-player-modal .command-settings-scroll {
+    padding-bottom: 12px;
+  }
+}
+
+`;
+const previousMobileViewportRule = `/* Keep the single-player action bar inside the mobile viewport. */
+@media (max-width: 639px) {
+  single-player-modal .command-single-player {
+    height: calc(100dvh - 60px);
+    max-height: calc(100dvh - 60px);
+  }
+
+  single-player-modal .command-settings-scroll {
+    padding-bottom: 12px;
+  }
+
+  single-player-modal button,
+  single-player-modal input:not([type="range"]),
+  single-player-modal select,
+  single-player-modal [role="button"],
+  single-player-modal [role="tab"] {
+    min-height: 44px !important;
+  }
+
+  single-player-modal input[type="range"] {
+    min-height: 44px;
+  }
+}
+
+`;
+const mobileViewportRule = `/* Keep the single-player action bar inside the mobile viewport. */
+@media (max-width: 639px) {
+  single-player-modal .command-single-player {
+    height: calc(100dvh - 60px);
+    max-height: calc(100dvh - 60px);
+  }
+
+  single-player-modal .command-settings-scroll {
+    padding-bottom: 12px;
+  }
+
+  single-player-modal button,
+  single-player-modal input:not([type="range"]),
+  single-player-modal select,
+  single-player-modal [role="button"],
+  single-player-modal [role="tab"] {
+    min-height: 44px !important;
+  }
+
+  single-player-modal input[type="range"] {
+    min-height: 44px;
+  }
+
+  .command-secondary-actions .command-action-button {
+    padding-inline: 8px;
+    font-size: 12px;
+    letter-spacing: 0.01em;
+  }
+}
+
+`;
+if (css.includes(previousMobileViewportRule)) {
+  css = css.replace(previousMobileViewportRule, mobileViewportRule);
+  write(cssPath, css);
+} else if (css.includes(oldMobileViewportRule)) {
+  css = css.replace(oldMobileViewportRule, mobileViewportRule);
+  write(cssPath, css);
+} else if (!css.includes(mobileViewportRule)) {
+  const anchor = "@media (pointer: coarse) {";
+  if (!css.includes(anchor)) {
+    throw new Error("Responsive mobile CSS anchor missing");
+  }
+  css = css.replace(anchor, mobileViewportRule + anchor);
+  write(cssPath, css);
+}
+
+const controlPanelPath = "src/client/hud/layers/ControlPanel.ts";
+let controlPanel = read(controlPanelPath);
+controlPanel = replaceOnce(
+  controlPanel,
+  "command-resource relative flex min-h-10 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-yellow-300",
+  "command-resource relative flex min-h-11 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-yellow-300",
+  "mobile gold target height",
+);
+controlPanel = replaceOnce(
+  controlPanel,
+  "mt-2 grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2",
+  "mt-2 grid grid-cols-[76px_minmax(0,1fr)] items-center gap-2",
+  "mobile ratio column width",
+);
+controlPanel = replaceOnce(
+  controlPanel,
+  "command-resource flex min-h-10 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-white",
+  "command-resource flex min-h-11 items-center justify-center gap-1 rounded-md border px-2 text-sm font-semibold text-white",
+  "mobile ratio target height",
+);
+const troopEstimatePattern = /          <span class="truncate text-\[10px\] text-white\/50">\n            \$\{renderTroops\(\n              \(this\.game\?\.myPlayer\(\)\?\.troops\(\) \?\? 0\) \* this\.attackRatio,\n            \)\}\n          <\/span>\n/;
+if (troopEstimatePattern.test(controlPanel)) {
+  controlPanel = controlPanel.replace(troopEstimatePattern, "");
+}
+controlPanel = replaceOnce(
+  controlPanel,
+  'class="h-10 w-full accent-aquarius"',
+  'class="h-11 w-full accent-aquarius"',
+  "mobile attack slider height",
+);
+write(controlPanelPath, controlPanel);
+
+const smokePath = "scripts/browser-single-player-smoke.mjs";
+let smoke = read(smokePath);
+smoke = replaceOnce(
+  smoke,
+  "const viewportHeight = Number(process.env.SMOKE_VIEWPORT_HEIGHT ?? 900);\n",
+  "const viewportHeight = Number(process.env.SMOKE_VIEWPORT_HEIGHT ?? 900);\nconst mobileViewport = viewportWidth <= 430;\n",
+  "mobile viewport flag",
+);
+smoke = replaceOnce(
+  smoke,
+  `const context = await browser.newContext({
+  viewport: { width: viewportWidth, height: viewportHeight },
+  locale: "en-US",
+});`,
+  `const context = await browser.newContext({
+  viewport: { width: viewportWidth, height: viewportHeight },
+  locale: "en-US",
+  isMobile: mobileViewport,
+  hasTouch: mobileViewport,
+  deviceScaleFactor: mobileViewport ? 2 : 1,
+});`,
+  "mobile browser context",
+);
+smoke = replaceOnce(
+  smoke,
+  `const modalShell = modal.querySelector("o-modal")?.shadowRoot?.querySelector("[role='dialog'] > div");`,
+  `const modalShell = modal.querySelector("o-modal")?.shadowRoot?.querySelector("aside > div");`,
+  "modal shell selector",
+);
+smoke = replaceOnce(
+  smoke,
+  `  if (uiLayout.viewport.width <= 430 && uiLayout.startButtonHeight < 44) {
+    throw new Error(\`Mobile start button is too small: \${JSON.stringify(uiLayout)}\`);
+  }
+  if (!uiLayout.footerVisible) {`,
+  `  if (uiLayout.viewport.width <= 430 && uiLayout.startButtonHeight < 44) {
+    throw new Error(\`Mobile start button is too small: \${JSON.stringify(uiLayout)}\`);
+  }
+  if (uiLayout.viewport.width <= 430 && uiLayout.minInteractiveHeight < 44) {
+    throw new Error(\`Mobile interactive target is too small: \${JSON.stringify(uiLayout)}\`);
+  }
+  if (!uiLayout.footerVisible) {`,
+  "mobile touch target assertion",
+);
+write(smokePath, smoke);
+
+console.log("Applied responsive mobile viewport, density, touch, and wordmark fixes.");

@@ -112,7 +112,7 @@ export class MapDisplay extends LitElement {
       title=${translateText(
         this.favorite ? "map_component.unfavorite" : "map_component.favorite",
       )}
-      class="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-all duration-200 active:scale-90 ${this
+      class="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-black/65 transition-[background-color,border-color,color,opacity] duration-150 ${this
         .favorite
         ? "opacity-100 text-cyber-yellow"
         : "opacity-0 group-hover:opacity-100 text-white hover:text-cyber-yellow"}"
@@ -129,20 +129,17 @@ export class MapDisplay extends LitElement {
         aria-selected="${this.selected}"
         aria-label="${this.translation ?? this.mapName ?? this.mapKey}"
         @keydown="${this.handleKeydown}"
-        class="w-full h-full p-3 flex flex-col items-center justify-between rounded-xl border cursor-pointer transition-all duration-200 active:scale-95 gap-3 group ${this
-          .selected
-          ? "bg-malibu-blue/20 border-malibu-blue/50 shadow-[var(--shadow-malibu-blue-strong)]"
-          : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1"}"
+        class="command-setting-card group flex h-full w-full cursor-pointer flex-col items-center justify-between gap-2 p-2 ${this.selected ? "is-active" : ""}"
       >
         ${this.isLoading
           ? html`<div
-              class="w-full aspect-[2/1] text-white/40 transition-transform duration-200 rounded-lg bg-black/20 text-xs font-bold uppercase tracking-wider flex items-center justify-center animate-pulse"
+              class="flex aspect-[2/1] w-full items-center justify-center rounded bg-black/30 text-xs font-semibold text-white/40 animate-pulse"
             >
               ${translateText("map_component.loading")}
             </div>`
           : this.mapWebpPath
             ? html`<div
-                class="w-full aspect-[2/1] relative overflow-hidden rounded-lg bg-black/20"
+                class="relative aspect-[2/1] w-full overflow-hidden rounded bg-black/30"
               >
                 <img
                   src="${this.mapWebpPath}"
@@ -156,7 +153,7 @@ export class MapDisplay extends LitElement {
                 ${this.renderFavoriteButton()}
               </div>`
             : html`<div
-                class="w-full aspect-[2/1] text-red-400 transition-transform duration-200 rounded-lg bg-red-500/10 text-xs font-bold uppercase tracking-wider flex items-center justify-center"
+                class="flex aspect-[2/1] w-full items-center justify-center rounded bg-red-500/10 text-xs font-semibold text-red-300"
               >
                 ${translateText("map_component.error")}
               </div>`}
@@ -166,7 +163,7 @@ export class MapDisplay extends LitElement {
             </div>`
           : null}
         <div
-          class="text-xs font-bold text-white uppercase tracking-wider text-center leading-tight break-words hyphens-auto"
+          class="text-center text-xs font-semibold leading-tight text-white"
         >
           ${this.translation || this.mapName}
         </div>

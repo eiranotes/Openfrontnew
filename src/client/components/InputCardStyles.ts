@@ -1,12 +1,12 @@
 export const ACTIVE_CARD =
-  "bg-malibu-blue/20 border-malibu-blue/50 shadow-[var(--shadow-malibu-blue)]";
+  "is-active border-malibu-blue/70 bg-[#102a3b] text-white";
 export const INACTIVE_CARD =
-  "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20";
+  "border-white/10 bg-[#10161c] text-white/60 hover:border-white/20 hover:bg-[#1b252e] hover:text-white";
 export const INPUT_CLASS =
-  "w-full text-center rounded bg-black/60 text-white text-sm font-bold border border-white/20 focus:outline-none focus:border-malibu-blue p-1 my-1";
+  "my-1 w-full rounded-md border border-white/15 bg-[#0b1015] p-1.5 text-center text-sm font-semibold text-white focus:border-malibu-blue focus:outline-none";
 export const CARD_LABEL_CLASS =
-  "text-xs uppercase font-bold tracking-wider leading-tight break-words hyphens-auto";
+  "text-xs font-semibold leading-tight break-words hyphens-auto";
 
 export function cardClass(active: boolean, extra = ""): string {
-  return `w-full h-full rounded-xl border cursor-pointer transition-all duration-200 active:scale-95 relative overflow-hidden ${extra} ${active ? ACTIVE_CARD : INACTIVE_CARD}`;
+  return `command-setting-card relative h-full min-h-11 w-full cursor-pointer overflow-hidden rounded-md border transition-[background-color,border-color,color,transform] duration-150 active:translate-y-px ${extra} ${active ? ACTIVE_CARD : INACTIVE_CARD}`;
 }

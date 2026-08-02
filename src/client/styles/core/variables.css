@@ -1,27 +1,64 @@
 :root {
-  --theme: "light";
+  --theme: "dark";
   --breakPoint-tablet: 800px;
   --breakPoint-Desktop: 1024px;
-  --blur-md: 4px;
-  --boxBackgroundColor: #111827cc;
+
+  --ui-canvas: #080c10;
+  --ui-surface: #10161c;
+  --ui-surface-raised: #161d24;
+  --ui-surface-hover: #1b252e;
+  --ui-surface-selected: #102a3b;
+  --ui-border: rgba(255, 255, 255, 0.1);
+  --ui-border-strong: rgba(255, 255, 255, 0.18);
+  --ui-text: #f5f7f9;
+  --ui-text-muted: #a5afb9;
+  --ui-text-faint: #6f7a85;
+  --ui-accent: #1687c9;
+  --ui-accent-hover: #2497d8;
+  --ui-danger: #dc4b4b;
+  --ui-warning: #d6a63b;
+  --ui-success: #46a76f;
+  --ui-radius-sm: 4px;
+  --ui-radius-md: 6px;
+  --ui-radius-lg: 8px;
+  --ui-control-height: 38px;
+  --ui-touch-height: 44px;
+  --ui-shadow-panel: 0 12px 28px rgba(0, 0, 0, 0.34);
+  --ui-transition-fast: 120ms cubic-bezier(0.2, 0, 0, 1);
+  --ui-transition: 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  --blur-md: 0px;
+  --boxBackgroundColor: rgba(16, 22, 28, 0.96);
   --fontColor: #202020;
-  --fontColorLight: #fff;
+  --fontColorLight: var(--ui-text);
 
-  --primaryColorHover: var(--color-malibu-blue);
-  --primaryColorDisabled: linear-gradient(
-    to right,
-    rgb(74, 74, 74),
-    rgb(61, 61, 61)
-  );
-  --secondaryColor: var(--color-malibu-blue);
-  --secondaryColorHover: var(--color-aquarius);
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --primaryColorHover: var(--ui-accent-hover);
+  --primaryColorDisabled: #3c454d;
+  --secondaryColor: var(--ui-accent);
+  --secondaryColorHover: var(--ui-accent-hover);
+  --transition:
+    background-color var(--ui-transition-fast),
+    border-color var(--ui-transition-fast),
+    color var(--ui-transition-fast),
+    opacity var(--ui-transition-fast),
+    transform var(--ui-transition-fast);
 
-  --primaryColorHoverDark: var(--color-malibu-blue);
-  --primaryColorDisabledDark: #4b5563;
-  --secondaryColorDark: var(--color-malibu-blue);
-  --secondaryColorHoverDark: var(--color-aquarius);
-  --fontColorDark: #f3f4f6;
+  --primaryColorHoverDark: var(--ui-accent-hover);
+  --primaryColorDisabledDark: #3c454d;
+  --secondaryColorDark: var(--ui-accent);
+  --secondaryColorHoverDark: var(--ui-accent-hover);
+  --fontColorDark: var(--ui-text);
+
+  /* Kept for compatibility with existing components. These are restrained
+     selection outlines rather than neon glows. */
+  --shadow-malibu-blue: 0 0 0 1px rgba(22, 135, 201, 0.65);
+  --shadow-malibu-blue-soft: 0 0 0 1px rgba(22, 135, 201, 0.42);
+  --shadow-malibu-blue-strong: 0 0 0 2px rgba(22, 135, 201, 0.64);
+  --shadow-malibu-blue-pill: none;
+  --shadow-malibu-blue-ring-sm: 0 0 0 2px rgba(22, 135, 201, 0.25);
+  --shadow-malibu-blue-ring-lg: 0 0 0 3px rgba(22, 135, 201, 0.25);
+  --shadow-lobby-card-hover: 0 0 0 1px rgba(22, 135, 201, 0.7);
+  --shadow-action-card-hover: 0 0 0 1px rgba(22, 135, 201, 0.55);
 
   /* Achievements */
   --medal-easy: #cd7f32;

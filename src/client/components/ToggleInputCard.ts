@@ -93,18 +93,18 @@ export class ToggleInputCard extends LitElement {
 
   render() {
     return html`
-      <div class="${cardClass(this.checked)}">
+      <div class="${cardClass(this.checked, "flex min-h-12 items-center")}">
         <button
           type="button"
           aria-pressed=${this.checked}
           @click=${this.handleCardClick}
-          class="w-full h-full p-3 flex flex-col items-center justify-between gap-2 focus:outline-none"
+          class="flex min-h-11 min-w-0 flex-1 items-center gap-2 px-3 text-left focus:outline-none"
         >
-          <div
-            class="w-5 h-5 rounded border flex items-center justify-center transition-colors mt-1 ${this
+          <span
+            class="flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-[background-color,border-color] duration-150 ${this
               .checked
-              ? "bg-blue-500 border-blue-500"
-              : "border-white/20 bg-white/5"}"
+              ? "border-malibu-blue bg-malibu-blue"
+              : "border-white/20 bg-white/[0.04]"}"
           >
             ${this.checked
               ? html`<svg
@@ -119,15 +119,10 @@ export class ToggleInputCard extends LitElement {
                     clip-rule="evenodd"
                   />
                 </svg>`
-              : ""}
-          </div>
-
-          ${this.checked
-            ? html`<div class="h-[30px] my-1"></div>`
-            : html`<div class="h-[2px] w-4 rounded my-3 bg-white/10"></div>`}
-
+              : nothing}
+          </span>
           <span
-            class="${CARD_LABEL_CLASS} text-center ${this.checked
+            class="${CARD_LABEL_CLASS} min-w-0 flex-1 ${this.checked
               ? "text-white"
               : "text-white/60"}"
           >
@@ -135,14 +130,8 @@ export class ToggleInputCard extends LitElement {
           </span>
         </button>
 
-        <!-- Keep the input permanently mounted and just hide it when unchecked.
-             Rendering it conditionally (\${checked ? input : nothing}) inserts a
-             fresh input on enable, and focusing a just-inserted input forces
-             several ms of layout/paint per frame. CSS-hiding an always-present
-             input avoids that. -->
         <div
-          class="absolute left-3 right-3 top-1/2 -translate-y-1/2 z-10 ${this
-            .checked
+          class="relative w-[42%] max-w-32 shrink-0 pr-2 ${this.checked
             ? ""
             : "hidden"}"
         >
@@ -164,7 +153,7 @@ export class ToggleInputCard extends LitElement {
           this.zeroLabel !== undefined &&
           this.toOptionalNumber(this.inputValue) === 0
             ? html`<div
-                class="pointer-events-none absolute left-0 right-0 top-full mt-0.5 text-center text-[10px] leading-none text-white/70"
+                class="pointer-events-none absolute inset-x-0 top-full text-center text-[10px] leading-none text-white/60"
               >
                 ${this.zeroLabel}
               </div>`
@@ -174,3 +163,4 @@ export class ToggleInputCard extends LitElement {
     `;
   }
 }
+

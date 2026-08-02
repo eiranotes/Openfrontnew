@@ -13,16 +13,19 @@ export interface ModalHeaderProps {
   showDivider?: boolean;
 }
 
-const DEFAULT_WRAPPER_CLASS = "flex flex-wrap items-center gap-2 shrink-0";
+const DEFAULT_WRAPPER_CLASS =
+  "flex min-h-14 shrink-0 flex-wrap items-center gap-2 bg-[#0d1318]";
 const DEFAULT_DIVIDER_CLASS = "border-b border-white/10";
-const DEFAULT_PADDING_CLASS = "p-4 lg:p-6";
-const DEFAULT_LEFT_CLASS = "flex items-center gap-4 flex-1";
+const DEFAULT_PADDING_CLASS =
+  "px-3 py-2 pt-[calc(8px+env(safe-area-inset-top))] sm:px-4 sm:pt-2";
+const DEFAULT_LEFT_CLASS = "flex min-w-0 flex-1 items-center gap-3";
 const DEFAULT_BUTTON_CLASS =
-  "group flex items-center justify-center w-10 h-10 rounded-full shrink-0 " +
-  "bg-white/5 hover:bg-white/10 transition-all border border-white/10";
+  "group flex h-10 w-10 shrink-0 items-center justify-center rounded-md " +
+  "border border-white/10 bg-[#10161c] text-white/60 " +
+  "transition-[background-color,border-color,color,transform] duration-150 " +
+  "hover:border-white/20 hover:bg-[#1b252e] hover:text-white active:translate-y-px";
 const DEFAULT_TITLE_CLASS =
-  "text-white text-xl lg:text-2xl font-bold uppercase " +
-  "tracking-widest break-words hyphens-auto";
+  "min-w-0 break-words text-lg font-semibold leading-tight text-white sm:text-xl";
 
 const withClasses = (...classes: Array<string | undefined>) =>
   classes.filter(Boolean).join(" ");
@@ -49,16 +52,12 @@ export const modalHeader = ({
   const resolvedTitleClass = withClasses(DEFAULT_TITLE_CLASS, titleClassName);
 
   return html`
-    <div class="${wrapperClass}">
-      <div class="${leftClass}">
-        <button
-          @click=${onBack}
-          class="${buttonClass}"
-          aria-label="${ariaLabel}"
-        >
+    <div class=${wrapperClass}>
+      <div class=${leftClass}>
+        <button @click=${onBack} class=${buttonClass} aria-label=${ariaLabel}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="w-5 h-5 text-gray-400 group-hover:text-white transition-colors"
+            class="h-5 w-5"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -71,8 +70,7 @@ export const modalHeader = ({
             />
           </svg>
         </button>
-        ${titleContent ??
-        html`<span class="${resolvedTitleClass}">${title}</span>`}
+        ${titleContent ?? html`<span class=${resolvedTitleClass}>${title}</span>`}
       </div>
       ${rightContent ?? ""}
     </div>

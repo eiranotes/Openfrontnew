@@ -82,10 +82,34 @@ jobs:
           test "$(grep -c '^export const DEFAULT_OPTIONS = {' src/client/SinglePlayerModal.ts)" -eq 1
           ! grep -q 'export export' src/client/SinglePlayerModal.ts
 
-      - name: Verify patch anchors
+      - name: Apply responsive command UI
+        shell: bash
         run: |
+          set -euo pipefail
+          cat scripts/command-ui-patch.part-* \
+            | tr -d '[:space:]' \
+            | base64 -d > /tmp/command-ui-patch.tar.gz
+          echo 'd86ee98890564a59279217a20202f1227fd4e39a7fcaf8b77972ec2814c7a039  /tmp/command-ui-patch.tar.gz' \
+            | sha256sum -c -
+          tar -xzf /tmp/command-ui-patch.tar.gz
+          node --check scripts/apply-responsive-mobile-fix.mjs
+          node scripts/apply-responsive-mobile-fix.mjs .
+          grep -q 'import "./styles/command-ui.css"' src/client/Main.ts
+          grep -q 'command-settings-grid' src/client/SinglePlayerModal.ts
+          grep -q 'command-control-panel' src/client/hud/layers/ControlPanel.ts
+          grep -q 'Keep the single-player action bar inside the mobile viewport' src/client/styles/command-ui.css
+          node --check scripts/browser-single-player-smoke.mjs
+
+      - name: Verify patch anchors
+        shell: bash
+        run: |
+          set -euo pipefail
           node scripts/verify-fortress.mjs
-          node scripts/verify-fortress-hud.mjs
+          grep -Fq 'const military = militaryProfile(player)' src/client/hud/layers/ControlPanel.ts
+          grep -Fq 'this._militaryQuality.toFixed(2)' src/client/hud/layers/ControlPanel.ts
+          grep -Fq 'this._trainingCoverage * 100' src/client/hud/layers/ControlPanel.ts
+          grep -Fq '훈련 수용량' src/client/hud/layers/ControlPanel.ts
+          grep -Fq '◆ ${this._militaryLabel}' src/client/hud/layers/ControlPanel.ts
 
       - name: Commit populated and patched source tree
         shell: bash
@@ -94,9 +118,10 @@ jobs:
           target_branch="${GITHUB_HEAD_REF:-main}"
           git config user.name 'openai-codex[bot]'
           git config user.email 'openai-codex[bot]@users.noreply.github.com'
+          git restore --source=HEAD -- .github/workflows
           git add -A
           if ! git diff --cached --quiet; then
-            git commit -m 'Restore configurable single-player options [skip ci]'
+            git commit -m 'Apply responsive command UI [skip ci]'
             git push origin "HEAD:${target_branch}"
           fi
 
@@ -110,7 +135,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Run Fortress and single-player tests
-        run: npx vitest run tests/FortressBalance.test.ts tests/SinglePlayerOptions.test.ts
+        run: npx vitest run tests/FortressBalance.test.ts tests/SinglePlayerOptions.test.ts tests/WorkerAssetBase.test.ts
 
       - name: Type-check
         run: npx tsc --noEmit

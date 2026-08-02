@@ -4,6 +4,11 @@ const siteUrl =
   process.env.SMOKE_SITE_URL ?? "http://127.0.0.1:4173/Openfrontnew/";
 const screenshotPath =
   process.env.SMOKE_SCREENSHOT ?? "browser-single-player-smoke.png";
+const artifactPrefix =
+  process.env.SMOKE_ARTIFACT_PREFIX ?? screenshotPath.replace(/\.png$/i, "");
+const viewportWidth = Number(process.env.SMOKE_VIEWPORT_WIDTH ?? 1440);
+const viewportHeight = Number(process.env.SMOKE_VIEWPORT_HEIGHT ?? 900);
+const mobileViewport = viewportWidth <= 430;
 
 const browser = await chromium.launch({
   headless: true,
@@ -18,8 +23,11 @@ const browser = await chromium.launch({
 });
 
 const context = await browser.newContext({
-  viewport: { width: 1440, height: 900 },
+  viewport: { width: viewportWidth, height: viewportHeight },
   locale: "en-US",
+  isMobile: mobileViewport,
+  hasTouch: mobileViewport,
+  deviceScaleFactor: mobileViewport ? 2 : 1,
 });
 
 await context.addInitScript(() => {
@@ -179,6 +187,58 @@ try {
     undefined,
     { timeout: 60_000 },
   );
+
+  await page.screenshot({
+    path: `${artifactPrefix}-home.png`,
+    fullPage: true,
+  });
+
+  const uiLayout = await page.evaluate(async () => {
+    const modal = document.querySelector("single-player-modal");
+    modal.open();
+    await modal.updateComplete;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    const startButton = modal.querySelector("o-button button");
+    const footer = modal.querySelector(".command-settings-footer");
+    const modalShell = modal.querySelector("o-modal")?.shadowRoot?.querySelector("aside > div");
+    const interactive = [...modal.querySelectorAll("button, input, select")]
+      .map((element) => element.getBoundingClientRect())
+      .filter((rect) => rect.width > 0 && rect.height > 0);
+
+    return {
+      viewport: { width: innerWidth, height: innerHeight },
+      documentScrollWidth: document.documentElement.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+      startButtonHeight: startButton?.getBoundingClientRect().height ?? 0,
+      footerVisible: footer ? footer.getBoundingClientRect().bottom <= innerHeight + 1 : false,
+      modalWidth: modalShell?.getBoundingClientRect().width ?? 0,
+      minInteractiveHeight: interactive.length
+        ? Math.min(...interactive.map((rect) => rect.height))
+        : 0,
+    };
+  });
+
+  await page.screenshot({
+    path: `${artifactPrefix}-single-player.png`,
+    fullPage: true,
+  });
+
+  if (
+    uiLayout.documentScrollWidth > uiLayout.viewport.width + 1 ||
+    uiLayout.bodyScrollWidth > uiLayout.viewport.width + 1
+  ) {
+    throw new Error(`Responsive UI overflow: ${JSON.stringify(uiLayout)}`);
+  }
+  if (uiLayout.viewport.width <= 430 && uiLayout.startButtonHeight < 44) {
+    throw new Error(`Mobile start button is too small: ${JSON.stringify(uiLayout)}`);
+  }
+  if (uiLayout.viewport.width <= 430 && uiLayout.minInteractiveHeight < 44) {
+    throw new Error(`Mobile interactive target is too small: ${JSON.stringify(uiLayout)}`);
+  }
+  if (!uiLayout.footerVisible) {
+    throw new Error(`Single-player footer is not visible: ${JSON.stringify(uiLayout)}`);
+  }
 
   const graphics = await page.evaluate(() => {
     const canvas = document.createElement("canvas");
@@ -381,6 +441,7 @@ try {
         defaults,
         emitted,
         runtime,
+        uiLayout,
         sameOriginFailures,
       },
       null,

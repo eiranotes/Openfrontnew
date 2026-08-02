@@ -27,8 +27,6 @@ import {
   translateText,
 } from "./Utils";
 
-const CARD_BG = "bg-surface";
-
 @customElement("game-mode-selector")
 export class GameModeSelector extends LitElement {
   @state() private lobbies: PublicGames | null = null;
@@ -128,115 +126,56 @@ export class GameModeSelector extends LitElement {
     const special = this.lobbies?.games?.["special"]?.[0];
 
     return html`
-      <div class="flex flex-col gap-4 w-full px-4 sm:px-0 mx-auto pb-4 sm:pb-0">
-        <!-- Solo: mobile only, top -->
-        <div class="sm:hidden h-14">
+      <div class="command-home">
+        <div class="command-home-actions">
           ${this.renderSmallActionCard(
             translateText("main.solo"),
             this.openSinglePlayerModal,
-            "bg-malibu-blue hover:bg-aquarius active:bg-malibu-blue/80 hover:scale-y-105 hover:scale-x-[1.01]",
+            true,
           )}
+          <div class="command-secondary-actions">
+            ${this.renderSmallActionCard(
+              translateText("main.create"),
+              this.openHostLobby,
+            )}
+            ${this.renderSmallActionCard(
+              translateText("mode_selector.ranked_title"),
+              this.openRankedMenu,
+            )}
+            ${this.renderSmallActionCard(
+              translateText("main.join"),
+              this.openJoinLobby,
+              false,
+              this.hostedLobbyCount(),
+            )}
+          </div>
         </div>
-        <!-- Create/ranked/join: mobile only, below solo -->
-        <div class="sm:hidden grid grid-cols-3 gap-4 h-14">
-          ${this.renderSmallActionCard(
-            translateText("main.create"),
-            this.openHostLobby,
-            "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]",
-          )}
-          ${this.renderSmallActionCard(
-            translateText("mode_selector.ranked_title"),
-            this.openRankedMenu,
-            "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]",
-          )}
-          ${this.renderSmallActionCard(
-            translateText("main.join"),
-            this.openJoinLobby,
-            "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]",
-            this.hostedLobbyCount(),
-          )}
-        </div>
-        <!-- iOS Add to Home Screen banner -->
+
         <ios-add-to-home-screen-banner
           class="no-crazygames"
         ></ios-add-to-home-screen-banner>
 
-        <!-- Game cards grid -->
         ${this.lobbies === null
-          ? html`<div
-              class="flex items-center justify-center h-44 sm:h-[min(24rem,40vh)]"
-            >
-              <span
-                class="w-24 h-24 border-[6px] border-blue-500/30 border-t-blue-500 rounded-full animate-spin"
-              ></span>
+          ? html`<div class="command-loading-panel" aria-label="Loading games">
+              <span></span><span></span><span></span>
             </div>`
-          : html`<div
-              class="grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-4 sm:h-[min(24rem,40vh)]"
-            >
-              <!-- Left col: main card (desktop only) -->
+          : html`<div class="command-lobby-stage">
               ${ffa
-                ? html`<div class="hidden sm:block">
+                ? html`<div class="min-h-0 sm:row-span-2">
                     ${this.renderLobbyCard(ffa, this.getLobbyTitle(ffa))}
                   </div>`
                 : nothing}
-
-              <!-- Right col: special + teams (desktop only) -->
-              <div class="hidden sm:flex sm:flex-col sm:gap-4">
-                ${special
-                  ? html`<div class="flex-1 min-h-0">
-                      ${this.renderSpecialLobbyCard(special)}
-                    </div>`
-                  : nothing}
-                ${teams
-                  ? html`<div class="flex-1 min-h-0">
-                      ${this.renderLobbyCard(teams, this.getLobbyTitle(teams))}
-                    </div>`
-                  : nothing}
-              </div>
-
-              <!-- Mobile: special, ffa, teams inline -->
-              <div class="sm:hidden">
-                ${special ? this.renderSpecialLobbyCard(special) : nothing}
-              </div>
-              <div class="sm:hidden">
-                ${ffa
-                  ? this.renderLobbyCard(ffa, this.getLobbyTitle(ffa))
-                  : nothing}
-              </div>
-              <div class="sm:hidden">
-                ${teams
-                  ? this.renderLobbyCard(teams, this.getLobbyTitle(teams))
-                  : nothing}
-              </div>
+              ${special
+                ? html`<div class="min-h-0">
+                    ${this.renderSpecialLobbyCard(special)}
+                  </div>`
+                : nothing}
+              ${teams
+                ? html`<div class="min-h-0">
+                    ${this.renderLobbyCard(teams, this.getLobbyTitle(teams))}
+                  </div>`
+                : nothing}
             </div>`}
-
-        <!-- Solo: full width, desktop only -->
-        <div class="hidden sm:block h-14">
-          ${this.renderSmallActionCard(
-            translateText("main.solo"),
-            this.openSinglePlayerModal,
-            "bg-malibu-blue hover:bg-aquarius active:bg-malibu-blue/80 hover:scale-y-105 hover:scale-x-[1.01]",
-          )}
-        </div>
-        <!-- Bottom row: create + ranked + join (desktop only) -->
-        <div class="hidden sm:grid grid-cols-3 gap-4 h-14">
-          ${this.renderSmallActionCard(
-            translateText("main.create"),
-            this.openHostLobby,
-            "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]",
-          )}
-          ${this.renderSmallActionCard(
-            translateText("mode_selector.ranked_title"),
-            this.openRankedMenu,
-            "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]",
-          )}
-          ${this.renderSmallActionCard(
-            translateText("main.join"),
-            this.openJoinLobby,
-            "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]",
-            this.hostedLobbyCount(),
-          )}
-        </div>
       </div>
     `;
   }
@@ -276,24 +215,21 @@ export class GameModeSelector extends LitElement {
   private renderSmallActionCard(
     title: string,
     onClick: () => void,
-    bgClass: string = CARD_BG,
+    primary = false,
     badge?: number,
   ) {
     return html`
       <button
         @click=${onClick}
         ?disabled=${!this.inputValid}
-        class="relative flex items-center justify-center w-full h-full rounded-lg ${bgClass} transition-all duration-200 text-sm lg:text-base font-medium text-white uppercase tracking-wider text-center ${!this
-          .inputValid
-          ? "opacity-50 cursor-not-allowed pointer-events-none"
+        data-primary=${primary ? "true" : "false"}
+        class="command-action-button ${!this.inputValid
+          ? "pointer-events-none cursor-not-allowed opacity-45"
           : ""}"
       >
-        ${title}
+        <span class="min-w-0 truncate">${title}</span>
         ${badge
-          ? html`<span
-              class="absolute -top-2 -right-2 min-w-[1.375rem] h-[1.375rem] px-1.5 flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold tracking-normal"
-              >${badge}</span
-            >`
+          ? html`<span class="command-action-badge">${badge}</span>`
           : nothing}
       </button>
     `;
@@ -306,8 +242,6 @@ export class GameModeSelector extends LitElement {
     const mapType = lobby.gameConfig!.gameMap as GameMapType;
     const mapImageSrc = terrainMapFileLoader.getMapData(mapType).webpPath;
     const aspectRatio = this.mapAspectRatios.get(mapType);
-    // Use object-contain for extreme aspect ratios (e.g. Amazon River ~20:1) so
-    // the full map is visible instead of being cropped by object-cover.
     const useContain =
       aspectRatio !== undefined && (aspectRatio > 4 || aspectRatio < 0.25);
     const timeRemaining = lobby.startsAt
@@ -315,23 +249,19 @@ export class GameModeSelector extends LitElement {
       : undefined;
 
     let timeDisplay: string;
-    let timeDisplayUppercase = false;
     if (timeRemaining === undefined) {
       timeDisplay = renderDuration(this.defaultLobbyTime);
     } else if (timeRemaining > 0) {
       timeDisplay = renderDuration(timeRemaining);
     } else {
       timeDisplay = translateText("public_lobby.starting_game");
-      timeDisplayUppercase = true;
     }
 
     const mapName = getMapName(lobby.gameConfig?.gameMap);
-
     const modifierLabels = getModifierLabels(
       lobby.gameConfig?.publicGameModifiers,
       lobby.gameConfig?.doomsdayClock?.speed,
     );
-    // Sort by length for visual consistency (shorter labels first)
     if (modifierLabels.length > 1) {
       modifierLabels.sort((a, b) => a.length - b.length);
     }
@@ -340,80 +270,40 @@ export class GameModeSelector extends LitElement {
       <button
         @click=${() => this.validateAndJoin(lobby)}
         ?disabled=${!this.inputValid}
-        class="group relative w-full h-44 sm:h-full text-white uppercase rounded-2xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-surface hover:shadow-[var(--shadow-lobby-card-hover)] ${!this
-          .inputValid
-          ? "opacity-50 cursor-not-allowed pointer-events-none"
+        class="command-lobby-card group ${!this.inputValid
+          ? "pointer-events-none cursor-not-allowed opacity-45"
           : ""}"
       >
-        <!-- Image clipped separately so overflow-hidden doesn't block absolute children -->
-        <div
-          class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none"
-        >
+        <div class="command-lobby-card__image pointer-events-none">
           ${mapImageSrc
             ? html`<img
-                src="${mapImageSrc}"
-                alt="${mapName ?? lobby.gameConfig?.gameMap ?? "map"}"
+                src=${mapImageSrc}
+                alt=${mapName ?? lobby.gameConfig?.gameMap ?? "map"}
                 draggable="false"
-                class="absolute inset-0 w-full h-full ${useContain
+                class="absolute inset-0 h-full w-full ${useContain
                   ? "object-contain"
-                  : "object-cover object-center scale-[1.05]"} [image-rendering:auto]"
+                  : "object-cover object-center"} [image-rendering:auto]"
               />`
-            : null}
+            : nothing}
         </div>
-        <!-- Top row: modifiers + timer -->
-        <div
-          class="absolute inset-x-2 top-2 flex items-start justify-between gap-2"
-        >
-          ${modifierLabels.length > 0
-            ? html`<div class="flex flex-col items-start gap-1 mt-[2px]">
-                ${modifierLabels.map(
-                  (label) =>
-                    html`<span
-                      class="px-2 py-1 rounded text-xs font-bold uppercase tracking-widest bg-malibu-blue text-white shadow-[var(--shadow-malibu-blue-pill)]"
-                      >${label}</span
-                    >`,
-                )}
-              </div>`
-            : html`<div></div>`}
-          <div class="shrink-0">
-            <span
-              class="text-xs font-bold tracking-widest ${timeDisplayUppercase
-                ? "uppercase"
-                : "normal-case"} bg-malibu-blue text-white px-2 py-1 rounded"
-              >${timeDisplay}</span
-            >
+        <div class="command-lobby-card__meta">
+          <div class="command-lobby-card__tags">
+            ${modifierLabels.map(
+              (label) => html`<span class="command-status-tag">${label}</span>`,
+            )}
+            <span class="command-status-tag">${timeDisplay}</span>
           </div>
-        </div>
-        <!-- Bottom bar: map name + mode, with player count floating above -->
-        <div
-          class="absolute bottom-0 left-0 right-0 flex flex-col px-3 py-2 bg-black/55 backdrop-blur-sm rounded-b-2xl"
-          style="overflow: visible;"
-        >
-          <span
-            class="absolute bottom-full right-2 mb-1 flex items-center gap-1 text-xs font-bold tracking-widest bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded"
-          >
-            ${lobby.numClients}/${lobby.gameConfig?.maxPlayers}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-4 w-4 inline-block"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"
-              ></path>
-            </svg>
-          </span>
-          ${mapName
-            ? html`<p
-                class="text-sm sm:text-base font-bold uppercase tracking-wider text-left leading-tight"
+          <div class="command-lobby-card__title">
+            <div class="truncate text-sm font-semibold sm:text-base">
+              ${mapName ?? lobby.gameConfig?.gameMap}
+            </div>
+            <div class="mt-1 flex items-center justify-end gap-2 text-xs text-white/60">
+              <span class="truncate">${titleContent}</span>
+              <span class="tabular-nums text-white/80"
+                >${lobby.numClients}/${lobby.gameConfig?.maxPlayers}</span
               >
-                ${mapName}
-              </p>`
-            : ""}
-          <h3 class="text-xs text-white/70 uppercase tracking-wider text-left">
-            ${titleContent}
-          </h3>
+            </div>
+          </div>
         </div>
       </button>
     `;
