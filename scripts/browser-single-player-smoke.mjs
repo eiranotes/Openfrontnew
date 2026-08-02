@@ -7,6 +7,8 @@ const browser = await chromium.launch({
   headless: true,
   args: [
     "--use-gl=swiftshader",
+    "--enable-unsafe-swiftshader",
+    "--ignore-gpu-blocklist",
     "--enable-webgl",
     "--disable-dev-shm-usage",
   ],
