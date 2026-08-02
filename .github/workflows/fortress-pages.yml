@@ -70,8 +70,17 @@ jobs:
             touch .fortress-hud
           fi
 
-      - name: Restore original single-player options
-        run: node scripts/apply-single-player-options.mjs .
+      - name: Restore original single-player options and verify idempotence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/apply-single-player-options.mjs .
+          first_hash=$(sha256sum src/client/SinglePlayerModal.ts | cut -d' ' -f1)
+          node scripts/apply-single-player-options.mjs .
+          second_hash=$(sha256sum src/client/SinglePlayerModal.ts | cut -d' ' -f1)
+          test "${first_hash}" = "${second_hash}"
+          test "$(grep -c '^export const DEFAULT_OPTIONS = {' src/client/SinglePlayerModal.ts)" -eq 1
+          ! grep -q 'export export' src/client/SinglePlayerModal.ts
 
       - name: Verify patch anchors
         run: |
@@ -159,7 +168,8 @@ jobs:
           success=false
           for attempt in $(seq 1 30); do
             if curl --fail --location --silent --show-error \
-              --max-time 20 "${SITE_URL}" -o /tmp/pages-index.html; then
+              --max-time 20 "${SITE_URL}?deployment-check=${GITHUB_RUN_ID}-${attempt}" \
+              -o /tmp/pages-index.html; then
               success=true
               break
             fi
@@ -170,10 +180,10 @@ jobs:
             exit 1
           fi
 
-          asset_path=$(grep -oE '/Openfrontnew/assets/[^" ]+\.js' \
+          asset_path=$(grep -oE '/Openfrontnew/assets/index-[^" ]+\.js' \
             /tmp/pages-index.html | head -n 1 || true)
           if [[ -z "${asset_path}" ]]; then
-            echo "No project-scoped JavaScript asset found in deployed HTML" >&2
+            echo "No project-scoped application JavaScript asset found in deployed HTML" >&2
             exit 1
           fi
 
