@@ -1,20 +1,33 @@
 import { chromium } from "playwright";
 
-const siteUrl = process.env.SMOKE_SITE_URL ?? "http://127.0.0.1:4173/Openfrontnew/";
+const siteUrl =
+  process.env.SMOKE_SITE_URL ?? "http://127.0.0.1:4173/Openfrontnew/";
+const screenshotPath =
+  process.env.SMOKE_SCREENSHOT ?? "browser-single-player-smoke.png";
 const browser = await chromium.launch({
   headless: true,
   args: [
     "--use-gl=swiftshader",
     "--enable-webgl",
     "--disable-dev-shm-usage",
+    "--lang=en-US",
   ],
 });
 
 const context = await browser.newContext({
   viewport: { width: 1440, height: 900 },
+  locale: "en-US",
 });
 
 await context.addInitScript(() => {
+  Object.defineProperty(navigator, "language", {
+    configurable: true,
+    get: () => "en-US",
+  });
+  Object.defineProperty(navigator, "languages", {
+    configurable: true,
+    get: () => ["en-US", "en"],
+  });
   window.turnstile = {
     render(_target, options) {
       queueMicrotask(() => options?.callback?.("browser-smoke-token"));
@@ -25,18 +38,32 @@ await context.addInitScript(() => {
   };
   window.PageOS = { session: { newPageView() {} } };
   window.adsEnabled = false;
+  window.ramp = {
+    que: [],
+    passiveMode: true,
+    spaAddAds() {},
+    destroyUnits: async () => {},
+    spaNewPage() {},
+    spaAds() {},
+    onPlayerReady: null,
+    addUnits: async () => {},
+    displayUnits() {},
+  };
 });
 
 const page = await context.newPage();
 const pageErrors = [];
 const consoleErrors = [];
+const workerDiagnostics = [];
 
 page.on("pageerror", (error) => {
   pageErrors.push(error.stack ?? error.message);
 });
 page.on("console", (message) => {
-  if (message.type() === "error") consoleErrors.push(message.text());
-  console.log(`[browser:${message.type()}] ${message.text()}`);
+  const text = message.text();
+  if (message.type() === "error") consoleErrors.push(text);
+  if (text.includes("__SMOKE_WORKER_")) workerDiagnostics.push(text);
+  console.log(`[browser:${message.type()}] ${text}`);
 });
 page.on("requestfailed", (request) => {
   const url = request.url();
@@ -48,6 +75,41 @@ page.on("requestfailed", (request) => {
 const allowedOrigin = new URL(siteUrl).origin;
 await page.route("**/*", async (route) => {
   const requestUrl = new URL(route.request().url());
+
+  if (
+    requestUrl.origin === allowedOrigin &&
+    /\/assets\/Worker\.worker-[^/]+\.js$/.test(requestUrl.pathname)
+  ) {
+    const response = await route.fetch();
+    const body = await response.text();
+    const diagnostics = `
+self.addEventListener("unhandledrejection", (event) => {
+  let reason;
+  try {
+    reason = event.reason?.stack || event.reason?.message || JSON.stringify(event.reason);
+  } catch {
+    reason = String(event.reason);
+  }
+  console.error("__SMOKE_WORKER_UNHANDLED__ " + reason);
+});
+self.addEventListener("error", (event) => {
+  console.error(
+    "__SMOKE_WORKER_ERROR__ " + event.message +
+      " @ " + event.filename + ":" + event.lineno + ":" + event.colno,
+  );
+});
+`;
+    await route.fulfill({
+      response,
+      body: diagnostics + body,
+      headers: {
+        ...response.headers(),
+        "content-type": "application/javascript; charset=utf-8",
+      },
+    });
+    return;
+  }
+
   if (
     requestUrl.origin === allowedOrigin ||
     requestUrl.protocol === "blob:" ||
@@ -59,6 +121,7 @@ await page.route("**/*", async (route) => {
   }
 });
 
+let passed = false;
 try {
   await page.goto(siteUrl, {
     waitUntil: "domcontentloaded",
@@ -162,7 +225,13 @@ try {
     { timeout: 120_000 },
   );
   const canvas = page.locator("#app canvas").first();
-  await canvas.waitFor({ state: "visible", timeout: 60_000 });
+  try {
+    await canvas.waitFor({ state: "visible", timeout: 45_000 });
+  } catch (error) {
+    throw new Error(
+      `${error.message}\nWorker diagnostics:\n${workerDiagnostics.join("\n") || "none"}`,
+    );
+  }
 
   const box = await canvas.boundingBox();
   if (!box || box.width < 100 || box.height < 100) {
@@ -183,15 +252,11 @@ try {
     throw new Error(`Game runtime did not remain active: ${JSON.stringify(runtime)}`);
   }
 
-  await page.screenshot({
-    path: process.env.SMOKE_SCREENSHOT ?? "browser-single-player-smoke.png",
-    fullPage: true,
-  });
-
   if (pageErrors.length > 0) {
     throw new Error(`Browser page errors:\n${pageErrors.join("\n\n")}`);
   }
 
+  passed = true;
   console.log(
     JSON.stringify(
       {
@@ -200,11 +265,20 @@ try {
         emitted,
         runtime,
         consoleErrorCount: consoleErrors.length,
+        workerDiagnostics,
       },
       null,
       2,
     ),
   );
 } finally {
+  try {
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+  } catch (error) {
+    console.error(`Failed to capture smoke screenshot: ${error}`);
+  }
   await browser.close();
+  if (!passed && workerDiagnostics.length > 0) {
+    console.error(workerDiagnostics.join("\n"));
+  }
 }
