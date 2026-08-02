@@ -1,3 +1,4 @@
+import "./apply-compact-state-combat.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
