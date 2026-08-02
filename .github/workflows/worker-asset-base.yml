@@ -56,6 +56,12 @@ jobs:
         run: >-
           npx vitest run
           tests/FortressBalance.test.ts
+          tests/FortressResponsiveUI.test.ts
+          tests/ConquerGold.test.ts
+          tests/economy/ConstructionCost.test.ts
+          tests/economy/ConstructionGold.test.ts
+          tests/core/game/TrainStation.test.ts
+          tests/core/executions/TradeShipExecution.test.ts
           tests/SinglePlayerOptions.test.ts
           tests/WorkerAssetBase.test.ts
 
