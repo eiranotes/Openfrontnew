@@ -221,6 +221,7 @@ export function createRenderer(
   playerPanel.uiState = uiState;
 
   playerPanel.setRole(playerRole);
+  actionableEvents.playerPanel = playerPanel;
 
   const chatModal = document.querySelector("chat-modal") as ChatModal;
   if (!(chatModal instanceof ChatModal)) {

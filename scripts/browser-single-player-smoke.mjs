@@ -425,6 +425,69 @@ try {
       `Game runtime did not remain active: ${JSON.stringify(runtime)}`,
     );
   }
+
+  const allianceSheet = await page.evaluate(async () => {
+    const panel = document.querySelector("player-panel");
+    const game = panel?.g;
+    const myPlayer = game?.myPlayer();
+    if (!panel || !game || !myPlayer) return { available: false };
+
+    const target = game
+      .players()
+      .find(
+        (player) =>
+          player !== myPlayer &&
+          player.isAlive() &&
+          player.state.spawnTile !== undefined,
+      );
+    if (!target) return { available: false };
+
+    const tile = target.state.spawnTile;
+    const actions = await myPlayer.actions(tile);
+    panel.show(actions, tile);
+    await panel.updateComplete;
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
+
+    const sheet = panel.querySelector(".command-player-sheet");
+    const buttons = [...panel.querySelectorAll(".command-player-actions button")].filter(
+      (button) => button.getBoundingClientRect().width > 0,
+    );
+    const rect = sheet?.getBoundingClientRect();
+    return {
+      available: true,
+      bottom: rect?.bottom ?? 0,
+      height: rect?.height ?? 0,
+      viewportHeight: innerHeight,
+      minActionHeight: buttons.length
+        ? Math.min(...buttons.map((button) => button.getBoundingClientRect().height))
+        : 0,
+      actionCount: buttons.length,
+      labels: buttons.map((button) => button.textContent?.trim()).filter(Boolean),
+    };
+  });
+
+  if (!allianceSheet.available || allianceSheet.actionCount < 1) {
+    throw new Error(`Alliance command sheet unavailable: ${JSON.stringify(allianceSheet)}`);
+  }
+  if (mobileViewport) {
+    if (allianceSheet.bottom > allianceSheet.viewportHeight + 1) {
+      throw new Error(`Mobile alliance sheet exceeds viewport: ${JSON.stringify(allianceSheet)}`);
+    }
+    if (allianceSheet.height > allianceSheet.viewportHeight * 0.75) {
+      throw new Error(`Mobile alliance sheet is too tall: ${JSON.stringify(allianceSheet)}`);
+    }
+    if (allianceSheet.minActionHeight < 44) {
+      throw new Error(`Mobile alliance action is too small: ${JSON.stringify(allianceSheet)}`);
+    }
+  }
+
+  await page.screenshot({
+    path: `${artifactPrefix}-alliance-sheet.png`,
+    fullPage: true,
+  });
+  await page.evaluate(() => document.querySelector("player-panel")?.hide());
   if (workerErrors.length > 0) {
     throw new Error(`Worker errors:\n${workerErrors.join("\n")}`);
   }
@@ -442,6 +505,7 @@ try {
         emitted,
         runtime,
         uiLayout,
+        allianceSheet,
         sameOriginFailures,
       },
       null,
