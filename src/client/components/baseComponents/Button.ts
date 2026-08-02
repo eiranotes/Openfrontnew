@@ -24,23 +24,24 @@ export class OButton extends LitElement {
   }
 
   private readonly BASE =
-    "font-bold uppercase tracking-wider rounded-xl border border-transparent " +
-    "transition-all duration-300 transform hover:-translate-y-px " +
-    "outline-none text-center whitespace-normal break-words leading-tight overflow-hidden relative " +
-    "disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:opacity-70";
+    "relative overflow-hidden rounded-md border font-semibold leading-tight " +
+    "outline-none text-center whitespace-normal break-words " +
+    "transition-[background-color,border-color,color,opacity,transform] duration-150 " +
+    "focus-visible:ring-2 focus-visible:ring-aquarius/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080c10] " +
+    "active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45 disabled:active:translate-y-0";
 
   private variantClasses(): string {
     switch (this.variant) {
       case "primary":
-        return "bg-malibu-blue hover:bg-aquarius text-white disabled:bg-gray-600 disabled:text-gray-300";
+        return "border-malibu-blue bg-malibu-blue text-white hover:border-aquarius hover:bg-aquarius disabled:border-gray-600 disabled:bg-gray-600 disabled:text-gray-300";
       case "secondary":
-        return "bg-gray-700 hover:bg-gray-600 text-white disabled:bg-gray-800 disabled:text-gray-400";
+        return "border-white/10 bg-[#161d24] text-white hover:border-white/20 hover:bg-[#1b252e] disabled:bg-[#10161c] disabled:text-white/35";
       case "danger":
-        return "bg-red-600 hover:bg-red-500 text-white disabled:bg-red-900 disabled:text-gray-300";
+        return "border-red-500/80 bg-red-600 text-white hover:border-red-400 hover:bg-red-500 disabled:border-red-900 disabled:bg-red-950 disabled:text-white/35";
       case "warning":
-        return "bg-cyber-yellow hover:brightness-110 text-gray-900 disabled:bg-yellow-900 disabled:text-gray-300";
+        return "border-yellow-400/70 bg-yellow-400 text-gray-950 hover:border-yellow-300 hover:bg-yellow-300 disabled:border-yellow-900 disabled:bg-yellow-950 disabled:text-white/35";
       case "ghost":
-        return "bg-transparent hover:bg-white/10 text-malibu-blue disabled:text-gray-500 disabled:hover:bg-transparent";
+        return "border-transparent bg-transparent text-white/70 hover:border-white/10 hover:bg-white/[0.06] hover:text-white disabled:text-white/30";
     }
   }
 
@@ -48,24 +49,24 @@ export class OButton extends LitElement {
     if (this.iconPosition === "only") {
       switch (this.size) {
         case "xs":
-          return "w-6 h-6 text-xs";
+          return "h-7 w-7 text-xs";
         case "sm":
-          return "w-8 h-8 text-sm";
+          return "h-9 w-9 text-sm";
         case "md":
-          return "w-10 h-10 text-base";
+          return "h-10 w-10 text-base max-[639px]:h-11 max-[639px]:w-11";
         case "lg":
-          return "w-12 h-12 text-lg";
+          return "h-12 w-12 text-lg";
       }
     }
     switch (this.size) {
       case "xs":
-        return "py-1 px-2 text-xs";
+        return "min-h-7 px-2 py-1 text-xs";
       case "sm":
-        return "py-1.5 px-3 text-sm";
+        return "min-h-9 px-3 py-1.5 text-sm max-[639px]:min-h-11";
       case "md":
-        return "py-3 px-4 text-base lg:text-lg";
+        return "min-h-10 px-4 py-2 text-sm max-[639px]:min-h-11";
       case "lg":
-        return "py-4 px-6 text-lg lg:text-xl";
+        return "min-h-12 px-5 py-2.5 text-base";
     }
   }
 
@@ -76,9 +77,9 @@ export class OButton extends LitElement {
       case "block":
         return "flex w-full items-center justify-center gap-2";
       case "blockDesktop":
-        return "flex w-full items-center justify-center gap-2 lg:w-1/2 lg:mx-auto";
+        return "flex w-full items-center justify-center gap-2 lg:mx-auto lg:w-1/2";
       case "fill":
-        return "flex w-full h-full items-center justify-center gap-2";
+        return "flex h-full w-full items-center justify-center gap-2";
     }
   }
 

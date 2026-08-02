@@ -14,53 +14,34 @@ export class OModal extends LitElement {
 
   static openCount = 0;
 
-  @property({ type: Boolean })
-  public inline = false;
-
-  @property({ type: Boolean })
-  public alwaysMaximized = false;
-
-  @property({ type: Boolean })
-  public hideCloseButton = false;
-
-  @property({ type: String })
-  public title = "";
-
-  @property({ type: Boolean })
-  public hideHeader = false;
-
-  @property({ type: String })
-  public maxWidth = "";
-
-  @property({ type: Array })
-  public tabs: OModalTab[] = [];
-
-  @property({ type: String })
-  public activeTab = "";
-
-  @property({ attribute: false })
-  public onTabChange?: (key: string) => void;
+  @property({ type: Boolean }) public inline = false;
+  @property({ type: Boolean }) public alwaysMaximized = false;
+  @property({ type: Boolean }) public hideCloseButton = false;
+  @property({ type: String }) public title = "";
+  @property({ type: Boolean }) public hideHeader = false;
+  @property({ type: String }) public maxWidth = "";
+  @property({ type: Array }) public tabs: OModalTab[] = [];
+  @property({ type: String }) public activeTab = "";
+  @property({ attribute: false }) public onTabChange?: (key: string) => void;
 
   public onClose?: () => void;
 
   public open() {
-    if (!this.isModalOpen) {
-      if (!this.inline) {
-        OModal.openCount = OModal.openCount + 1;
-        if (OModal.openCount === 1) document.body.style.overflow = "hidden";
-      }
-      this.isModalOpen = true;
+    if (this.isModalOpen) return;
+    if (!this.inline) {
+      OModal.openCount += 1;
+      if (OModal.openCount === 1) document.body.style.overflow = "hidden";
     }
+    this.isModalOpen = true;
   }
 
   public close() {
-    if (this.isModalOpen) {
-      this.isModalOpen = false;
-      this.onClose?.();
-      if (!this.inline) {
-        OModal.openCount = Math.max(0, OModal.openCount - 1);
-        if (OModal.openCount === 0) document.body.style.overflow = "";
-      }
+    if (!this.isModalOpen) return;
+    this.isModalOpen = false;
+    this.onClose?.();
+    if (!this.inline) {
+      OModal.openCount = Math.max(0, OModal.openCount - 1);
+      if (OModal.openCount === 0) document.body.style.overflow = "";
     }
   }
 
@@ -69,13 +50,10 @@ export class OModal extends LitElement {
   }
 
   public setScrollTop(scrollTop: number): void {
-    if (this.scrollContainer) {
-      this.scrollContainer.scrollTop = scrollTop;
-    }
+    if (this.scrollContainer) this.scrollContainer.scrollTop = scrollTop;
   }
 
   disconnectedCallback() {
-    // Ensure global counter is decremented if this modal is removed while open.
     if (this.isModalOpen && !this.inline) {
       OModal.openCount = Math.max(0, OModal.openCount - 1);
       if (OModal.openCount === 0) document.body.style.overflow = "";
@@ -91,7 +69,7 @@ export class OModal extends LitElement {
     return html`
       <div
         role="tablist"
-        class="flex flex-wrap justify-center border-b border-white/10 px-4 lg:px-6 gap-1 shrink-0"
+        class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-white/10 bg-[#0d1318] px-3"
       >
         ${this.tabs.map((tab) => {
           const active = this.activeTab === tab.key;
@@ -101,17 +79,12 @@ export class OModal extends LitElement {
               role="tab"
               data-key=${tab.key}
               aria-selected=${active}
-              class="px-4 py-3 text-sm font-bold uppercase tracking-wider transition-all relative cursor-pointer ${active
-                ? "text-aquarius"
-                : "text-white/40 hover:text-white/70"}"
+              class="relative min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold transition-[background-color,border-color,color] duration-150 ${active
+                ? "border-malibu-blue bg-white/[0.035] text-white"
+                : "border-transparent text-white/50 hover:bg-white/[0.035] hover:text-white/80"}"
               @click=${() => this.handleTabClick(tab.key)}
             >
               ${tab.label}
-              ${active
-                ? html`<div
-                    class="absolute bottom-0 left-0 right-0 h-0.5 bg-malibu-blue"
-                  ></div>`
-                : ""}
             </button>
           `;
         })}
@@ -121,55 +94,64 @@ export class OModal extends LitElement {
 
   render() {
     const shouldRender = this.isModalOpen || this.inline;
-    if (!shouldRender) {
-      return html``;
-    }
+    if (!shouldRender) return html``;
 
     const backdropClass = this.inline
-      ? "relative z-10 w-full h-full flex items-stretch bg-transparent"
-      : "fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center overflow-hidden";
+      ? "relative z-10 flex h-full w-full items-stretch bg-transparent"
+      : "fixed inset-0 z-[9999] flex items-end justify-center overflow-hidden bg-black/75 sm:items-center sm:p-4";
 
     const wrapperClass = this.inline
-      ? "relative flex flex-col w-full h-full m-0 max-w-full max-h-none shadow-none"
-      : `relative flex flex-col w-full h-full lg:w-[90%] lg:h-auto lg:min-w-[400px] lg:max-w-[900px] lg:m-8 lg:rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.8)] lg:max-h-[calc(100vh-4rem)] ${
-          this.alwaysMaximized ? "h-auto" : ""
+      ? "relative m-0 flex h-full max-h-none w-full max-w-full flex-col shadow-none"
+      : `relative flex h-[100dvh] w-full flex-col overflow-hidden border-white/10 bg-[#10161c] shadow-[0_18px_48px_rgba(0,0,0,0.48)] sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:min-h-[280px] sm:w-[min(94vw,900px)] sm:rounded-lg sm:border ${
+          this.alwaysMaximized ? "sm:h-[calc(100dvh-2rem)]" : ""
         }`;
     const wrapperStyle =
       !this.inline && this.maxWidth ? `max-width: ${this.maxWidth};` : "";
 
     const hasTabs = this.tabs.length > 0;
     const sectionClass =
-      "relative flex-1 min-h-0 flex flex-col text-white bg-black/70 backdrop-blur-xl lg:rounded-2xl lg:border border-white/10 overflow-hidden";
+      "relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[#10161c] text-white";
 
     return html`
       <aside
-        class="${backdropClass}"
+        class=${backdropClass}
+        role=${this.inline ? "region" : "dialog"}
+        aria-modal=${this.inline ? "false" : "true"}
         @click=${this.inline ? null : () => this.close()}
       >
         <div
-          @click=${(e: Event) => e.stopPropagation()}
-          class="${wrapperClass}"
-          style="${wrapperStyle}"
+          class=${wrapperClass}
+          style=${wrapperStyle}
+          @click=${(event: Event) => event.stopPropagation()}
         >
           ${this.inline || this.hideCloseButton
             ? html``
-            : html`<div
-                class="absolute top-5 right-5 z-10 text-white cursor-pointer"
-                @click=${() => this.close()}
-              >
-                ✕
-              </div>`}
+            : html`
+                <button
+                  type="button"
+                  aria-label="Close"
+                  class="absolute right-2 top-[calc(8px+env(safe-area-inset-top))] z-20 flex h-10 w-10 items-center justify-center rounded-md border border-transparent text-xl text-white/60 transition-[background-color,border-color,color] duration-150 hover:border-white/10 hover:bg-white/[0.06] hover:text-white sm:right-3 sm:top-3"
+                  @click=${() => this.close()}
+                >
+                  ×
+                </button>
+              `}
           ${!this.hideHeader && this.title
-            ? html`<div
-                class="px-[1.4rem] py-[1rem] text-2xl font-bold text-white"
-              >
-                ${this.title}
-              </div>`
+            ? html`
+                <header
+                  class="flex min-h-14 shrink-0 items-center border-b border-white/10 bg-[#0d1318] px-4 pr-14 text-lg font-semibold sm:px-5"
+                >
+                  ${this.title}
+                </header>
+              `
             : html``}
-          <section class="${sectionClass}">
+          <section class=${sectionClass}>
             <slot name="header"></slot>
             ${hasTabs ? this.renderTabs() : html``}
-            <div data-modal-scroll class="flex-1 min-h-0 overflow-y-auto">
+            <div
+              data-modal-scroll
+              class="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+            >
               <slot></slot>
             </div>
           </section>

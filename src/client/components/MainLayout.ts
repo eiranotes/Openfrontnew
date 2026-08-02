@@ -19,10 +19,10 @@ export class MainLayout extends LitElement {
   render() {
     return html`
       <main
-        class="relative [.in-game_&]:hidden flex flex-col flex-1 overflow-hidden w-full px-0 lg:px-[clamp(1.5rem,3vw,3rem)] pt-0 lg:pt-[clamp(0.75rem,1.5vw,1.5rem)] pb-0 lg:pb-[clamp(0.375rem,0.75vw,0.75rem)]"
+        class="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#080c10] [.in-game_&]:hidden"
       >
         <div
-          class="w-full lg:max-w-[20cm] 2xl:max-w-[24cm] mx-auto flex flex-col flex-1 gap-0 lg:gap-[clamp(1.5rem,3vw,3rem)] overflow-y-auto overflow-x-hidden sm:px-4 lg:px-0"
+          class="mx-auto flex min-h-0 w-full max-w-[1440px] flex-1 flex-col overflow-y-auto overflow-x-hidden px-0 pb-0 pt-0 sm:px-4 sm:pb-4 lg:px-6 lg:pb-5 lg:pt-4"
         >
           ${this._initialChildren}
         </div>

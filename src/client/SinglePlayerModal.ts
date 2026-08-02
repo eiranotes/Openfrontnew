@@ -113,6 +113,10 @@ async function loadAchievementEligibleMaps(): Promise<Set<GameMapType> | null> {
 export class SinglePlayerModal extends BaseModal {
   protected routerName = "single-player";
 
+  protected modalConfig() {
+    return { maxWidth: "1180px" };
+  }
+
   @state() private selectedMap: GameMapType = DEFAULT_OPTIONS.selectedMap;
   @state() private selectedDifficulty: Difficulty =
     DEFAULT_OPTIONS.selectedDifficulty;
@@ -216,7 +220,7 @@ export class SinglePlayerModal extends BaseModal {
       return html``;
     }
     return html`<button
-      class="px-3 py-2 text-xs font-bold uppercase tracking-wider transition-colors duration-200 rounded-lg bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 whitespace-nowrap shrink-0 cursor-pointer hover:bg-yellow-500/30"
+      class="min-h-9 shrink-0 cursor-pointer whitespace-nowrap rounded-md border border-yellow-500/25 bg-yellow-500/10 px-3 text-xs font-semibold text-yellow-300 transition-[background-color,border-color] duration-150 hover:border-yellow-400/40 hover:bg-yellow-500/15"
       @click=${() => {
         this.close();
         window.showPage?.("page-account");
@@ -262,7 +266,7 @@ export class SinglePlayerModal extends BaseModal {
       rightContent: hasLinkedAccount(this.userMeResponse)
         ? html`<button
               @click=${this.toggleAchievements}
-              class="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all shrink-0 ${this
+              class="flex min-h-9 shrink-0 items-center gap-2 rounded-md border border-white/10 bg-[#10161c] px-3 text-white/60 transition-[background-color,border-color,color] duration-150 hover:border-white/20 hover:bg-[#1b252e] hover:text-white ${this
                 .showAchievements
                 ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
                 : "text-white/60"}"
@@ -273,7 +277,7 @@ export class SinglePlayerModal extends BaseModal {
                 style="${this.showAchievements ? "" : "filter: grayscale(1);"}"
               />
               <span
-                class="text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+                class="whitespace-nowrap text-xs font-semibold"
                 >${translateText("single_modal.toggle_achievements")}</span
               >
             </button>
@@ -290,7 +294,7 @@ export class SinglePlayerModal extends BaseModal {
     const total = this.eligibleMaps?.size ?? null;
     return html`<div class="basis-full w-full">
       <div
-        class="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 rounded-xl border border-yellow-500/20 bg-yellow-500/5"
+        class="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-md border border-yellow-500/20 bg-yellow-500/[0.06] px-3 py-2"
       >
         <span
           class="text-[11px] font-bold uppercase tracking-wider text-yellow-400/80 shrink-0"
@@ -401,13 +405,11 @@ export class SinglePlayerModal extends BaseModal {
     ];
 
     return html`
-      <div class="flex flex-col h-full">
-        <div
-          class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6 mr-1 mx-auto w-full max-w-5xl"
-        >
+      <div class="command-single-player">
+        <div class="command-settings-scroll custom-scrollbar">
           <game-config-settings
             class="block"
-            .sectionGapClass=${"space-y-6"}
+            .sectionGapClass=${"command-settings-grid"}
             .settings=${{
               map: {
                 selected: this.selectedMap,
@@ -490,15 +492,16 @@ export class SinglePlayerModal extends BaseModal {
           ></game-config-settings>
         </div>
 
-        <!-- Footer Action -->
-        <div class="p-6 border-t border-white/10 bg-black/20 shrink-0">
-          ${hasLinkedAccount(this.userMeResponse) && this.hasOptionsChanged()
-            ? html`<div
-                class="mb-4 px-4 py-3 rounded-xl bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 text-xs font-bold uppercase tracking-wider text-center"
-              >
-                ${translateText("single_modal.options_changed_no_achievements")}
-              </div>`
-            : null}
+        <div class="command-settings-footer shrink-0">
+          <div>
+            ${hasLinkedAccount(this.userMeResponse) && this.hasOptionsChanged()
+              ? html`<div class="command-settings-warning">
+                  ${translateText("single_modal.options_changed_no_achievements")}
+                </div>`
+              : html`<div class="hidden lg:block text-xs text-white/45">
+                  ${translateText("single_modal.options_title")}
+                </div>`}
+          </div>
           <o-button
             variant="primary"
             width="block"

@@ -17,21 +17,20 @@ export class PlayPage extends LitElement {
     return html`
       <div
         id="page-play"
-        class="flex flex-col gap-2 w-full px-0 lg:px-4 min-h-0"
+        class="command-play-page flex min-h-0 w-full flex-col gap-3"
       >
         <token-login class="absolute"></token-login>
         <rewards-modal class="absolute"></rewards-modal>
 
-        <!-- Mobile: Fixed top bar -->
         <div
-          class="lg:hidden fixed left-0 right-0 top-0 z-40 pt-[env(safe-area-inset-top)] bg-surface border-b border-white/10"
+          class="command-mobile-topbar fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)] lg:hidden"
         >
           <div
-            class="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center h-14 px-2 gap-2"
+            class="grid h-14 grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 px-2"
           >
             <button
               id="hamburger-btn"
-              class="col-start-1 justify-self-start h-10 shrink-0 aspect-[4/3] flex text-white/90 rounded-md items-center justify-center transition-colors"
+              class="flex h-11 w-11 items-center justify-center rounded-md border border-transparent text-white/80 transition-[background-color,border-color,color] duration-150 hover:border-white/10 hover:bg-white/[0.06] hover:text-white"
               data-i18n-aria-label="main.menu"
               aria-expanded="false"
               aria-controls="sidebar-menu"
@@ -42,25 +41,23 @@ export class PlayPage extends LitElement {
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                stroke-width="1.5"
+                stroke-width="1.6"
                 stroke="currentColor"
-                class="size-8"
+                class="h-6 w-6"
               >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                  d="M4 7h16M4 12h16M4 17h16"
                 />
               </svg>
             </button>
 
-            <div
-              class="col-start-2 flex items-center justify-center text-malibu-blue min-w-0"
-            >
+            <div class="flex min-w-0 items-center justify-center">
               <img
                 src=${assetUrl("images/OpenFrontLogo.svg")}
                 alt="OpenFront"
-                class="h-full w-auto"
+                class="h-7 w-auto max-w-[150px]"
               />
             </div>
 
@@ -69,13 +66,13 @@ export class PlayPage extends LitElement {
                   <button
                     id="crazygames-account-btn"
                     data-page="page-account"
-                    class="nav-menu-item col-start-3 justify-self-end h-10 shrink-0 flex items-center justify-center rounded-full overflow-hidden text-white/90 cursor-pointer"
+                    class="nav-menu-item flex h-11 w-11 items-center justify-center overflow-hidden rounded-md border border-transparent text-white/80 transition-[background-color,border-color,color] duration-150 hover:border-white/10 hover:bg-white/[0.06] hover:text-white"
                     data-i18n-aria-label="main.account"
                     data-i18n-title="main.account"
                   >
                     <img
                       id="crazygames-account-avatar"
-                      class="hidden w-8 h-8 rounded-full object-cover"
+                      class="hidden h-8 w-8 rounded object-cover"
                       alt=""
                       referrerpolicy="no-referrer"
                     />
@@ -89,83 +86,56 @@ export class PlayPage extends LitElement {
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       aria-hidden="true"
-                      class="w-7 h-7"
+                      class="h-6 w-6"
                     >
                       <path d="M20 21a8 8 0 0 0-16 0" />
                       <path d="M12 13a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" />
                     </svg>
                   </button>
                 `
-              : html`
-                  <div
-                    aria-hidden="true"
-                    class="col-start-3 justify-self-end h-10 shrink-0 aspect-[4/3]"
-                  ></div>
-                `}
+              : html`<div aria-hidden="true" class="h-11 w-11"></div>`}
           </div>
         </div>
 
-        <!-- Top strip: news + identity on the left, Streaming Now on the right. The 2fr/1fr
-             split only exists while the panel is live (.streaming-live via has-[]) —
-             otherwise the left column takes the full row. -->
-        <div
-          class="w-full pb-4 lg:pb-0 flex flex-col gap-4 sm:-mx-4 sm:w-[calc(100%+2rem)] lg:mx-0 lg:w-full lg:grid lg:grid-cols-1 lg:has-[.streaming-live]:grid-cols-[2fr_1fr] lg:gap-4 lg:items-stretch"
-        >
-          <!-- Mobile: spacer for fixed top bar -->
-          <div
-            class="lg:hidden h-[calc(env(safe-area-inset-top)+56px)] -mb-4"
-          ></div>
+        <div class="h-[calc(56px+env(safe-area-inset-top))] lg:hidden"></div>
 
-          <!-- Left column: news banner + identity row, stacked tight. -->
-          <div class="flex flex-col gap-2 min-w-0">
+        <div
+          class="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.34fr)]"
+        >
+          <div class="flex min-w-0 flex-col gap-2">
             <news-box></news-box>
 
-            <!-- Identity row: flag + tag/username + skin in one line. Flag sits before the
-                 tag (where it shows in-game), skin at the end; both preview the current
-                 selection. Replaces the old separate SELECT SKIN / SELECT FLAG buttons. -->
-            <div
-              class="relative bg-surface border-y border-white/10 overflow-visible flex items-center sm:min-h-[60px] sm:flex-1 sm:z-20 sm:border-y-0 sm:rounded-xl"
-            >
-              <!-- Selected skin/pattern fills the bubble like the player's territory in
-                   game (the skin button updates it), shown as a frame around the controls. -->
+            <div class="command-identity-bar relative min-h-[56px] overflow-hidden">
               <cosmetic-background
-                class="absolute inset-0 z-0 overflow-hidden sm:rounded-xl pointer-events-none"
+                class="pointer-events-none absolute inset-0 overflow-hidden rounded-md"
               ></cosmetic-background>
-              <!-- Controls share one surface bubble so it reads as a single clean bar
-                   (buttons blend at rest and only highlight on hover). -->
               <div
-                class="relative z-10 flex h-full w-full min-w-0 items-center gap-2 bg-surface/80 p-1 sm:rounded-xl"
+                class="relative z-10 flex min-h-[56px] min-w-0 items-center gap-2 bg-[#10161c]/90 p-1.5"
               >
                 <flag-input
                   show-select-label
-                  class="shrink-0 h-full max-h-[52px] aspect-square"
+                  class="h-11 w-11 shrink-0"
                 ></flag-input>
-                <username-input
-                  class="flex-1 min-w-0 h-10 sm:h-[50px]"
-                ></username-input>
-                <!-- Raised 3D shadow so the skin pops off the bar and is easy to spot. -->
+                <username-input class="h-11 min-w-0 flex-1"></username-input>
                 <cosmetics-input
                   id="cosmetics-input-mobile"
                   show-select-label
-                  class="no-crazygames shrink-0 h-full max-h-[52px] aspect-square rounded-lg [box-shadow:0_3px_6px_#00000099,0_1px_2px_#000000cc]"
+                  class="no-crazygames h-11 w-11 shrink-0 rounded-md"
                 ></cosmetics-input>
               </div>
             </div>
           </div>
 
-          <!-- Right column: Streaming Now (desktop only), stretched to the left column's
-               full height so the top strip has no dead space. -->
           <streaming-now
-            class="hidden lg:flex lg:h-full lg:flex-col w-full min-w-0"
+            class="hidden min-w-0 flex-col lg:flex lg:h-full"
           ></streaming-now>
         </div>
 
         <game-mode-selector></game-mode-selector>
 
-        <!-- Desktop gets the compact footer button instead. -->
         <steam-wishlist
           campaign="home_mobile"
-          class="block px-2 pb-4 lg:hidden"
+          class="block px-4 pb-[calc(12px+env(safe-area-inset-bottom))] lg:hidden"
         ></steam-wishlist>
       </div>
     `;

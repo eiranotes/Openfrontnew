@@ -466,7 +466,7 @@ export class ControlPanel extends LitElement implements Controller {
     const isWarning = this._notification.type === "warning";
     return html`
       <div
-        class="flex items-center gap-1.5 px-1.5 py-1 rounded-md border text-xs font-medium mb-1 ${isWarning
+        class="mb-1.5 flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-xs font-medium ${isWarning
           ? "border-orange-400/60 bg-orange-400/10 text-orange-300"
           : "border-blue-400/60 bg-blue-400/10 text-blue-300"}"
       >
@@ -483,7 +483,7 @@ export class ControlPanel extends LitElement implements Controller {
       <div class="flex gap-1.5 items-center mb-1">
         <!-- Troop rate -->
         <div
-          class="flex items-center gap-1 shrink-0 border rounded-md font-bold text-sm py-0.5 px-1 w-[5.5rem] ${this
+          class="command-resource flex w-[5.5rem] shrink-0 items-center gap-1 rounded-md border px-1.5 py-1 text-sm font-bold ${this
             ._troopRateIsIncreasing
             ? "border-green-400"
             : "border-orange-400"}"
@@ -511,7 +511,7 @@ export class ControlPanel extends LitElement implements Controller {
         <div class="flex-1">${this.renderDesktopTroopBar()}</div>
         <!-- Gold -->
         <div
-          class="flex items-center gap-1 shrink-0 border rounded-md border-yellow-400 font-bold text-yellow-400 text-sm py-0.5 px-1 min-w-[4.5rem] relative"
+          class="command-resource relative flex min-w-[4.75rem] shrink-0 items-center gap-1 rounded-md border px-1.5 py-1 text-sm font-bold text-yellow-300"
           translate="no"
         >
           ${this._goldGain !== null
@@ -530,7 +530,8 @@ export class ControlPanel extends LitElement implements Controller {
       <!-- Row 2: military quality | attack ratio | slider -->
       <div class="flex items-center gap-1.5" translate="no">
         <div
-          class="flex items-center justify-between gap-1 shrink-0 border border-sky-400/60 bg-sky-400/10 rounded-md px-1.5 py-0.5 text-[11px] font-bold text-sky-200 min-w-[9.5rem]"
+          class="command-military flex min-w-[10rem] shrink-0 items-center justify-between gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold"
+          style="--training-coverage: ${Math.round(this._trainingCoverage * 100)}%;"
           title="훈련 수용량 ${renderTroops(this._trainingCapacity)}"
         >
           <span>◆ ${this._militaryLabel}</span>
@@ -540,7 +541,7 @@ export class ControlPanel extends LitElement implements Controller {
           )}%</span>
         </div>
         <div
-          class="flex items-center gap-1 shrink-0 border border-gray-600 rounded-md px-1 py-0.5 text-sm font-bold text-white cursor-pointer w-[8rem]"
+          class="command-resource flex w-[8.25rem] shrink-0 cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-sm font-semibold text-white"
         >
           <img
             src=${swordIcon}
@@ -573,67 +574,73 @@ export class ControlPanel extends LitElement implements Controller {
   private renderMobile() {
     return html`
       ${this.renderNotification()}
-      <div class="flex gap-2 items-center">
-        <!-- Gold -->
+      <div class="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-2">
         <div
-          class="flex items-center justify-center p-1 gap-0.5 border rounded-md border-yellow-400 font-bold text-yellow-400 text-xs w-1/5 shrink-0 relative"
+          class="command-resource relative flex min-h-10 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-yellow-300"
           translate="no"
         >
           ${this._goldGain !== null
             ? keyed(
                 this._goldGainPulseId,
                 html`<span
-                  class="gold-gain-pop absolute -top-5 right-[5px] min-[1015px]:right-[9px] text-green-400 text-xs font-extrabold tabular-nums whitespace-nowrap pointer-events-none drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]"
+                  class="gold-gain-pop pointer-events-none absolute -top-5 right-1 text-xs font-extrabold tabular-nums text-green-400"
                   >+${renderNumber(this._goldGain)}</span
                 >`,
               )
             : ""}
-          <img src=${goldCoinIcon} width="13" height="13" />
-          <span class="px-0.5">${renderNumber(this._gold)}</span>
+          <img src=${goldCoinIcon} width="14" height="14" />
+          <span class="truncate tabular-nums">${renderNumber(this._gold)}</span>
         </div>
-        <!-- Troop bar -->
-        <div class="w-[40%] shrink-0 flex items-center">
-          ${this.renderMobileTroopBar()}
-        </div>
-        <!-- Sword + % label -->
+        <div class="min-w-0">${this.renderMobileTroopBar()}</div>
+      </div>
+
+      <div class="mt-2 grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2">
         <div
-          class="flex flex-col items-center shrink-0 gap-0.5 w-8"
+          class="command-resource flex min-h-10 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-white"
           translate="no"
         >
           <img
             src=${swordIcon}
             alt=""
             aria-hidden="true"
-            width="10"
-            height="10"
+            width="13"
+            height="13"
             style="filter: brightness(0) invert(1);"
           />
-          <span class="text-white text-xs font-bold tabular-nums"
+          <span class="tabular-nums"
             >${(this.attackRatio * 100).toFixed(0)}%</span
           >
+          <span class="truncate text-[10px] text-white/50">
+            ${renderTroops(
+              (this.game?.myPlayer()?.troops() ?? 0) * this.attackRatio,
+            )}
+          </span>
         </div>
-        <!-- Attack ratio slider -->
-        <div class="flex-1" translate="no">
-          <input
-            type="range"
-            min="1"
-            max="100"
-            .value=${String(Math.round(this.attackRatio * 100))}
-            @input=${(e: Event) => this.handleRatioSliderInput(e)}
-            @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
-            class="w-full h-1.5 accent-aquarius cursor-pointer"
-          />
-        </div>
+        <input
+          type="range"
+          min="1"
+          max="100"
+          aria-label="Attack ratio"
+          .value=${String(Math.round(this.attackRatio * 100))}
+          @input=${(e: Event) => this.handleRatioSliderInput(e)}
+          @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
+          class="h-10 w-full accent-aquarius"
+        />
       </div>
+
       <div
-        class="mt-1 flex items-center justify-center gap-2 text-[10px] font-bold text-sky-200"
+        class="command-military mt-2 flex min-h-9 items-center justify-between gap-2 rounded-md border px-2 text-[10px] font-semibold"
+        style="--training-coverage: ${Math.round(this._trainingCoverage * 100)}%;"
         translate="no"
         title="훈련 수용량 ${renderTroops(this._trainingCapacity)}"
       >
-        <span>◆ ${this._militaryLabel} ×${this._militaryQuality.toFixed(2)}</span>
-        <span class="text-sky-300/70">훈련 ${Math.round(
-          this._trainingCoverage * 100,
-        )}%</span>
+        <span class="truncate">◆ ${this._militaryLabel}</span>
+        <span class="shrink-0 tabular-nums"
+          >×${this._militaryQuality.toFixed(2)}</span
+        >
+        <span class="shrink-0 tabular-nums text-sky-300/70"
+          >${Math.round(this._trainingCoverage * 100)}%</span
+        >
       </div>
     `;
   }
@@ -656,8 +663,8 @@ export class ControlPanel extends LitElement implements Controller {
         }
       </style>
       <div
-        class="relative pointer-events-auto ${this._isVisible
-          ? "relative w-full text-sm px-2 py-1"
+        class="command-control-panel relative pointer-events-auto ${this._isVisible
+          ? "w-full px-2 py-1.5 text-sm"
           : "hidden"}"
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
       >
