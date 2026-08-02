@@ -1,4 +1,4 @@
-name: Browser single-player smoke
+name: Browser responsive single-player smoke
 
 on:
   workflow_dispatch:
@@ -6,10 +6,7 @@ on:
     branches: [main]
     types: [opened, synchronize, reopened]
     paths:
-      - 'src/client/SinglePlayerModal.ts'
-      - 'src/client/ClientGameRunner.ts'
-      - 'src/client/GameRunner.ts'
-      - 'src/client/graphics/**'
+      - 'src/client/**'
       - 'src/core/game/**'
       - 'src/core/worker/**'
       - 'resources/maps/**'
@@ -26,7 +23,18 @@ permissions:
 jobs:
   browser-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 24
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: desktop
+            width: 1440
+            height: 900
+          - name: mobile
+            width: 390
+            height: 844
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -63,6 +71,11 @@ jobs:
 
       - name: Start configured single-player game in Chromium
         shell: bash
+        env:
+          SMOKE_VIEWPORT_WIDTH: ${{ matrix.width }}
+          SMOKE_VIEWPORT_HEIGHT: ${{ matrix.height }}
+          SMOKE_ARTIFACT_PREFIX: ${{ matrix.name }}
+          SMOKE_SCREENSHOT: ${{ matrix.name }}-game.png
         run: |
           set -euo pipefail
           mkdir -p /tmp/openfront-site/Openfrontnew
@@ -79,13 +92,12 @@ jobs:
             sleep 1
           done
           SMOKE_SITE_URL=http://127.0.0.1:4173/Openfrontnew/ \
-          SMOKE_SCREENSHOT=browser-single-player-smoke.png \
             node scripts/browser-single-player-smoke.mjs
 
-      - name: Upload gameplay screenshot
+      - name: Upload responsive screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: browser-single-player-smoke
-          path: browser-single-player-smoke.png
+          name: browser-single-player-${{ matrix.name }}
+          path: ${{ matrix.name }}-*.png
           if-no-files-found: ignore
