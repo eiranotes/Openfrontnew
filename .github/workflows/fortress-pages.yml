@@ -70,33 +70,62 @@ jobs:
             touch .fortress-hud
           fi
 
-      - name: Restore original single-player options and verify idempotence
+      - name: Restore configurable single-player options
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/apply-single-player-options.mjs .
-          first_hash=$(sha256sum src/client/SinglePlayerModal.ts | cut -d' ' -f1)
-          node scripts/apply-single-player-options.mjs .
-          second_hash=$(sha256sum src/client/SinglePlayerModal.ts | cut -d' ' -f1)
-          test "${first_hash}" = "${second_hash}"
+          if [[ ! -f .command-ui-integrated ]]; then
+            node scripts/apply-single-player-options.mjs .
+            first_hash=$(sha256sum src/client/SinglePlayerModal.ts | cut -d' ' -f1)
+            node scripts/apply-single-player-options.mjs .
+            second_hash=$(sha256sum src/client/SinglePlayerModal.ts | cut -d' ' -f1)
+            test "${first_hash}" = "${second_hash}"
+          fi
           test "$(grep -c '^export const DEFAULT_OPTIONS = {' src/client/SinglePlayerModal.ts)" -eq 1
           ! grep -q 'export export' src/client/SinglePlayerModal.ts
 
-      - name: Verify patch anchors
+      - name: Apply responsive command UI for legacy source trees
+        shell: bash
         run: |
+          set -euo pipefail
+          if [[ ! -f .command-ui-integrated ]]; then
+            cat scripts/command-ui-patch.part-* \
+              | tr -d '[:space:]' \
+              | base64 -d > /tmp/command-ui-patch.tar.gz
+            echo 'd86ee98890564a59279217a20202f1227fd4e39a7fcaf8b77972ec2814c7a039  /tmp/command-ui-patch.tar.gz' \
+              | sha256sum -c -
+            tar -xzf /tmp/command-ui-patch.tar.gz
+            node --check scripts/apply-responsive-mobile-fix.mjs
+            node scripts/apply-responsive-mobile-fix.mjs .
+          fi
+          grep -q 'import "./styles/command-ui.css"' src/client/Main.ts
+          grep -q 'command-settings-grid' src/client/SinglePlayerModal.ts
+          grep -q 'Keep the single-player action bar inside the mobile viewport' src/client/styles/command-ui.css
+          node --check scripts/browser-single-player-smoke.mjs
+
+      - name: Verify Fortress development anchors
+        shell: bash
+        run: |
+          set -euo pipefail
           node scripts/verify-fortress.mjs
           node scripts/verify-fortress-hud.mjs
+          grep -Fq 'goldIncomeBreakdown' src/core/configuration/Config.ts
+          grep -Fq 'TRAINING_CAPACITY_PER_CITY_LEVEL = 300_000' src/core/game/FortressBalance.ts
+          grep -Fq '행정 효율' src/client/hud/layers/ControlPanel.ts
+          grep -Fq '건설 시설 선택' src/client/hud/layers/UnitDisplay.ts
+          grep -Fq 'developmentBand' src/client/render/gl/passes/StructurePass.ts
 
-      - name: Commit populated and patched source tree
+      - name: Commit generated source normalization
         shell: bash
         run: |
           set -euo pipefail
           target_branch="${GITHUB_HEAD_REF:-main}"
           git config user.name 'openai-codex[bot]'
           git config user.email 'openai-codex[bot]@users.noreply.github.com'
+          git restore --source=HEAD -- .github/workflows
           git add -A
           if ! git diff --cached --quiet; then
-            git commit -m 'Restore configurable single-player options [skip ci]'
+            git commit -m 'Normalize Fortress source [skip ci]'
             git push origin "HEAD:${target_branch}"
           fi
 
@@ -109,8 +138,18 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Run Fortress and single-player tests
-        run: npx vitest run tests/FortressBalance.test.ts tests/SinglePlayerOptions.test.ts
+      - name: Run Fortress, economy, and single-player tests
+        run: >-
+          npx vitest run
+          tests/FortressBalance.test.ts
+          tests/FortressResponsiveUI.test.ts
+          tests/ConquerGold.test.ts
+          tests/economy/ConstructionCost.test.ts
+          tests/economy/ConstructionGold.test.ts
+          tests/core/game/TrainStation.test.ts
+          tests/core/executions/TradeShipExecution.test.ts
+          tests/SinglePlayerOptions.test.ts
+          tests/WorkerAssetBase.test.ts
 
       - name: Type-check
         run: npx tsc --noEmit
@@ -202,7 +241,7 @@ jobs:
           verified_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           index_bytes=$(wc -c < /tmp/pages-index.html | tr -d ' ')
           bundle_bytes=$(wc -c < /tmp/pages-app.js | tr -d ' ')
-          cat > PAGES_STATUS.md <<EOF
+          cat > PAGES_STATUS.md <<EOF_STATUS
           # GitHub Pages deployment
 
           - Status: verified
@@ -211,7 +250,7 @@ jobs:
           - Source commit: ${GITHUB_SHA}
           - HTML bytes: ${index_bytes}
           - JavaScript bundle: ${asset_path} (${bundle_bytes} bytes)
-          EOF
+          EOF_STATUS
 
           git config user.name 'openai-codex[bot]'
           git config user.email 'openai-codex[bot]@users.noreply.github.com'
