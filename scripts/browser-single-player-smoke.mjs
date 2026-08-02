@@ -354,13 +354,12 @@ try {
       const rect = canvas.getBoundingClientRect();
       return rect.width >= 100 && rect.height >= 100;
     }).length,
-    appChildren: document.querySelector("#app")?.childElementCount ?? 0,
   }));
 
   if (
     !runtime.inGame ||
     runtime.visibleCanvasCount < 1 ||
-    runtime.appChildren < 1
+    !/^\/w\d+\/game\/[A-Za-z0-9_-]+$/.test(runtime.path)
   ) {
     throw new Error(
       `Game runtime did not remain active: ${JSON.stringify(runtime)}`,
