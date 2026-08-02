@@ -17,7 +17,8 @@ export function allianceTroopSupportAmount(
   troops: number,
   maxTroops: number,
 ): number {
-  const available = troops - maxTroops * ALLIANCE_TROOP_RESERVE_RATIO;
+  const reserve = Math.ceil((maxTroops * 55) / 100);
+  const available = troops - reserve;
   if (available <= 0) return 0;
   return Math.floor(Math.min(available, troops * 0.12));
 }

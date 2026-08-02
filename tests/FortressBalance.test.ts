@@ -114,7 +114,7 @@ describe("combat integration", () => {
   });
   it("keeps mobile attacks direct and owned-land menus intact", () => {
     const touch = source("src/client/controllers/WarshipSelectionController.ts");
-    expect(touch).toContain("const isOwnedByMe");
+    expect(touch).toContain("this.game.hasOwner(clickRef)");
     expect(touch).toContain("? new ContextMenuEvent(event.x, event.y)");
     expect(touch).toContain(": new MouseUpEvent(event.x, event.y)");
     expect(source("src/client/InputHandler.ts")).toContain(
