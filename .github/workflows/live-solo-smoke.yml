@@ -1,0 +1,43 @@
+name: Verify live solo options deployment
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for the configurable solo bundle on GitHub Pages
+        shell: bash
+        env:
+          SITE_URL: https://eiranotes.github.io/Openfrontnew/
+          EXPECTED_ASSET: /Openfrontnew/assets/index-BdLRMiFB.js
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 36); do
+            curl --fail --location --silent --show-error \
+              --max-time 20 "${SITE_URL}?solo-options-check=${GITHUB_RUN_ID}-${attempt}" \
+              -o /tmp/openfront-index.html
+            live_asset=$(grep -oE '/Openfrontnew/assets/index-[^" ]+\.js' \
+              /tmp/openfront-index.html | head -n 1 || true)
+            echo "Attempt ${attempt}: ${live_asset:-missing}"
+            if [[ "${live_asset}" == "${EXPECTED_ASSET}" ]]; then
+              curl --fail --location --silent --show-error --max-time 30 \
+                "https://eiranotes.github.io${live_asset}" \
+                -o /tmp/openfront-app.js
+              test -s /tmp/openfront-app.js
+              echo "Verified deployed solo-options bundle: ${live_asset}"
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "Expected ${EXPECTED_ASSET}, but Pages is still serving:" >&2
+          grep -oE '/Openfrontnew/assets/index-[^" ]+\.js' \
+            /tmp/openfront-index.html | head -n 1 >&2 || true
+          exit 1
