@@ -679,7 +679,9 @@
     "inbox": "동맹 요청",
     "collapse": "접기",
     "more_requests": "요청 {count}개 더 보기",
-    "more_notifications": "알림 {count}개 더 보기"
+    "more_notifications": "알림 {count}개 더 보기",
+    "details": "상세 정보",
+    "allied": "동맹"
   },
   "build_menu": {
     "desc": {

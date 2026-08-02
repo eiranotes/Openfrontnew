@@ -450,6 +450,7 @@ try {
       requestAnimationFrame(() => requestAnimationFrame(resolve)),
     );
 
+    const layer = panel.querySelector(".command-player-layer");
     const sheet = panel.querySelector(".command-player-sheet");
     const buttons = [...panel.querySelectorAll(".command-player-actions button")].filter(
       (button) => button.getBoundingClientRect().width > 0,
@@ -465,6 +466,10 @@ try {
         : 0,
       actionCount: buttons.length,
       labels: buttons.map((button) => button.textContent?.trim()).filter(Boolean),
+      layerPointerEvents: layer ? getComputedStyle(layer).pointerEvents : null,
+      sheetPointerEvents: sheet ? getComputedStyle(sheet).pointerEvents : null,
+      detailsCollapsed:
+        panel.querySelector(".command-player-details") === null,
     };
   });
 
@@ -475,8 +480,15 @@ try {
     if (allianceSheet.bottom > allianceSheet.viewportHeight + 1) {
       throw new Error(`Mobile alliance sheet exceeds viewport: ${JSON.stringify(allianceSheet)}`);
     }
-    if (allianceSheet.height > allianceSheet.viewportHeight * 0.75) {
+    if (allianceSheet.height > allianceSheet.viewportHeight * 0.55) {
       throw new Error(`Mobile alliance sheet is too tall: ${JSON.stringify(allianceSheet)}`);
+    }
+    if (
+      allianceSheet.layerPointerEvents !== "none" ||
+      allianceSheet.sheetPointerEvents !== "auto" ||
+      !allianceSheet.detailsCollapsed
+    ) {
+      throw new Error(`Mobile country dock blocks the map or expands details: ${JSON.stringify(allianceSheet)}`);
     }
     if (allianceSheet.minActionHeight < 44) {
       throw new Error(`Mobile alliance action is too small: ${JSON.stringify(allianceSheet)}`);
