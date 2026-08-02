@@ -1,6 +1,6 @@
 name: Browser responsive single-player smoke
 
-# Release candidate: flat command UI, wordmark, and mobile HUD polish.
+# Release candidate: compact development balance and touch-first combat.
 on:
   workflow_dispatch:
   pull_request:
@@ -9,12 +9,16 @@ on:
     paths:
       - 'src/client/**'
       - 'src/core/game/**'
+      - 'src/core/configuration/**'
+      - 'src/core/execution/**'
       - 'src/core/worker/**'
       - 'resources/maps/**'
       - 'map-generator/**'
       - 'vite.config.ts'
+      - 'tests/FortressBalance.test.ts'
       - 'tests/SinglePlayerOptions.test.ts'
       - 'tests/WorkerAssetBase.test.ts'
+      - 'scripts/apply-*.mjs'
       - 'scripts/browser-single-player-smoke.mjs'
       - '.github/workflows/browser-single-player-smoke.yml'
 
@@ -39,6 +43,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Apply compact-state combat update
+        run: |
+          node --check scripts/apply-compact-state-combat.mjs
+          node scripts/apply-responsive-mobile-fix.mjs .
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
