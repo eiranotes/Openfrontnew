@@ -82,6 +82,16 @@ jobs:
           test "$(grep -c '^export const DEFAULT_OPTIONS = {' src/client/SinglePlayerModal.ts)" -eq 1
           ! grep -q 'export export' src/client/SinglePlayerModal.ts
 
+      - name: Apply responsive command UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat scripts/command-ui-patch.part-* | base64 -d | tar -xzf -
+          grep -q 'import "./styles/command-ui.css"' src/client/Main.ts
+          grep -q 'command-settings-grid' src/client/SinglePlayerModal.ts
+          grep -q 'command-control-panel' src/client/hud/layers/ControlPanel.ts
+          node --check scripts/browser-single-player-smoke.mjs
+
       - name: Verify patch anchors
         run: |
           node scripts/verify-fortress.mjs
@@ -96,7 +106,7 @@ jobs:
           git config user.email 'openai-codex[bot]@users.noreply.github.com'
           git add -A
           if ! git diff --cached --quiet; then
-            git commit -m 'Restore configurable single-player options [skip ci]'
+            git commit -m 'Apply responsive command UI [skip ci]'
             git push origin "HEAD:${target_branch}"
           fi
 
@@ -110,7 +120,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Run Fortress and single-player tests
-        run: npx vitest run tests/FortressBalance.test.ts tests/SinglePlayerOptions.test.ts
+        run: npx vitest run tests/FortressBalance.test.ts tests/SinglePlayerOptions.test.ts tests/WorkerAssetBase.test.ts
 
       - name: Type-check
         run: npx tsc --noEmit
