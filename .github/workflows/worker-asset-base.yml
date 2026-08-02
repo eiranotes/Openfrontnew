@@ -1,0 +1,72 @@
+name: Validate Worker asset base
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fix branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+
+      - name: Apply Worker asset-base patch twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/apply-worker-asset-base.mjs
+          node scripts/apply-worker-asset-base.mjs .
+          first_hash=$(sha256sum src/core/worker/WorkerClient.ts | cut -d' ' -f1)
+          node scripts/apply-worker-asset-base.mjs .
+          second_hash=$(sha256sum src/core/worker/WorkerClient.ts | cut -d' ' -f1)
+          test "${first_hash}" = "${second_hash}"
+          grep -q 'resolveWorkerAssetBase(getCdnBase(), window.location.origin)' \
+            src/core/worker/WorkerClient.ts
+
+      - name: Commit patched Worker client
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'openai-codex[bot]'
+          git config user.email 'openai-codex[bot]@users.noreply.github.com'
+          git add src/core/worker/WorkerClient.ts
+          if ! git diff --cached --quiet; then
+            git commit -m 'Resolve Worker assets against page origin [skip ci]'
+            git push origin "HEAD:${GITHUB_HEAD_REF}"
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run balance, solo, and Worker URL tests
+        run: >-
+          npx vitest run
+          tests/FortressBalance.test.ts
+          tests/SinglePlayerOptions.test.ts
+          tests/WorkerAssetBase.test.ts
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build Pages bundle
+        env:
+          GITHUB_PAGES: 'true'
+          CDN_BASE: /Openfrontnew
+          GAME_ENV: dev
+          DOMAIN: localhost
+          NUM_WORKERS: '2'
+        run: npm run build-dev
