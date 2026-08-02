@@ -21,7 +21,7 @@ function replaceOnce(content, before, after, label) {
 
 const cssPath = "src/client/styles/command-ui.css";
 let css = read(cssPath);
-const mobileViewportRule = `/* Keep the single-player action bar inside the mobile viewport. */
+const oldMobileViewportRule = `/* Keep the single-player action bar inside the mobile viewport. */
 @media (max-width: 639px) {
   single-player-modal .command-single-player {
     height: calc(100dvh - 56px);
@@ -34,7 +34,35 @@ const mobileViewportRule = `/* Keep the single-player action bar inside the mobi
 }
 
 `;
-if (!css.includes(mobileViewportRule)) {
+const mobileViewportRule = `/* Keep the single-player action bar inside the mobile viewport. */
+@media (max-width: 639px) {
+  single-player-modal .command-single-player {
+    height: calc(100dvh - 60px);
+    max-height: calc(100dvh - 60px);
+  }
+
+  single-player-modal .command-settings-scroll {
+    padding-bottom: 12px;
+  }
+
+  single-player-modal button,
+  single-player-modal input:not([type="range"]),
+  single-player-modal select,
+  single-player-modal [role="button"],
+  single-player-modal [role="tab"] {
+    min-height: 44px !important;
+  }
+
+  single-player-modal input[type="range"] {
+    min-height: 44px;
+  }
+}
+
+`;
+if (css.includes(oldMobileViewportRule)) {
+  css = css.replace(oldMobileViewportRule, mobileViewportRule);
+  write(cssPath, css);
+} else if (!css.includes(mobileViewportRule)) {
   const anchor = "@media (pointer: coarse) {";
   if (!css.includes(anchor)) {
     throw new Error("Responsive mobile CSS anchor missing");
