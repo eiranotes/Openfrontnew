@@ -1,9 +1,24 @@
 name: Browser single-player smoke
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
+    paths:
+      - 'src/client/SinglePlayerModal.ts'
+      - 'src/client/ClientGameRunner.ts'
+      - 'src/client/GameRunner.ts'
+      - 'src/client/graphics/**'
+      - 'src/core/game/**'
+      - 'src/core/worker/**'
+      - 'resources/maps/**'
+      - 'map-generator/**'
+      - 'vite.config.ts'
+      - 'tests/SinglePlayerOptions.test.ts'
+      - 'tests/WorkerAssetBase.test.ts'
+      - 'scripts/browser-single-player-smoke.mjs'
+      - '.github/workflows/browser-single-player-smoke.yml'
 
 permissions:
   contents: read
