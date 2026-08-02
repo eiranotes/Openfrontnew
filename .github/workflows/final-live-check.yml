@@ -1,0 +1,95 @@
+name: Final live configurable solo check
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify main deployment and live bundle
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const expectedSha = "efa5dfdb3db120bec64f54c3756d18f53ee79494";
+            const expectedAsset = "/Openfrontnew/assets/index-BdLRMiFB.js";
+            const { owner, repo } = context.repo;
+
+            let deploymentRun;
+            for (let attempt = 1; attempt <= 60; attempt++) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: "fortress-pages.yml",
+                branch: "main",
+                event: "push",
+                per_page: 20,
+              });
+              deploymentRun = data.workflow_runs.find(
+                (run) => run.head_sha === expectedSha,
+              );
+              core.info(
+                `Deployment attempt ${attempt}: ${deploymentRun?.status ?? "missing"}/${deploymentRun?.conclusion ?? "none"}`,
+              );
+              if (deploymentRun?.status === "completed") break;
+              await new Promise((resolve) => setTimeout(resolve, 5000));
+            }
+
+            if (!deploymentRun) {
+              core.setFailed(`No main deployment found for ${expectedSha}`);
+              return;
+            }
+            if (deploymentRun.conclusion !== "success") {
+              core.setFailed(
+                `Main deployment ${deploymentRun.id} ended with ${deploymentRun.conclusion}`,
+              );
+              return;
+            }
+
+            let liveAsset;
+            for (let attempt = 1; attempt <= 60; attempt++) {
+              const indexResponse = await fetch(
+                `https://eiranotes.github.io/Openfrontnew/?final-check=${context.runId}-${attempt}`,
+                { cache: "no-store" },
+              );
+              if (!indexResponse.ok) {
+                throw new Error(`Pages returned HTTP ${indexResponse.status}`);
+              }
+              const html = await indexResponse.text();
+              liveAsset = html.match(
+                /\/Openfrontnew\/assets\/index-[^" ]+\.js/,
+              )?.[0];
+              core.info(`Live attempt ${attempt}: ${liveAsset ?? "missing"}`);
+              if (liveAsset === expectedAsset) break;
+              await new Promise((resolve) => setTimeout(resolve, 5000));
+            }
+
+            if (liveAsset !== expectedAsset) {
+              core.setFailed(
+                `Expected ${expectedAsset}, but live site serves ${liveAsset ?? "no bundle"}`,
+              );
+              return;
+            }
+
+            const assetResponse = await fetch(
+              `https://eiranotes.github.io${liveAsset}`,
+              { cache: "no-store" },
+            );
+            if (!assetResponse.ok) {
+              core.setFailed(`Bundle returned HTTP ${assetResponse.status}`);
+              return;
+            }
+            const bytes = (await assetResponse.arrayBuffer()).byteLength;
+            if (bytes === 0) {
+              core.setFailed("Deployed JavaScript bundle is empty");
+              return;
+            }
+            core.info(
+              `Verified deployment run ${deploymentRun.id} and ${liveAsset} (${bytes} bytes)`,
+            );
