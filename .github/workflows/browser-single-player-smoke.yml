@@ -50,6 +50,8 @@ jobs:
           node scripts/apply-responsive-mobile-fix.mjs .
           node --check scripts/apply-alliance-command.mjs
           node scripts/apply-alliance-command.mjs .
+          node --check scripts/apply-alliance-command-fixes.mjs
+          node scripts/apply-alliance-command-fixes.mjs .
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
