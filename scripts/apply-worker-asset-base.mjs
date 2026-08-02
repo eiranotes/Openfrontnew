@@ -28,8 +28,11 @@ if (!source.includes(newValue)) {
   changed = true;
 }
 
-if ((source.match(/resolveWorkerAssetBase\(/g) ?? []).length !== 2) {
-  throw new Error("Worker asset-base resolver must have one import and one call");
+if (!source.includes(importLine)) {
+  throw new Error("Worker asset-base resolver import is missing");
+}
+if ((source.match(/resolveWorkerAssetBase\(/g) ?? []).length !== 1) {
+  throw new Error("Worker asset-base resolver must be called exactly once");
 }
 if (source.includes(oldValue)) {
   throw new Error("Root-relative Worker CDN base is still present");
