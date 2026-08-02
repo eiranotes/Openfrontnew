@@ -20,7 +20,7 @@ env:
 
 concurrency:
   group: fortress-pages-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -137,6 +137,73 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
+      - name: Checkout source for deployment verification
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Verify deployed HTML and JavaScript bundle
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          success=false
+          for attempt in $(seq 1 30); do
+            if curl --fail --location --silent --show-error \
+              --max-time 20 "${SITE_URL}" -o /tmp/pages-index.html; then
+              success=true
+              break
+            fi
+            sleep 3
+          done
+          if [[ "${success}" != "true" ]]; then
+            echo "Pages index did not become available: ${SITE_URL}" >&2
+            exit 1
+          fi
+
+          asset_path=$(grep -oE '/Openfrontnew/assets/[^" ]+\.js' \
+            /tmp/pages-index.html | head -n 1 || true)
+          if [[ -z "${asset_path}" ]]; then
+            echo "No project-scoped JavaScript asset found in deployed HTML" >&2
+            exit 1
+          fi
+
+          origin=$(python3 - "${SITE_URL}" <<'PY'
+          import sys
+          from urllib.parse import urlparse
+          parsed = urlparse(sys.argv[1])
+          print(f"{parsed.scheme}://{parsed.netloc}")
+          PY
+          )
+          curl --fail --location --silent --show-error --max-time 30 \
+            "${origin}${asset_path}" -o /tmp/pages-app.js
+          test -s /tmp/pages-app.js
+
+          git pull --rebase origin main
+          verified_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          index_bytes=$(wc -c < /tmp/pages-index.html | tr -d ' ')
+          bundle_bytes=$(wc -c < /tmp/pages-app.js | tr -d ' ')
+          cat > PAGES_STATUS.md <<EOF
+          # GitHub Pages deployment
+
+          - Status: verified
+          - URL: ${SITE_URL}
+          - Verified at: ${verified_at}
+          - Source commit: ${GITHUB_SHA}
+          - HTML bytes: ${index_bytes}
+          - JavaScript bundle: ${asset_path} (${bundle_bytes} bytes)
+          EOF
+
+          git config user.name 'openai-codex[bot]'
+          git config user.email 'openai-codex[bot]@users.noreply.github.com'
+          git add PAGES_STATUS.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record verified Pages deployment [skip ci]'
+            git push origin HEAD:main
+          fi
