@@ -24,17 +24,23 @@ jobs:
         run: |
           set -euo pipefail
           test -f .patches/fortress-ui/APPLY
-          git show b777d4691baff9b5bd99bdbeb1c81016478be280:.patches/fortress-ui/001-002.part \
-            | head -c 14000 > /tmp/001-002.part
-          head -c 7000 .patches/fortress-ui/003.part > /tmp/003.part
-          echo '9400d3a2378cc36c085e1e133b4fa146ec299b0fb59e7dc3c9231fae58b4854f  /tmp/001-002.part' \
-            | sha256sum --check --strict
-          echo '18a21862b12821d1c256b66b352f656139e947c20b1473cb56ce08562e732401  /tmp/003.part' \
-            | sha256sum --check --strict
+          cat > /tmp/segment-checks <<'EOF'
+          00abeef556f680169474eeaeeceba1056ed60d776e40b1e35d583e598d6ba18b  .patches/fortress-ui/001a.part
+          728d77213a37ed4cbce77d2dc32319c2561b35d1305e4e1d3386c370843a122b  .patches/fortress-ui/001b.part
+          0fc184e0f593f37315a0a4f966df365cdc5d78db2bb9c626ee184ed68ebcfb73  .patches/fortress-ui/002a.part
+          5a60e64201214e4d79a740911a3a671c3087e493fc08590b93c4e815a72837c6  .patches/fortress-ui/002b.part
+          580a8aeaf3ce803aa432a579cf7aba5368a00d20e45ac4fa2ada4979cd006caa  .patches/fortress-ui/003a.part
+          5a74271ef688281d884ee01023af9953e6b010777b8615382a29ae7506671a1e  .patches/fortress-ui/003b.part
+          EOF
+          sha256sum --check --strict /tmp/segment-checks
           cat \
             .patches/fortress-ui/000.part \
-            /tmp/001-002.part \
-            /tmp/003.part \
+            .patches/fortress-ui/001a.part \
+            .patches/fortress-ui/001b.part \
+            .patches/fortress-ui/002a.part \
+            .patches/fortress-ui/002b.part \
+            .patches/fortress-ui/003a.part \
+            .patches/fortress-ui/003b.part \
             .patches/fortress-ui/004.part \
             .patches/fortress-ui/005-006.part \
             .patches/fortress-ui/007-008.part \
