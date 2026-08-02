@@ -56,11 +56,19 @@ jobs:
             > /tmp/fortress-ui.patch
           echo '6350a4df99d91e0f5c365365165c3d0857666ad3ed2835ae8b7066b5b201b309  /tmp/fortress-ui.patch' \
             | sha256sum --check --strict
-          git apply --check --exclude=.github/workflows/export-source-snapshot.yml /tmp/fortress-ui.patch
-          git apply --exclude=.github/workflows/export-source-snapshot.yml /tmp/fortress-ui.patch
+          git apply --check \
+            --exclude=.github/workflows/export-source-snapshot.yml \
+            --exclude=.github/workflows/browser-single-player-smoke.yml \
+            --exclude=.github/workflows/fortress-pages.yml \
+            --exclude=.github/workflows/worker-asset-base.yml \
+            /tmp/fortress-ui.patch
+          git apply \
+            --exclude=.github/workflows/export-source-snapshot.yml \
+            --exclude=.github/workflows/browser-single-player-smoke.yml \
+            --exclude=.github/workflows/fortress-pages.yml \
+            --exclude=.github/workflows/worker-asset-base.yml \
+            /tmp/fortress-ui.patch
           rm -rf .patches/fortress-ui
-          rm -f .github/workflows/apply-fortress-ui-patch.yml
-          rm -f .github/workflows/export-source-snapshot.yml
           rm -f noop
           git config user.name 'openai-codex[bot]'
           git config user.email 'openai-codex[bot]@users.noreply.github.com'
