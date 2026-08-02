@@ -13,6 +13,15 @@ const encodedPatchPath = path.join(
 const encodedPatch = fs.readFileSync(encodedPatchPath, "utf8").replace(/\s/g, "");
 const patch = gunzipSync(Buffer.from(encodedPatch, "base64"));
 
+function read(relativePath) {
+  return fs.readFileSync(path.join(root, relativePath), "utf8");
+}
+
+function contains(relativePath, marker) {
+  const absolutePath = path.join(root, relativePath);
+  return fs.existsSync(absolutePath) && read(relativePath).includes(marker);
+}
+
 function gitApply(args) {
   return spawnSync("git", ["apply", ...args, "-"], {
     cwd: root,
@@ -21,21 +30,30 @@ function gitApply(args) {
   });
 }
 
-const check = gitApply(["--check"]);
-if (check.status === 0) {
+const sourceAlreadyApplied = [
+  [
+    "src/core/pathfinding/spatial/SpatialQuery.ts",
+    "for (const candidate of targetOwner.borderTiles())",
+  ],
+  ["src/client/hud/layers/PlayerPanel.ts", "private selectionRevision = 0;"],
+  ["src/client/components/ui/ActionButton.ts", "detail?: string;"],
+  ["src/client/view/PlayerView.ts", "tile !== undefined ? this.game.x(tile)"],
+  ["tests/LandingOperations.test.ts", "Landing operations"],
+].every(([relativePath, marker]) => contains(relativePath, marker));
+
+if (!sourceAlreadyApplied) {
+  const check = gitApply(["--check"]);
+  if (check.status !== 0) {
+    throw new Error(
+      `Landing operations patch anchors do not match the source tree.\n` +
+        `${check.stdout}\n${check.stderr}`,
+    );
+  }
+
   const applied = gitApply([]);
   if (applied.status !== 0) {
     throw new Error(
       `Landing operations patch failed:\n${applied.stdout}\n${applied.stderr}`,
-    );
-  }
-} else {
-  const reverseCheck = gitApply(["--reverse", "--check"]);
-  if (reverseCheck.status !== 0) {
-    throw new Error(
-      `Landing operations patch anchors do not match the source tree.\n` +
-        `Forward check:\n${check.stdout}\n${check.stderr}\n` +
-        `Reverse check:\n${reverseCheck.stdout}\n${reverseCheck.stderr}`,
     );
   }
 }
