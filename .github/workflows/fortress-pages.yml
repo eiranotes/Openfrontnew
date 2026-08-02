@@ -92,9 +92,12 @@ jobs:
           echo 'd86ee98890564a59279217a20202f1227fd4e39a7fcaf8b77972ec2814c7a039  /tmp/command-ui-patch.tar.gz' \
             | sha256sum -c -
           tar -xzf /tmp/command-ui-patch.tar.gz
+          node --check scripts/apply-responsive-mobile-fix.mjs
+          node scripts/apply-responsive-mobile-fix.mjs .
           grep -q 'import "./styles/command-ui.css"' src/client/Main.ts
           grep -q 'command-settings-grid' src/client/SinglePlayerModal.ts
           grep -q 'command-control-panel' src/client/hud/layers/ControlPanel.ts
+          grep -q 'Keep the single-player action bar inside the mobile viewport' src/client/styles/command-ui.css
           node --check scripts/browser-single-player-smoke.mjs
 
       - name: Verify patch anchors
