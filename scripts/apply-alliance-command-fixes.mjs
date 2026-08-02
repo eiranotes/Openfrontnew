@@ -94,6 +94,22 @@ if (fs.existsSync(touchScript)) {
     coordinationTest = `${touchTestImport}\n${coordinationTest}`;
     write(coordinationTestPath, coordinationTest);
   }
+
+  const commandUiPath = "src/client/styles/command-ui.css";
+  let commandUi = read(commandUiPath);
+  const layerBefore = `.command-player-layer {\n  pointer-events: none;`;
+  const layerAfter = `.command-player-layer {\n  pointer-events: none;\n  box-sizing: border-box;\n  padding: 0 !important;\n  margin: 0 !important;`;
+  if (!commandUi.includes(layerAfter)) {
+    if (!commandUi.includes(layerBefore)) {
+      throw new Error("Touch UI fix anchor missing: command player layer");
+    }
+    commandUi = commandUi.replace(layerBefore, layerAfter);
+  }
+  commandUi = commandUi.replace(
+    "background: rgba(10, 15, 20, 0.97);",
+    "background: #0a0f14;",
+  );
+  write(commandUiPath, commandUi);
 }
 
 console.log(
