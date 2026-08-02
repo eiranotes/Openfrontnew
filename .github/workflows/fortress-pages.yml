@@ -98,9 +98,15 @@ jobs:
           node --check scripts/browser-single-player-smoke.mjs
 
       - name: Verify patch anchors
+        shell: bash
         run: |
+          set -euo pipefail
           node scripts/verify-fortress.mjs
-          node scripts/verify-fortress-hud.mjs
+          grep -Fq 'const military = militaryProfile(player)' src/client/hud/layers/ControlPanel.ts
+          grep -Fq 'this._militaryQuality.toFixed(2)' src/client/hud/layers/ControlPanel.ts
+          grep -Fq 'this._trainingCoverage * 100' src/client/hud/layers/ControlPanel.ts
+          grep -Fq '훈련 수용량' src/client/hud/layers/ControlPanel.ts
+          grep -Fq '◆ ${this._militaryLabel}' src/client/hud/layers/ControlPanel.ts
 
       - name: Commit populated and patched source tree
         shell: bash
