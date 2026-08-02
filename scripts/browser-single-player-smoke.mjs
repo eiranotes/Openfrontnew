@@ -8,7 +8,9 @@ const screenshotPath =
 const browser = await chromium.launch({
   headless: true,
   args: [
-    "--use-gl=swiftshader",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader",
+    "--ignore-gpu-blocklist",
     "--enable-webgl",
     "--disable-dev-shm-usage",
     "--lang=en-US",
@@ -30,10 +32,20 @@ await context.addInitScript(() => {
     get: () => ["en-US", "en"],
   });
 
+  let turnstileCallback;
+  const completeTurnstile = (callback) => {
+    const selected = callback ?? turnstileCallback;
+    queueMicrotask(() => selected?.("browser-smoke-token"));
+  };
   window.turnstile = {
     render(_target, options) {
-      queueMicrotask(() => options?.callback?.("browser-smoke-token"));
+      turnstileCallback = options?.callback;
+      completeTurnstile(options?.callback);
       return "browser-smoke-widget";
+    },
+    execute(_target, options) {
+      completeTurnstile(options?.callback);
+      return "browser-smoke-token";
     },
     remove() {},
     reset() {},
@@ -127,6 +139,14 @@ try {
     undefined,
     { timeout: 60_000 },
   );
+
+  const webgl2Available = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    return canvas.getContext("webgl2") !== null;
+  });
+  if (!webgl2Available) {
+    throw new Error("Headless Chromium did not expose a WebGL2 context");
+  }
 
   const defaults = await page.evaluate(async () => {
     const modal = document.querySelector("single-player-modal");
@@ -298,6 +318,7 @@ try {
     JSON.stringify(
       {
         status: "passed",
+        webgl2Available,
         defaults,
         emitted,
         runtime,
