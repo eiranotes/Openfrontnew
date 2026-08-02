@@ -13,7 +13,6 @@ import {
   DonateEventUpdate,
   EmojiUpdate,
   GameUpdateType,
-  TargetPlayerUpdate,
   UnitIncomingUpdate,
 } from "../../../core/game/GameUpdates";
 import { UserSettings } from "../../../core/game/UserSettings";
@@ -73,6 +72,7 @@ export class EventsDisplay extends LitElement implements Controller {
   private userSettings = new UserSettings();
 
   @state() private _isVisible: boolean = false;
+  @state() private expanded = false;
 
   @query(".events-container")
   private _eventsContainer?: HTMLDivElement;
@@ -134,7 +134,6 @@ export class EventsDisplay extends LitElement implements Controller {
       this.onAllianceRequestReplyEvent.bind(this),
     ],
     [GameUpdateType.BrokeAlliance, this.onBrokeAllianceEvent.bind(this)],
-    [GameUpdateType.TargetPlayer, this.onTargetPlayerEvent.bind(this)],
     [GameUpdateType.Emoji, this.onEmojiMessageEvent.bind(this)],
     [GameUpdateType.UnitIncoming, this.onUnitIncomingEvent.bind(this)],
     [GameUpdateType.AllianceExpired, this.onAllianceExpiredEvent.bind(this)],
@@ -289,6 +288,15 @@ export class EventsDisplay extends LitElement implements Controller {
       myPlayer.smallID() !== event.playerID
     ) {
       return;
+    }
+
+    if (
+      event.isFrom &&
+      event.category === "help" &&
+      (event.key === "gold" || event.key === "troops")
+    ) {
+      const sender = this.game.player(event.recipient) as PlayerView;
+      if (sender && myPlayer.isFriendly(sender)) return;
     }
 
     const baseMessage = translateText(`chat.${event.category}.${event.key}`);
@@ -465,25 +473,6 @@ export class EventsDisplay extends LitElement implements Controller {
     });
   }
 
-  onTargetPlayerEvent(event: TargetPlayerUpdate) {
-    const other = this.game.playerBySmallID(event.playerID) as PlayerView;
-    const myPlayer = this.game.myPlayer() as PlayerView;
-    if (!myPlayer || !myPlayer.isFriendly(other)) return;
-
-    const target = this.game.playerBySmallID(event.targetID) as PlayerView;
-
-    this.addEvent({
-      description: translateText("events_display.attack_request", {
-        name: other.displayName(),
-        target: target.displayName(),
-      }),
-      type: MessageType.ATTACK_REQUEST,
-      highlight: true,
-      createdAt: this.game.ticks(),
-      focusID: event.targetID,
-    });
-  }
-
   emitGoToPlayerEvent(attackerID: number) {
     const attacker = this.game.playerBySmallID(attackerID) as PlayerView;
     if (!attacker) return;
@@ -643,47 +632,66 @@ export class EventsDisplay extends LitElement implements Controller {
       return html``;
     }
 
+    const allEvents = [...tier1Events, ...tier2Events].sort(
+      (a, b) => b.createdAt - a.createdAt,
+    );
+    const compactEvent = tier1Events.at(-1) ?? tier2Events.at(-1);
+    const visibleTier1 = this.expanded ? tier1Events.slice(-6) : [];
+    const visibleTier2 = this.expanded ? tier2Events.slice(-4) : [];
+
     return html`
-      <div class="flex flex-col gap-1 w-full min-[1200px]:w-96">
-        ${tier2Events.length > 0
-          ? html`
-              <div
-                class="bg-gray-800/92 backdrop-blur-sm max-h-[12vh] lg:max-h-[22vh] overflow-y-auto rounded-lg opacity-90 events-container"
-              >
-                <table
-                  class="w-full border-collapse text-white text-xs lg:text-sm pointer-events-auto"
-                >
-                  <tbody>
-                    ${tier2Events.map((event) => this.renderEventRow(event))}
-                  </tbody>
+      <div class="command-notification-inbox pointer-events-auto w-full sm:w-96">
+        <div class="sm:hidden">
+          ${compactEvent
+            ? html`<table class="w-full border-collapse text-sm text-white">
+                <tbody>${this.renderEventRow(compactEvent)}</tbody>
+              </table>`
+            : ""}
+          <button
+            class="min-h-9 w-full border-t border-white/10 px-3 text-right text-xs font-semibold text-slate-300"
+            @click=${() => {
+              this.expanded = !this.expanded;
+            }}
+          >
+            ${this.expanded
+              ? translateText("alliance_commands.collapse")
+              : translateText("alliance_commands.more_notifications", {
+                  count: Math.max(0, allEvents.length - 1),
+                })}
+          </button>
+        </div>
+        <div class=${this.expanded ? "max-h-[35dvh] overflow-y-auto sm:hidden" : "hidden"}>
+          <table class="w-full border-collapse text-xs text-white">
+            <tbody>
+              ${visibleTier1.map((event) => this.renderEventRow(event))}
+              ${visibleTier2.map((event) => this.renderEventRow(event))}
+              ${showBetrayalTimer
+                ? html`<tr><td class="p-1">${this.renderBetrayalDebuffTimer()}</td></tr>`
+                : ""}
+            </tbody>
+          </table>
+        </div>
+        <div class="hidden flex-col gap-1 sm:flex">
+          ${tier2Events.length > 0
+            ? html`<div class="events-container max-h-[18vh] overflow-y-auto">
+                <table class="w-full border-collapse text-xs text-white">
+                  <tbody>${tier2Events.map((event) => this.renderEventRow(event))}</tbody>
                 </table>
-              </div>
-            `
-          : ""}
-        ${tier1Events.length > 0 || showBetrayalTimer
-          ? html`
-              <div
-                class="bg-gray-800 backdrop-blur-sm max-h-[30vh] lg:max-h-[40vh] overflow-y-auto rounded-lg shadow-lg border-l-4 border-red-500 important-events-container"
-              >
-                <table
-                  class="w-full border-collapse text-white text-base lg:text-lg font-medium pointer-events-auto"
-                >
+              </div>`
+            : ""}
+          ${tier1Events.length > 0 || showBetrayalTimer
+            ? html`<div class="important-events-container max-h-[28vh] overflow-y-auto border-l-4 border-red-500">
+                <table class="w-full border-collapse text-sm font-medium text-white">
                   <tbody>
-                    ${tier1Events.map((event) => this.renderEventRow(event))}
+                    ${tier1Events.slice(-4).map((event) => this.renderEventRow(event))}
                     ${showBetrayalTimer
-                      ? html`
-                          <tr>
-                            <td class="lg:px-2 lg:py-1 p-1 text-left">
-                              ${this.renderBetrayalDebuffTimer()}
-                            </td>
-                          </tr>
-                        `
+                      ? html`<tr><td class="p-1">${this.renderBetrayalDebuffTimer()}</td></tr>`
                       : ""}
                   </tbody>
                 </table>
-              </div>
-            `
-          : ""}
+              </div>`
+            : ""}
+        </div>
       </div>
     `;
   }

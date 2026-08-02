@@ -85,6 +85,22 @@
     "username_title": "Username",
     "your_subscription": "Your Subscription"
   },
+  "alliance_commands": {
+    "attack_now": "Attack",
+    "land_now": "Land",
+    "coordinate_attack": "Coordinate",
+    "request_gold": "Request Gold",
+    "request_troops": "Request Troops",
+    "join_attack": "Join in 5s",
+    "gold_request_from": "{name} requests gold",
+    "troop_request_from": "{name} requests troops",
+    "send_ten_percent": "Send 10%",
+    "custom_amount": "Choose Amount",
+    "inbox": "Alliance requests",
+    "collapse": "Collapse",
+    "more_requests": "{count} more",
+    "more_notifications": "{count} more notifications"
+  },
   "build_menu": {
     "desc": {
       "atom_bomb": "Small explosion",

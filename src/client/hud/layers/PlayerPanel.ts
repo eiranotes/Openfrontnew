@@ -10,6 +10,7 @@ import {
   PlayerProfile,
   PlayerType,
   Relation,
+  UnitType,
 } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
 import { Emoji, flattenedEmojiTable } from "../../../core/Util";
@@ -24,10 +25,13 @@ import {
 } from "../../InputHandler";
 import {
   SendAllianceRequestIntentEvent,
+  SendAttackIntentEvent,
+  SendBoatAttackIntentEvent,
   SendBreakAllianceIntentEvent,
   SendEmbargoAllIntentEvent,
   SendEmbargoIntentEvent,
   SendEmojiIntentEvent,
+  SendQuickChatEvent,
   SendTargetPlayerIntentEvent,
 } from "../../Transport";
 import { UIState } from "../../UIState";
@@ -66,6 +70,7 @@ export class PlayerPanel extends LitElement implements Controller {
   private _profileForPlayerId: number | null = null;
   private kickedPlayerIDs = new Set<string>();
 
+  @state() private selectedPlayer: PlayerView | null = null;
   @state() private sendTarget: PlayerView | null = null;
   @state() private sendMode: "troops" | "gold" | "none" = "none";
   @state() public isVisible: boolean = false;
@@ -168,6 +173,23 @@ export class PlayerPanel extends LitElement implements Controller {
   public show(actions: PlayerActions, tile: TileRef) {
     this.actions = actions;
     this.tile = tile;
+    const owner = this.g.owner(tile);
+    this.selectedPlayer = owner.isPlayer() ? (owner as PlayerView) : null;
+    this.moderationTarget = null;
+    this.isVisible = true;
+    this.requestUpdate();
+  }
+
+  public openResourceTransfer(
+    target: PlayerView,
+    mode: "troops" | "gold",
+  ) {
+    this.suppressNextHide = true;
+    this.selectedPlayer = target;
+    this.tile = null;
+    this.actions = null;
+    this.sendTarget = target;
+    this.sendMode = mode;
     this.moderationTarget = null;
     this.isVisible = true;
     this.requestUpdate();
@@ -181,6 +203,7 @@ export class PlayerPanel extends LitElement implements Controller {
     this.suppressNextHide = true;
     this.actions = actions;
     this.tile = tile;
+    this.selectedPlayer = target;
     this.sendTarget = target;
     this.sendMode = "gold";
     this.moderationTarget = null;
@@ -192,6 +215,7 @@ export class PlayerPanel extends LitElement implements Controller {
     this.isVisible = false;
     this.sendMode = "none";
     this.sendTarget = null;
+    this.selectedPlayer = null;
     this.moderationTarget = null;
     this.requestUpdate();
   }
@@ -331,6 +355,45 @@ export class PlayerPanel extends LitElement implements Controller {
   private handleTargetClick(e: Event, other: PlayerView) {
     e.stopPropagation();
     this.eventBus.emit(new SendTargetPlayerIntentEvent(other.id()));
+    this.hide();
+  }
+
+  private handleGroundAttack(e: Event, my: PlayerView, other: PlayerView) {
+    e.stopPropagation();
+    this.eventBus.emit(
+      new SendAttackIntentEvent(
+        other.id(),
+        this.uiState.attackRatio * my.troops(),
+      ),
+    );
+    this.hide();
+  }
+
+  private handleBoatAttack(e: Event, my: PlayerView) {
+    e.stopPropagation();
+    if (this.tile === null) return;
+    this.eventBus.emit(
+      new SendBoatAttackIntentEvent(
+        this.tile,
+        this.uiState.attackRatio * my.troops(),
+      ),
+    );
+    this.hide();
+  }
+
+  private handleCoordinateAttack(e: Event, other: PlayerView) {
+    e.stopPropagation();
+    this.eventBus.emit(new SendTargetPlayerIntentEvent(other.id()));
+    this.hide();
+  }
+
+  private handleResourceRequest(
+    e: Event,
+    ally: PlayerView,
+    resource: "gold" | "troops",
+  ) {
+    e.stopPropagation();
+    this.eventBus.emit(new SendQuickChatEvent(ally, `help.${resource}`));
     this.hide();
   }
 
@@ -739,11 +802,87 @@ export class PlayerPanel extends LitElement implements Controller {
         ? this.actions?.canSendEmojiAllPlayers
         : this.actions?.interaction?.canSendEmoji;
     const canBreakAlliance = this.actions?.interaction?.canBreakAlliance;
-    const canTarget = this.actions?.interaction?.canTarget;
     const canEmbargo = this.actions?.interaction?.canEmbargo;
 
+    const canAttack = !!this.actions?.canAttack;
+    const canCoordinateAttack = !!this.actions?.interaction?.canTarget;
+    const canLand =
+      this.tile !== null &&
+      (this.actions?.buildableUnits.some(
+        (unit) => unit.type === UnitType.TransportShip && unit.canBuild !== false,
+      ) ?? false);
+    const isAllied = other.isAlliedWith(my);
+
     return html`
-      <div class="flex flex-col gap-2.5">
+      <div class="command-player-actions flex flex-col gap-2.5">
+        ${other !== my && (canAttack || canCoordinateAttack || canLand)
+          ? html`
+              <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                ${canAttack
+                  ? actionButton({
+                      onClick: (e: MouseEvent) =>
+                        this.handleGroundAttack(e, my, other),
+                      icon: targetIcon,
+                      iconAlt: "Attack",
+                      title: translateText("alliance_commands.attack_now"),
+                      label: translateText("alliance_commands.attack_now"),
+                      type: "red",
+                    })
+                  : ""}
+                ${canLand
+                  ? actionButton({
+                      onClick: (e: MouseEvent) => this.handleBoatAttack(e, my),
+                      icon: targetIcon,
+                      iconAlt: "Landing",
+                      title: translateText("alliance_commands.land_now"),
+                      label: translateText("alliance_commands.land_now"),
+                      type: "red",
+                    })
+                  : ""}
+                ${canCoordinateAttack
+                  ? actionButton({
+                      onClick: (e: MouseEvent) =>
+                        this.handleCoordinateAttack(e, other),
+                      icon: targetIcon,
+                      iconAlt: "Coordinate attack",
+                      title: translateText(
+                        "alliance_commands.coordinate_attack",
+                      ),
+                      label: translateText(
+                        "alliance_commands.coordinate_attack",
+                      ),
+                      type: "indigo",
+                    })
+                  : ""}
+              </div>
+              <ui-divider></ui-divider>
+            `
+          : ""}
+        ${other !== my && isAllied
+          ? html`
+              <div class="grid grid-cols-2 gap-2">
+                ${actionButton({
+                  onClick: (e: MouseEvent) =>
+                    this.handleResourceRequest(e, other, "gold"),
+                  icon: donateGoldIcon,
+                  iconAlt: "Request gold",
+                  title: translateText("alliance_commands.request_gold"),
+                  label: translateText("alliance_commands.request_gold"),
+                  type: "normal",
+                })}
+                ${actionButton({
+                  onClick: (e: MouseEvent) =>
+                    this.handleResourceRequest(e, other, "troops"),
+                  icon: donateTroopIcon,
+                  iconAlt: "Request troops",
+                  title: translateText("alliance_commands.request_troops"),
+                  label: translateText("alliance_commands.request_troops"),
+                  type: "normal",
+                })}
+              </div>
+              <ui-divider></ui-divider>
+            `
+          : ""}
         <div class="grid auto-cols-fr grid-flow-col gap-1">
           ${actionButton({
             onClick: (e: MouseEvent) => this.handleChat(e, my, other),
@@ -759,16 +898,6 @@ export class PlayerPanel extends LitElement implements Controller {
                 iconAlt: "Emoji",
                 title: translateText("player_panel.emotes"),
                 label: translateText("player_panel.emotes"),
-                type: "normal",
-              })
-            : ""}
-          ${canTarget
-            ? actionButton({
-                onClick: (e: MouseEvent) => this.handleTargetClick(e, other),
-                icon: targetIcon,
-                iconAlt: "Target",
-                title: translateText("player_panel.target"),
-                label: translateText("player_panel.target"),
                 type: "normal",
               })
             : ""}
@@ -883,15 +1012,16 @@ export class PlayerPanel extends LitElement implements Controller {
 
     const my = this.g.myPlayer();
     if (!my) return html``;
-    if (!this.tile) return html``;
-
-    const owner = this.g.owner(this.tile);
-    if (!owner || !owner.isPlayer()) {
+    let other = this.selectedPlayer;
+    if (!other && this.tile !== null) {
+      const owner = this.g.owner(this.tile);
+      if (owner?.isPlayer()) other = owner as PlayerView;
+    }
+    if (!other) {
       this.hide();
-      console.warn("Tile is not owned by a player");
+      console.warn("No player selected");
       return html``;
     }
-    const other = owner as PlayerView;
     const myGoldNum = my.gold();
     const myTroopsNum = Number(my.troops());
 
@@ -924,27 +1054,27 @@ export class PlayerPanel extends LitElement implements Controller {
       </style>
 
       <div
-        class="fixed inset-0 z-10001 flex items-center justify-center overflow-auto
-               bg-black/15 backdrop-brightness-110 pointer-events-auto"
+        class="fixed inset-0 z-10001 flex items-end justify-center overflow-hidden
+               bg-black/5 pointer-events-auto sm:items-center sm:overflow-auto sm:bg-black/15 sm:backdrop-brightness-110"
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
         @wheel=${(e: MouseEvent) => e.stopPropagation()}
         @click=${() => this.hide()}
       >
         <div
-          class="pointer-events-auto max-h-[90vh] min-w-75 max-w-100 px-4 py-2"
+          class="pointer-events-auto w-full max-w-none px-0 pb-[env(safe-area-inset-bottom)] sm:max-h-[90vh] sm:min-w-75 sm:max-w-100 sm:px-4 sm:py-2"
           @click=${(e: MouseEvent) => e.stopPropagation()}
         >
           <div class="relative">
             <div
-              class="absolute inset-2 -z-10 rounded-2xl bg-black/25 backdrop-blur-[2px]"
+              class="absolute inset-2 -z-10 hidden rounded-2xl bg-black/25 backdrop-blur-[2px] sm:block"
             ></div>
             <div
-              class=${`relative w-full bg-zinc-900/95 rounded-2xl text-zinc-100 shadow-2xl shadow-black/50
+              class=${`command-player-sheet relative w-full bg-zinc-900/98 rounded-t-xl text-zinc-100 shadow-2xl shadow-black/50 sm:rounded-2xl
                  ${other.isTraitor() ? "traitor-ring" : "ring-1 ring-white/5"}`}
             >
               <div class="overflow-visible">
                 <div
-                  class="overflow-auto [-webkit-overflow-scrolling:touch] resize-y max-h-[calc(100vh-120px-env(safe-area-inset-bottom))]"
+                  class="overflow-auto [-webkit-overflow-scrolling:touch] max-h-[min(72dvh,640px)] sm:resize-y sm:max-h-[calc(100vh-120px-env(safe-area-inset-bottom))]"
                 >
                   <div class="sticky top-0 z-20 flex justify-end p-2">
                     <button
@@ -958,10 +1088,13 @@ export class PlayerPanel extends LitElement implements Controller {
                   </div>
 
                   <div
-                    class="p-6 flex flex-col gap-2 font-sans antialiased text-[14.5px] leading-relaxed"
+                    class="p-4 pb-5 flex flex-col gap-2 font-sans antialiased text-[14.5px] leading-relaxed sm:p-6"
                   >
                     <!-- Identity (flag, name, type, traitor, relation) -->
                     <div class="mb-1">${this.renderIdentityRow(other, my)}</div>
+
+                    <!-- Primary commands stay above fold on mobile. -->
+                    ${this.renderActions(my, other)}
 
                     ${this.sendTarget
                       ? html`
@@ -1022,10 +1155,6 @@ export class PlayerPanel extends LitElement implements Controller {
                     <!-- Alliance time remaining -->
                     ${this.renderAllianceExpiry()}
 
-                    <ui-divider></ui-divider>
-
-                    <!-- Actions -->
-                    ${this.renderActions(my, other)}
                   </div>
                 </div>
               </div>

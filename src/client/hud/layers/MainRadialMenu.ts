@@ -117,6 +117,17 @@ export class MainRadialMenu implements Controller {
       this.chatIntegration.setupChatModal(myPlayer, recipient);
     }
 
+    const useTouchCommandSheet =
+      recipient !== null &&
+      recipient !== myPlayer &&
+      (window.matchMedia?.("(pointer: coarse)").matches ?? false);
+
+    if (useTouchCommandSheet) {
+      this.radialMenu.hideRadialMenu();
+      this.playerPanel.show(actions, tile);
+      return;
+    }
+
     const params: MenuElementParams = {
       myPlayer,
       selected: recipient,

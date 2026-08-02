@@ -226,13 +226,10 @@ export class WarshipSelectionController implements Controller {
       return;
     }
     if (!this.game.isWater(clickRef)) {
-      const myPlayer = this.game.myPlayer();
-      const isOwnedByMe =
-        myPlayer !== null &&
-        this.game.hasOwner(clickRef) &&
-        this.game.owner(clickRef) === myPlayer;
+      // Mobile taps on player territory open the country command sheet.
+      // Unowned land keeps the fast one-tap expansion path.
       this.eventBus.emit(
-        isOwnedByMe
+        this.game.hasOwner(clickRef)
           ? new ContextMenuEvent(event.x, event.y)
           : new MouseUpEvent(event.x, event.y),
       );
