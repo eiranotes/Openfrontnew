@@ -41,7 +41,7 @@ import {
 
 import { terrainMapFileLoader } from "./TerrainMapFileLoader";
 
-export export const DEFAULT_OPTIONS = {
+export export export const DEFAULT_OPTIONS = {
   selectedMap: GameMapType.World,
   selectedDifficulty: Difficulty.Easy,
   bots: 400,
