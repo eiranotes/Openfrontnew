@@ -3,6 +3,9 @@ name: Bootstrap, test, and deploy Fortress
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
@@ -16,17 +19,18 @@ env:
   PAGES_BASE: /Openfrontnew
 
 concurrency:
-  group: fortress-pages
+  group: fortress-pages-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout fork
+      - name: Checkout fork branch
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Populate the empty repository from OpenFrontIO
         shell: bash
@@ -50,7 +54,12 @@ jobs:
           node --check scripts/apply-fortress.mjs
 
       - name: Apply Fortress balance patch
-        run: node scripts/apply-fortress.mjs .
+        shell: bash
+        run: |
+          if [[ ! -f .fortress-patched ]]; then
+            node scripts/apply-fortress.mjs .
+            touch .fortress-patched
+          fi
 
       - name: Verify patch anchors
         run: node scripts/verify-fortress.mjs
@@ -59,12 +68,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          target_branch="${GITHUB_HEAD_REF:-main}"
           git config user.name 'openai-codex[bot]'
           git config user.email 'openai-codex[bot]@users.noreply.github.com'
           git add -A
           if ! git diff --cached --quiet; then
             git commit -m 'Bootstrap OpenFront Fortress source [skip ci]'
-            git push origin HEAD:main
+            git push origin "HEAD:${target_branch}"
           fi
 
       - name: Set up Node.js
@@ -97,16 +107,19 @@ jobs:
           cp static/index.html static/404.html
 
       - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
         with:
           enablement: true
 
       - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v4
         with:
           path: static
 
   deploy:
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
