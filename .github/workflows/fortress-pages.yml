@@ -86,16 +86,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat scripts/command-ui-patch.part-* \
-            | tr -d '[:space:]' \
-            | base64 -d > /tmp/command-ui-patch.tar.gz
-          echo 'd86ee98890564a59279217a20202f1227fd4e39a7fcaf8b77972ec2814c7a039  /tmp/command-ui-patch.tar.gz' \
-            | sha256sum -c -
-          tar -xzf /tmp/command-ui-patch.tar.gz
-          node --check scripts/apply-responsive-mobile-fix.mjs
-          node scripts/apply-responsive-mobile-fix.mjs .
-          node --check scripts/apply-alliance-command.mjs
-          node scripts/apply-alliance-command.mjs .
+          if [[ ! -f src/core/game/AllianceCoordination.ts ]]; then
+            cat scripts/command-ui-patch.part-* \
+              | tr -d '[:space:]' \
+              | base64 -d > /tmp/command-ui-patch.tar.gz
+            echo 'd86ee98890564a59279217a20202f1227fd4e39a7fcaf8b77972ec2814c7a039  /tmp/command-ui-patch.tar.gz' \
+              | sha256sum -c -
+            tar -xzf /tmp/command-ui-patch.tar.gz
+            node --check scripts/apply-responsive-mobile-fix.mjs
+            node scripts/apply-responsive-mobile-fix.mjs .
+            node --check scripts/apply-alliance-command.mjs
+            node scripts/apply-alliance-command.mjs .
+          else
+            echo 'Alliance command source already materialized; skipping legacy UI archive.'
+          fi
           node --check scripts/apply-alliance-command-fixes.mjs
           node scripts/apply-alliance-command-fixes.mjs .
           grep -q 'import "./styles/command-ui.css"' src/client/Main.ts
