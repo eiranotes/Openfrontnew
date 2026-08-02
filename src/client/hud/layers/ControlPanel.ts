@@ -6,6 +6,7 @@ import { EventBus } from "../../../core/EventBus";
 import { ClientID } from "../../../core/Schemas";
 import { Config } from "../../../core/configuration/Config";
 import { GameMode, GameType, Gold } from "../../../core/game/Game";
+import { militaryProfile } from "../../../core/game/FortressBalance";
 import { TileRef } from "../../../core/game/GameMap";
 import { GameUpdateType } from "../../../core/game/GameUpdates";
 import { UserSettings } from "../../../core/game/UserSettings";
@@ -54,6 +55,18 @@ export class ControlPanel extends LitElement implements Controller {
 
   @state()
   private _attackingTroops: number = 0;
+
+  @state()
+  private _militaryLabel = "징집군";
+
+  @state()
+  private _militaryQuality = 1;
+
+  @state()
+  private _trainingCoverage = 0;
+
+  @state()
+  private _trainingCapacity = 0;
 
   @state()
   private _goldGain: bigint | null = null;
@@ -119,6 +132,11 @@ export class ControlPanel extends LitElement implements Controller {
       .outgoingAttacks()
       .map((a) => a.troops)
       .reduce((a, b) => a + b, 0);
+    const military = militaryProfile(player);
+    this._militaryLabel = military.label;
+    this._militaryQuality = military.quality;
+    this._trainingCoverage = military.coverage;
+    this._trainingCapacity = military.trainingCapacity;
     this.troopRate = config.troopIncreaseRate(player) * 10;
 
     const helpEnabled = new UserSettings().helpMessages();
@@ -509,8 +527,18 @@ export class ControlPanel extends LitElement implements Controller {
           <span class="tabular-nums">${renderNumber(this._gold)}</span>
         </div>
       </div>
-      <!-- Row 2: attack ratio | slider -->
+      <!-- Row 2: military quality | attack ratio | slider -->
       <div class="flex items-center gap-1.5" translate="no">
+        <div
+          class="flex items-center justify-between gap-1 shrink-0 border border-sky-400/60 bg-sky-400/10 rounded-md px-1.5 py-0.5 text-[11px] font-bold text-sky-200 min-w-[9.5rem]"
+          title="훈련 수용량 ${renderTroops(this._trainingCapacity)}"
+        >
+          <span>◆ ${this._militaryLabel}</span>
+          <span class="tabular-nums">×${this._militaryQuality.toFixed(2)}</span>
+          <span class="text-sky-300/70 tabular-nums">${Math.round(
+            this._trainingCoverage * 100,
+          )}%</span>
+        </div>
         <div
           class="flex items-center gap-1 shrink-0 border border-gray-600 rounded-md px-1 py-0.5 text-sm font-bold text-white cursor-pointer w-[8rem]"
         >
@@ -596,6 +624,16 @@ export class ControlPanel extends LitElement implements Controller {
             class="w-full h-1.5 accent-aquarius cursor-pointer"
           />
         </div>
+      </div>
+      <div
+        class="mt-1 flex items-center justify-center gap-2 text-[10px] font-bold text-sky-200"
+        translate="no"
+        title="훈련 수용량 ${renderTroops(this._trainingCapacity)}"
+      >
+        <span>◆ ${this._militaryLabel} ×${this._militaryQuality.toFixed(2)}</span>
+        <span class="text-sky-300/70">훈련 ${Math.round(
+          this._trainingCoverage * 100,
+        )}%</span>
       </div>
     `;
   }

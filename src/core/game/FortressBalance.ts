@@ -1,4 +1,4 @@
-import { UnitType, type Game, type Player } from "./Game";
+import { UnitType, type Game } from "./Game";
 import { within } from "../Util";
 
 export const TRAINING_CAPACITY_PER_CITY_LEVEL = 200_000;
@@ -23,16 +23,38 @@ const MILITARY_TIERS = [
   { minCityLevel: 9, label: "근위군", quality: 2.0 },
 ] as const;
 
-function completedCityLevels(player: Player): number[] {
+interface MilitaryUnitLike {
+  level(): number;
+  isActive(): boolean;
+  isUnderConstruction(): boolean;
+  troops(): number;
+}
+
+interface MilitaryAttackLike {
+  troops: number | (() => number);
+}
+
+export interface MilitaryPlayerLike {
+  units(type: UnitType): MilitaryUnitLike[];
+  outgoingAttacks(): MilitaryAttackLike[];
+  troops(): number;
+  numTilesOwned(): number;
+}
+
+function attackTroops(attack: MilitaryAttackLike): number {
+  return typeof attack.troops === "function" ? attack.troops() : attack.troops;
+}
+
+function completedCityLevels(player: MilitaryPlayerLike): number[] {
   return player
     .units(UnitType.City)
     .filter((city) => city.isActive() && !city.isUnderConstruction())
     .map((city) => city.level());
 }
 
-export function totalMilitaryManpower(player: Player): number {
+export function totalMilitaryManpower(player: MilitaryPlayerLike): number {
   const fieldArmies = player.outgoingAttacks().reduce(
-    (sum, attack) => sum + attack.troops(),
+    (sum, attack) => sum + attackTroops(attack),
     0,
   );
   const embarked = player
@@ -41,7 +63,7 @@ export function totalMilitaryManpower(player: Player): number {
   return Math.max(0, player.troops() + fieldArmies + embarked);
 }
 
-export function militaryProfile(player: Player): MilitaryProfile {
+export function militaryProfile(player: MilitaryPlayerLike): MilitaryProfile {
   const levels = completedCityLevels(player);
   const highestCityLevel = levels.length === 0 ? 0 : Math.max(...levels);
   const totalCityLevels = levels.reduce((sum, level) => sum + level, 0);
@@ -70,7 +92,7 @@ export function militaryProfile(player: Player): MilitaryProfile {
   };
 }
 
-export function militaryQuality(player: Player): MilitaryProfile {
+export function militaryQuality(player: MilitaryPlayerLike): MilitaryProfile {
   return militaryProfile(player);
 }
 
@@ -83,7 +105,7 @@ export interface OverextensionPenalties {
 
 export function overextensionPenalties(
   game: Pick<Game, "numLandTiles">,
-  player: Player,
+  player: MilitaryPlayerLike,
 ): OverextensionPenalties {
   const share =
     player.numTilesOwned() / Math.max(1, game.numLandTiles());
