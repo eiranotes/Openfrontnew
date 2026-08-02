@@ -70,7 +70,8 @@ export class PlayerExecution implements Execution {
       ) {
         u.delete(true, captor);
       } else if (u.type() === UnitType.City) {
-        const retainedLevel = Math.max(1, u.level() - 3);
+        // Conquered administration transfers partially and must be rebuilt.
+        const retainedLevel = Math.max(1, Math.floor(u.level() / 2));
         while (u.level() > retainedLevel) u.decreaseLevel(captor);
         captor.captureUnit(u);
       } else if (u.type() === UnitType.Port) {

@@ -283,9 +283,10 @@ export class AttacksDisplay extends LitElement implements Controller {
           })}
           ${!attack.retreating
             ? this.renderButton({
-                content: "❌",
+                content: "후퇴",
                 onClick: () => this.emitCancelAttackIntent(attack.id),
-                className: "ml-auto text-left shrink-0",
+                className:
+                  "ml-auto min-h-11 shrink-0 rounded-md border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold",
                 disabled: attack.retreating,
               })
             : html`<span class="ml-auto truncate text-aquarius"
@@ -319,9 +320,10 @@ export class AttacksDisplay extends LitElement implements Controller {
           })}
           ${!landAttack.retreating
             ? this.renderButton({
-                content: "❌",
+                content: "후퇴",
                 onClick: () => this.emitCancelAttackIntent(landAttack.id),
-                className: "ml-auto text-left shrink-0",
+                className:
+                  "ml-auto min-h-11 shrink-0 rounded-md border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold",
                 disabled: landAttack.retreating,
               })
             : html`<span class="ml-auto truncate text-aquarius"
@@ -399,9 +401,10 @@ export class AttacksDisplay extends LitElement implements Controller {
                 >(${translateText("events_display.retreating")}...)</span
               >`
             : this.renderButton({
-                content: "\u274C",
+                content: "후퇴",
                 onClick: () => this.emitBoatCancelIntent(boat.id()),
-                className: "ml-auto text-left shrink-0",
+                className:
+                  "ml-auto min-h-11 shrink-0 rounded-md border border-white/15 bg-white/[0.06] px-3 text-xs font-semibold",
                 disabled: boat.transportShipState().isRetreating,
               })}
         </div>

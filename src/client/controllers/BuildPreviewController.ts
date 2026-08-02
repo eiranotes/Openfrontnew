@@ -448,6 +448,7 @@ export class BuildPreviewController implements Controller {
 
     // Range circle: SAM placement preview shows targetable radius; nuke
     // previews show the outer blast radius at the target tile.
+    let innerRangeRadius = 0;
     let rangeRadius = 0;
     switch (u.type) {
       case UnitType.SAMLauncher: {
@@ -456,9 +457,12 @@ export class BuildPreviewController implements Controller {
         break;
       }
       case UnitType.AtomBomb:
-      case UnitType.HydrogenBomb:
-        rangeRadius = this.game.config().nukeMagnitudes(u.type).outer;
+      case UnitType.HydrogenBomb: {
+        const magnitude = this.game.config().nukeMagnitudes(u.type);
+        innerRangeRadius = magnitude.inner;
+        rangeRadius = magnitude.outer;
         break;
+      }
       case UnitType.Factory:
         rangeRadius = this.game.config().trainStationMaxRange();
         break;
@@ -493,6 +497,7 @@ export class BuildPreviewController implements Controller {
       overlappingRailroads: u.overlappingRailroads,
       ownerID: myPlayer.smallID(),
       upgradeTargetTile,
+      innerRangeRadius,
       rangeRadius,
       rangeWarning: targetingAlly,
     };

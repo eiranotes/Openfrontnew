@@ -18,8 +18,8 @@ import {
   UnitType,
 } from "../game/Game";
 import {
+  compactStateProfile,
   militaryQuality,
-  overextensionPenalties,
 } from "../game/FortressBalance";
 import { TileRef } from "../game/GameMap";
 import { UserSettings } from "../game/UserSettings";
@@ -344,6 +344,7 @@ export class Config {
       case UnitType.TransportShip:
         info = {
           cost: () => 0n,
+          maxHealth: 600,
         };
         break;
       case UnitType.Warship:
@@ -705,13 +706,14 @@ export class Config {
       const largeDefenderSpeedDebuff = 0.7 + 0.3 * defenseSig;
       const largeDefenderAttackDebuff = 0.7 + 0.3 * defenseSig;
 
-      // Fortress: expansion creates logistics friction instead of a hidden combat bonus.
-      const overextension = overextensionPenalties(gm, attacker);
-      const largeAttackBonus = overextension.lossMultiplier;
-      const largeAttackerSpeedBonus = overextension.speedCostMultiplier;
-
-      const attackerQuality = militaryQuality(attacker).quality;
-      const defenderQuality = militaryQuality(defender).quality;
+      // Territory is never penalized. Developed states gain a positive
+      // logistics bonus from city and factory density.
+      const attackerQuality =
+        militaryQuality(attacker).quality *
+        compactStateProfile(attacker).combatMultiplier;
+      const defenderQuality =
+        militaryQuality(defender).quality *
+        compactStateProfile(defender).combatMultiplier;
       const qualityRatio = attackerQuality / Math.max(0.01, defenderQuality);
       const exchangeModifier = within(Math.sqrt(qualityRatio), 0.72, 1.4);
       const speedQualityModifier = within(
@@ -730,7 +732,6 @@ export class Config {
         mag *
         0.8 *
         largeDefenderAttackDebuff *
-        largeAttackBonus *
         traitorMod;
       const altAttackerLoss =
         1.3 * baseDefenderTroopLoss * (mag / 100) * traitorMod;
@@ -745,7 +746,6 @@ export class Config {
           within(defender.troops() / (5 * attackTroops), 0.2, 1.5) *
           speed *
           largeDefenderSpeedDebuff *
-          largeAttackerSpeedBonus *
           (defender.isTraitor() ? this.traitorSpeedDebuff() : 1) /
           speedQualityModifier,
       };
@@ -894,6 +894,8 @@ export class Config {
       }
     }
 
+    toAdd *= compactStateProfile(player).reinforcementMultiplier;
+
     return Math.min(player.troops() + toAdd, max) - player.troops();
   }
 
@@ -905,7 +907,8 @@ export class Config {
     } else {
       baseRate = 100n;
     }
-    return BigInt(Math.floor(Number(baseRate) * multiplier));
+    const efficiency = compactStateProfile(player).economyMultiplier;
+    return BigInt(Math.floor(Number(baseRate) * multiplier * efficiency));
   }
 
   nukeMagnitudes(unitType: UnitType): NukeMagnitude {

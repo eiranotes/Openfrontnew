@@ -264,8 +264,25 @@ export class UnitDisplay extends LitElement implements Controller {
           @click=${() => {
             if (selected) {
               this.uiState.ghostStructure = null;
+              this.eventBus?.emit(new ToggleStructureEvent(null));
             } else if (this.canBuild(unitType)) {
               this.uiState.ghostStructure = unitType;
+              switch (unitType) {
+                case UnitType.AtomBomb:
+                case UnitType.HydrogenBomb:
+                  this.eventBus?.emit(
+                    new ToggleStructureEvent([
+                      UnitType.MissileSilo,
+                      UnitType.SAMLauncher,
+                    ]),
+                  );
+                  break;
+                case UnitType.Warship:
+                  this.eventBus?.emit(new ToggleStructureEvent([UnitType.Port]));
+                  break;
+                default:
+                  this.eventBus?.emit(new ToggleStructureEvent([unitType]));
+              }
             }
             this.requestUpdate();
           }}
@@ -287,8 +304,11 @@ export class UnitDisplay extends LitElement implements Controller {
                 this.eventBus?.emit(new ToggleStructureEvent([unitType]));
             }
           }}
-          @mouseleave=${() =>
-            this.eventBus?.emit(new ToggleStructureEvent(null))}
+          @mouseleave=${() => {
+            if (this.uiState.ghostStructure === null) {
+              this.eventBus?.emit(new ToggleStructureEvent(null));
+            }
+          }}
         >
           ${html`<div class="ml-0.5 text-[10px] relative -top-1 text-gray-400">
             ${displayHotkey}
