@@ -1,3 +1,4 @@
+import "./apply-command-wordmark.mjs";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -233,4 +234,4 @@ smoke = replaceOnce(
 );
 write(smokePath, smoke);
 
-console.log("Applied responsive mobile viewport, density, and touch fixes.");
+console.log("Applied responsive mobile viewport, density, touch, and wordmark fixes.");
