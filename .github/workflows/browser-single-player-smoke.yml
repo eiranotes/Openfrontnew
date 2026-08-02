@@ -1,0 +1,76 @@
+name: Browser single-player smoke
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run configuration tests
+        run: >-
+          npx vitest run
+          tests/FortressBalance.test.ts
+          tests/SinglePlayerOptions.test.ts
+          tests/WorkerAssetBase.test.ts
+
+      - name: Build GitHub Pages version
+        env:
+          GITHUB_PAGES: 'true'
+          CDN_BASE: /Openfrontnew
+          GAME_ENV: dev
+          DOMAIN: localhost
+          NUM_WORKERS: '2'
+        run: npm run build-dev
+
+      - name: Start configured single-player game in Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/openfront-site/Openfrontnew
+          cp -a static/. /tmp/openfront-site/Openfrontnew/
+          python3 -m http.server 4173 --directory /tmp/openfront-site \
+            >/tmp/openfront-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill ${server_pid} || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent \
+              http://127.0.0.1:4173/Openfrontnew/ >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          SMOKE_SITE_URL=http://127.0.0.1:4173/Openfrontnew/ \
+          SMOKE_SCREENSHOT=browser-single-player-smoke.png \
+            node scripts/browser-single-player-smoke.mjs
+
+      - name: Upload gameplay screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-single-player-smoke
+          path: browser-single-player-smoke.png
+          if-no-files-found: ignore
