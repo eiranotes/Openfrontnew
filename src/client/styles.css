@@ -676,3 +676,64 @@ news-button .active button::after {
 .remove-player-btn:hover {
   background: #ff6666;
 }
+
+/* Fortress command interface ------------------------------------------------ */
+.fortress-panel {
+  color: var(--fortress-text);
+  background: var(--fortress-surface-1);
+  border: 1px solid var(--fortress-border);
+  border-radius: var(--fortress-radius-panel);
+  box-shadow: var(--fortress-shadow-panel);
+}
+
+.fortress-toolbar {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  color: var(--fortress-text);
+  background: rgba(17, 23, 30, 0.96);
+  border: 1px solid var(--fortress-border);
+  border-radius: var(--fortress-radius-control);
+}
+
+.fortress-control {
+  min-height: 36px;
+  border-radius: var(--fortress-radius-control);
+  transition: var(--transition);
+}
+
+.fortress-control:focus-visible,
+.fortress-focus:focus-visible {
+  outline: 2px solid var(--fortress-accent-hover);
+  outline-offset: 2px;
+}
+
+.fortress-number {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+@media (pointer: coarse) {
+  .fortress-control,
+  button.fortress-control,
+  [role="button"].fortress-control {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  input[type="range"].fortress-range {
+    min-height: 44px;
+    touch-action: pan-x;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

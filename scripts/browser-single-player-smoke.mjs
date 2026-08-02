@@ -4,6 +4,11 @@ const siteUrl =
   process.env.SMOKE_SITE_URL ?? "http://127.0.0.1:4173/Openfrontnew/";
 const screenshotPath =
   process.env.SMOKE_SCREENSHOT ?? "browser-single-player-smoke.png";
+const artifactPrefix =
+  process.env.SMOKE_ARTIFACT_PREFIX ?? screenshotPath.replace(/\.png$/i, "");
+const viewportWidth = Number(process.env.SMOKE_VIEWPORT_WIDTH ?? 1440);
+const viewportHeight = Number(process.env.SMOKE_VIEWPORT_HEIGHT ?? 900);
+const mobileViewport = viewportWidth <= 430;
 
 const browser = await chromium.launch({
   headless: true,
@@ -18,8 +23,11 @@ const browser = await chromium.launch({
 });
 
 const context = await browser.newContext({
-  viewport: { width: 1440, height: 900 },
+  viewport: { width: viewportWidth, height: viewportHeight },
   locale: "en-US",
+  isMobile: mobileViewport,
+  hasTouch: mobileViewport,
+  deviceScaleFactor: mobileViewport ? 2 : 1,
 });
 
 await context.addInitScript(() => {
@@ -32,21 +40,16 @@ await context.addInitScript(() => {
     get: () => ["en-US", "en"],
   });
 
-  // GitHub-hosted runners do not provide a physical GPU. Chromium still
-  // executes real WebGL2 through SwiftShader, but OpenFront intentionally
-  // rejects renderer strings containing software/SwiftShader. Keep the actual
-  // WebGL implementation and spoof only the CI renderer identity so the rest
-  // of the renderer and gameplay startup path can be exercised.
   const installHardwareRendererIdentity = (prototype) => {
     if (!prototype?.getParameter) return;
     const originalGetParameter = prototype.getParameter;
     prototype.getParameter = function (parameter) {
       switch (parameter) {
-        case 0x1f00: // VENDOR
-        case 0x9245: // UNMASKED_VENDOR_WEBGL
+        case 0x1f00:
+        case 0x9245:
           return "NVIDIA Corporation";
-        case 0x1f01: // RENDERER
-        case 0x9246: // UNMASKED_RENDERER_WEBGL
+        case 0x1f01:
+        case 0x9246:
           return "ANGLE (NVIDIA, NVIDIA GeForce RTX 4090, OpenGL 4.6)";
         default:
           return originalGetParameter.call(this, parameter);
@@ -179,6 +182,64 @@ try {
     undefined,
     { timeout: 60_000 },
   );
+
+  await page.screenshot({
+    path: `${artifactPrefix}-home.png`,
+    fullPage: true,
+  });
+
+  const uiLayout = await page.evaluate(async () => {
+    const modal = document.querySelector("single-player-modal");
+    modal.open();
+    await modal.updateComplete;
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve)),
+    );
+
+    const startButton = modal.querySelector("o-button button");
+    const footer = modal.querySelector(".command-settings-footer");
+    const modalShell = modal
+      .querySelector("o-modal")
+      ?.shadowRoot?.querySelector("aside > div");
+    const interactive = [...modal.querySelectorAll("button, input, select")]
+      .map((element) => element.getBoundingClientRect())
+      .filter((rect) => rect.width > 0 && rect.height > 0);
+
+    return {
+      viewport: { width: innerWidth, height: innerHeight },
+      documentScrollWidth: document.documentElement.scrollWidth,
+      bodyScrollWidth: document.body.scrollWidth,
+      startButtonHeight: startButton?.getBoundingClientRect().height ?? 0,
+      footerVisible: footer
+        ? footer.getBoundingClientRect().bottom <= innerHeight + 1
+        : false,
+      modalWidth: modalShell?.getBoundingClientRect().width ?? 0,
+      minInteractiveHeight: interactive.length
+        ? Math.min(...interactive.map((rect) => rect.height))
+        : 0,
+    };
+  });
+
+  await page.screenshot({
+    path: `${artifactPrefix}-single-player.png`,
+    fullPage: true,
+  });
+
+  if (
+    uiLayout.documentScrollWidth > uiLayout.viewport.width + 1 ||
+    uiLayout.bodyScrollWidth > uiLayout.viewport.width + 1
+  ) {
+    throw new Error(`Responsive UI overflow: ${JSON.stringify(uiLayout)}`);
+  }
+  if (mobileViewport && uiLayout.startButtonHeight < 44) {
+    throw new Error(`Mobile start button is too small: ${JSON.stringify(uiLayout)}`);
+  }
+  if (mobileViewport && uiLayout.minInteractiveHeight < 44) {
+    throw new Error(`Mobile interactive target is too small: ${JSON.stringify(uiLayout)}`);
+  }
+  if (!uiLayout.footerVisible) {
+    throw new Error(`Single-player footer is not visible: ${JSON.stringify(uiLayout)}`);
+  }
 
   const graphics = await page.evaluate(() => {
     const canvas = document.createElement("canvas");
@@ -346,14 +407,108 @@ try {
   );
   await page.waitForTimeout(8_000);
 
+  await page.waitForFunction(
+    () => {
+      const buttons = [
+        ...(document
+          .querySelector("control-panel")
+          ?.querySelectorAll('button[aria-expanded]') ?? []),
+      ];
+      return buttons.some((button) =>
+        /징집군|훈련군|상비군|정예군|근위군/.test(button.textContent ?? ""),
+      );
+    },
+    undefined,
+    { timeout: 30_000 },
+  );
+
+  await page.evaluate(() => {
+    const buttons = [
+      ...(document
+        .querySelector("control-panel")
+        ?.querySelectorAll('button[aria-expanded]') ?? []),
+    ];
+    const militaryButton = buttons.find((button) =>
+      /징집군|훈련군|상비군|정예군|근위군/.test(button.textContent ?? ""),
+    );
+    if (!(militaryButton instanceof HTMLButtonElement)) {
+      throw new Error("Military summary control is missing");
+    }
+    militaryButton.click();
+  });
+
+  await page.waitForFunction(
+    () => {
+      const text = document.querySelector("control-panel")?.textContent ?? "";
+      return text.includes("행정 효율") && text.includes("훈련 병력");
+    },
+    undefined,
+    { timeout: 10_000 },
+  );
+
+  await page.evaluate(() => {
+    const goldButton = document
+      .querySelector("control-panel")
+      ?.querySelector('button[aria-label="금 수입 내역"]');
+    if (!(goldButton instanceof HTMLButtonElement)) {
+      throw new Error("Gold income detail control is missing");
+    }
+    goldButton.click();
+  });
+
+  await page.waitForFunction(
+    () =>
+      (document.querySelector("control-panel")?.textContent ?? "").includes(
+        "총 금 수입",
+      ),
+    undefined,
+    { timeout: 10_000 },
+  );
+
+  if (mobileViewport) {
+    await page.waitForFunction(
+      () => {
+        const button = document
+          .querySelector("unit-display")
+          ?.querySelector('button[aria-expanded]');
+        return button instanceof HTMLButtonElement && button.offsetParent !== null;
+      },
+      undefined,
+      { timeout: 10_000 },
+    );
+    await page.evaluate(() => {
+      const button = document
+        .querySelector("unit-display")
+        ?.querySelector('button[aria-expanded]');
+      if (!(button instanceof HTMLButtonElement)) {
+        throw new Error("Mobile build control is missing");
+      }
+      button.click();
+    });
+    await page.waitForFunction(
+      () =>
+        document.querySelector(
+          'unit-display section[aria-label="건설 시설 선택"]',
+        ) !== null,
+      undefined,
+      { timeout: 10_000 },
+    );
+  }
+
+  await page.screenshot({ path: screenshotPath, fullPage: true });
+
   const runtime = await page.evaluate(() => ({
     inGame: document.body.classList.contains("in-game"),
     path: window.location.pathname,
     canvasCount: document.querySelectorAll("canvas").length,
-    visibleCanvasCount: [...document.querySelectorAll("canvas")].filter((canvas) => {
-      const rect = canvas.getBoundingClientRect();
-      return rect.width >= 100 && rect.height >= 100;
-    }).length,
+    visibleCanvasCount: [...document.querySelectorAll("canvas")].filter(
+      (canvas) => {
+        const rect = canvas.getBoundingClientRect();
+        return rect.width >= 100 && rect.height >= 100;
+      },
+    ).length,
+    viewport: { width: innerWidth, height: innerHeight },
+    scrollWidth: document.documentElement.scrollWidth,
   }));
 
   if (
@@ -364,6 +519,9 @@ try {
     throw new Error(
       `Game runtime did not remain active: ${JSON.stringify(runtime)}`,
     );
+  }
+  if (runtime.scrollWidth > runtime.viewport.width + 1) {
+    throw new Error(`In-game horizontal overflow: ${JSON.stringify(runtime)}`);
   }
   if (workerErrors.length > 0) {
     throw new Error(`Worker errors:\n${workerErrors.join("\n")}`);
@@ -381,6 +539,8 @@ try {
         defaults,
         emitted,
         runtime,
+        uiLayout,
+        mobileViewport,
         sameOriginFailures,
       },
       null,
@@ -388,10 +548,12 @@ try {
     ),
   );
 } finally {
-  try {
-    await page.screenshot({ path: screenshotPath, fullPage: true });
-  } catch (error) {
-    console.error(`Failed to capture smoke screenshot: ${error}`);
+  if (!passed) {
+    try {
+      await page.screenshot({ path: screenshotPath, fullPage: true });
+    } catch (error) {
+      console.error(`Failed to capture smoke screenshot: ${error}`);
+    }
   }
   await browser.close();
   if (!passed) {

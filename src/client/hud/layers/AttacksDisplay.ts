@@ -3,6 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import { assetUrl } from "../../../core/AssetUrls";
 import { EventBus } from "../../../core/EventBus";
 import { MessageType, PlayerType, UnitType } from "../../../core/game/Game";
+import { militaryProfile } from "../../../core/game/FortressBalance";
 import {
   AttackUpdate,
   GameUpdateType,
@@ -194,6 +195,39 @@ export class AttacksDisplay extends LitElement implements Controller {
     }
   }
 
+  private relativeAssessment(ownPower: number, enemyPower: number): string {
+    const ratio = ownPower / Math.max(1, enemyPower);
+    if (ratio >= 1.55) return "크게 우세";
+    if (ratio >= 1.12) return "우세";
+    if (ratio >= 0.88) return "비등";
+    if (ratio >= 0.64) return "불리";
+    return "크게 불리";
+  }
+
+  private outgoingAssessment(attack: AttackUpdate): string {
+    const me = this.game.myPlayer();
+    const target = this.game.playerBySmallID(attack.targetID) as
+      | PlayerView
+      | undefined;
+    if (!me || !target) return "";
+    return this.relativeAssessment(
+      attack.troops * militaryProfile(me).quality,
+      target.troops() * militaryProfile(target).quality,
+    );
+  }
+
+  private incomingAssessment(attack: AttackUpdate): string {
+    const me = this.game.myPlayer();
+    const attacker = this.game.playerBySmallID(attack.attackerID) as
+      | PlayerView
+      | undefined;
+    if (!me || !attacker) return "";
+    return this.relativeAssessment(
+      me.troops() * militaryProfile(me).quality,
+      attack.troops * militaryProfile(attacker).quality,
+    );
+  }
+
   private handleRetaliate(attack: AttackUpdate) {
     const attacker = this.game.playerBySmallID(attack.attackerID) as PlayerView;
     if (!attacker) return;
@@ -214,7 +248,7 @@ export class AttacksDisplay extends LitElement implements Controller {
     return this.incomingAttacks.map(
       (attack) => html`
         <div
-          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm sm:rounded-lg px-1.5 py-0.5 overflow-hidden"
+          class="flex items-center gap-0.5 w-full bg-[#11171e] border border-white/10 sm:rounded px-1.5 py-0.5 overflow-hidden"
         >
           ${this.renderButton({
             content: html`<span class="inline-flex items-center"
@@ -229,6 +263,9 @@ export class AttacksDisplay extends LitElement implements Controller {
                   this.game.playerBySmallID(attack.attackerID) as PlayerView
                 )?.displayName()}</span
               >
+              <span class="ml-1 shrink-0 rounded border border-white/10 px-1 text-[10px] text-white/65">
+                ${this.incomingAssessment(attack)}
+              </span>
               ${attack.retreating
                 ? `(${translateText("events_display.retreating")}...)`
                 : ""} `,
@@ -246,7 +283,7 @@ export class AttacksDisplay extends LitElement implements Controller {
                 />`,
                 onClick: () => this.handleRetaliate(attack),
                 className:
-                  "ml-auto inline-flex items-center justify-center cursor-pointer bg-red-900/50 hover:bg-red-800/70 sm:rounded-lg px-1.5 py-1 border border-red-700/50",
+                  "ml-auto inline-flex items-center justify-center cursor-pointer bg-red-900/50 hover:bg-red-800/70 fortress-control rounded px-2 py-1 border border-red-700/50",
                 translate: false,
               })
             : ""}
@@ -261,7 +298,7 @@ export class AttacksDisplay extends LitElement implements Controller {
     return this.outgoingAttacks.map(
       (attack) => html`
         <div
-          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm sm:rounded-lg px-1.5 py-0.5 overflow-hidden"
+          class="flex items-center gap-0.5 w-full bg-[#11171e] border border-white/10 sm:rounded px-1.5 py-0.5 overflow-hidden"
         >
           ${this.renderButton({
             content: html`<span class="inline-flex items-center"
@@ -275,7 +312,10 @@ export class AttacksDisplay extends LitElement implements Controller {
                 >${(
                   this.game.playerBySmallID(attack.targetID) as PlayerView
                 )?.displayName()}</span
-              > `,
+              >
+              <span class="ml-1 shrink-0 rounded border border-white/10 px-1 text-[10px] text-white/65">
+                ${this.outgoingAssessment(attack)}
+              </span> `,
             onClick: async () => this.attackWarningOnClick(attack),
             className:
               "text-left text-aquarius inline-flex items-center gap-0.5 lg:gap-1 min-w-0",
@@ -285,7 +325,7 @@ export class AttacksDisplay extends LitElement implements Controller {
             ? this.renderButton({
                 content: "❌",
                 onClick: () => this.emitCancelAttackIntent(attack.id),
-                className: "ml-auto text-left shrink-0",
+                className: "fortress-control ml-auto min-h-8 min-w-8 text-left shrink-0",
                 disabled: attack.retreating,
               })
             : html`<span class="ml-auto truncate text-aquarius"
@@ -302,7 +342,7 @@ export class AttacksDisplay extends LitElement implements Controller {
     return this.outgoingLandAttacks.map(
       (landAttack) => html`
         <div
-          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm sm:rounded-lg px-1.5 py-0.5 overflow-hidden"
+          class="flex items-center gap-0.5 w-full bg-[#11171e] border border-white/10 sm:rounded px-1.5 py-0.5 overflow-hidden"
         >
           ${this.renderButton({
             content: html`<span class="inline-flex items-center"
@@ -321,7 +361,7 @@ export class AttacksDisplay extends LitElement implements Controller {
             ? this.renderButton({
                 content: "❌",
                 onClick: () => this.emitCancelAttackIntent(landAttack.id),
-                className: "ml-auto text-left shrink-0",
+                className: "fortress-control ml-auto min-h-8 min-w-8 text-left shrink-0",
                 disabled: landAttack.retreating,
               })
             : html`<span class="ml-auto truncate text-aquarius"
@@ -376,7 +416,7 @@ export class AttacksDisplay extends LitElement implements Controller {
     return this.outgoingBoats.map(
       (boat) => html`
         <div
-          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm sm:rounded-lg px-1.5 py-0.5 overflow-hidden"
+          class="flex items-center gap-0.5 w-full bg-[#11171e] border border-white/10 sm:rounded px-1.5 py-0.5 overflow-hidden"
         >
           ${this.renderButton({
             content: html`${this.renderBoatIcon(boat)}
@@ -401,7 +441,7 @@ export class AttacksDisplay extends LitElement implements Controller {
             : this.renderButton({
                 content: "\u274C",
                 onClick: () => this.emitBoatCancelIntent(boat.id()),
-                className: "ml-auto text-left shrink-0",
+                className: "fortress-control ml-auto min-h-8 min-w-8 text-left shrink-0",
                 disabled: boat.transportShipState().isRetreating,
               })}
         </div>
@@ -415,7 +455,7 @@ export class AttacksDisplay extends LitElement implements Controller {
     return this.incomingBoats.map(
       (boat) => html`
         <div
-          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm sm:rounded-lg px-1.5 py-0.5 overflow-hidden"
+          class="flex items-center gap-0.5 w-full bg-[#11171e] border border-white/10 sm:rounded px-1.5 py-0.5 overflow-hidden"
         >
           ${this.renderButton({
             content: html`${this.renderBoatIcon(boat)}

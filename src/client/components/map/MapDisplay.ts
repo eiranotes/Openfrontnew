@@ -10,7 +10,7 @@ import { MEDAL_ORDER, medalIcon } from "./Medals";
 export class MapDisplay extends LitElement {
   @property({ type: String }) mapKey = "";
   @property({ type: Boolean }) selected = false;
-  @property({ type: String }) translation: string = "";
+  @property({ type: String }) translation = "";
   @property({ type: Boolean }) showMedals = false;
   @property({ type: Boolean }) favorite = false;
   @property({ attribute: false }) wins: Set<Difficulty> = new Set();
@@ -30,9 +30,9 @@ export class MapDisplay extends LitElement {
     super.connectedCallback();
     this.observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting) && !this.dataLoaded) {
+        if (entries.some((entry) => entry.isIntersecting) && !this.dataLoaded) {
           this.dataLoaded = true;
-          this.loadMapData();
+          void this.loadMapData();
           this.observer?.disconnect();
         }
       },
@@ -48,8 +48,6 @@ export class MapDisplay extends LitElement {
   }
 
   updated(changedProperties: Map<string, unknown>) {
-    // If this element is reused for a different map, reload its data —
-    // otherwise it keeps showing the previous map's thumbnail.
     const previousMapKey = changedProperties.get("mapKey");
     if (
       changedProperties.has("mapKey") &&
@@ -57,13 +55,12 @@ export class MapDisplay extends LitElement {
       previousMapKey !== this.mapKey &&
       this.dataLoaded
     ) {
-      this.loadMapData();
+      void this.loadMapData();
     }
   }
 
   private async loadMapData() {
     if (!this.mapKey) return;
-
     try {
       this.isLoading = true;
       const mapValue = GameMapType[this.mapKey as keyof typeof GameMapType];
@@ -75,22 +72,17 @@ export class MapDisplay extends LitElement {
         Array.isArray(manifest.nations) && manifest.nations.length > 0;
     } catch (error) {
       console.error("Failed to load map data:", error);
+      this.mapWebpPath = null;
     } finally {
       this.isLoading = false;
     }
   }
 
   private handleKeydown(event: KeyboardEvent) {
-    // Trigger the same activation logic as click when Enter or Space is pressed
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      // Dispatch a click event to maintain compatibility with parent click handlers
-      (event.target as HTMLElement).click();
+      (event.currentTarget as HTMLElement).click();
     }
-  }
-
-  private preventImageDrag(event: DragEvent) {
-    event.preventDefault();
   }
 
   private handleToggleFavorite(event: Event) {
@@ -99,89 +91,80 @@ export class MapDisplay extends LitElement {
     this.onToggleFavorite?.();
   }
 
-  private renderFavoriteButton() {
-    if (!this.onToggleFavorite) return null;
-    return html`<button
-      type="button"
-      @click=${this.handleToggleFavorite}
-      @keydown=${(e: KeyboardEvent) => e.stopPropagation()}
-      aria-pressed=${this.favorite}
-      aria-label=${translateText(
-        this.favorite ? "map_component.unfavorite" : "map_component.favorite",
-      )}
-      title=${translateText(
-        this.favorite ? "map_component.unfavorite" : "map_component.favorite",
-      )}
-      class="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition-all duration-200 active:scale-90 ${this
-        .favorite
-        ? "opacity-100 text-cyber-yellow"
-        : "opacity-0 group-hover:opacity-100 text-white hover:text-cyber-yellow"}"
-    >
-      ${starIcon(this.favorite, "w-4 h-4")}
-    </button>`;
-  }
-
   render() {
+    const title = this.translation || this.mapName || this.mapKey;
     return html`
       <div
         role="button"
         tabindex="0"
-        aria-selected="${this.selected}"
-        aria-label="${this.translation ?? this.mapName ?? this.mapKey}"
-        @keydown="${this.handleKeydown}"
-        class="w-full h-full p-3 flex flex-col items-center justify-between rounded-xl border cursor-pointer transition-all duration-200 active:scale-95 gap-3 group ${this
+        aria-selected=${this.selected}
+        aria-label=${title}
+        @keydown=${this.handleKeydown}
+        class="fortress-control group relative flex min-h-[78px] w-full items-center gap-3 rounded-[4px] border p-2 text-left transition-[color,background-color,border-color,transform] duration-150 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-malibu-blue/30 ${this
           .selected
-          ? "bg-malibu-blue/20 border-malibu-blue/50 shadow-[var(--shadow-malibu-blue-strong)]"
-          : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 hover:-translate-y-1"}"
+          ? "border-malibu-blue bg-[#173044]"
+          : "border-white/10 bg-[#0d1116] hover:border-white/25 hover:bg-[#151c24]"}"
       >
-        ${this.isLoading
-          ? html`<div
-              class="w-full aspect-[2/1] text-white/40 transition-transform duration-200 rounded-lg bg-black/20 text-xs font-bold uppercase tracking-wider flex items-center justify-center animate-pulse"
-            >
-              ${translateText("map_component.loading")}
-            </div>`
-          : this.mapWebpPath
-            ? html`<div
-                class="w-full aspect-[2/1] relative overflow-hidden rounded-lg bg-black/20"
-              >
-                <img
-                  src="${this.mapWebpPath}"
-                  alt="${this.translation || this.mapName}"
-                  draggable="false"
-                  @dragstart=${this.preventImageDrag}
-                  class="w-full h-full object-cover ${this.selected
-                    ? "opacity-100"
-                    : "opacity-80"} group-hover:opacity-100 transition-opacity duration-200"
-                />
-                ${this.renderFavoriteButton()}
-              </div>`
-            : html`<div
-                class="w-full aspect-[2/1] text-red-400 transition-transform duration-200 rounded-lg bg-red-500/10 text-xs font-bold uppercase tracking-wider flex items-center justify-center"
-              >
-                ${translateText("map_component.error")}
-              </div>`}
-        ${this.showMedals && this.hasNations
-          ? html`<div class="flex gap-1 justify-center w-full">
-              ${this.renderMedals()}
-            </div>`
-          : null}
+        <span
+          class="absolute inset-y-2 left-0 w-0.5 ${this.selected
+            ? "bg-malibu-blue"
+            : "bg-transparent"}"
+          aria-hidden="true"
+        ></span>
         <div
-          class="text-xs font-bold text-white uppercase tracking-wider text-center leading-tight break-words hyphens-auto"
+          class="relative h-14 w-24 shrink-0 overflow-hidden rounded-[3px] border border-white/8 bg-black/25 sm:w-28"
         >
-          ${this.translation || this.mapName}
+          ${this.isLoading
+            ? html`<div
+                class="flex h-full w-full items-center justify-center text-[11px] text-white/35"
+              >
+                ${translateText("map_component.loading")}
+              </div>`
+            : this.mapWebpPath
+              ? html`<img
+                  src=${this.mapWebpPath}
+                  alt=${title}
+                  draggable="false"
+                  @dragstart=${(event: DragEvent) => event.preventDefault()}
+                  class="h-full w-full object-cover opacity-90 transition-opacity duration-150 group-hover:opacity-100"
+                />`
+              : html`<div
+                  class="flex h-full w-full items-center justify-center text-[11px] text-red-300"
+                >
+                  ${translateText("map_component.error")}
+                </div>`}
         </div>
+        <div class="min-w-0 flex-1">
+          <div class="truncate text-sm font-semibold text-white">${title}</div>
+          <div class="mt-1 text-xs text-white/40">${this.mapKey}</div>
+          ${this.showMedals && this.hasNations
+            ? html`<div class="mt-1 flex gap-0.5">
+                ${MEDAL_ORDER.map((medal) =>
+                  medalIcon(medal, "w-4 h-4", this.wins?.has(medal)),
+                )}
+              </div>`
+            : null}
+        </div>
+        ${this.onToggleFavorite
+          ? html`<button
+              type="button"
+              @click=${this.handleToggleFavorite}
+              @keydown=${(event: KeyboardEvent) => event.stopPropagation()}
+              aria-pressed=${this.favorite}
+              aria-label=${translateText(
+                this.favorite
+                  ? "map_component.unfavorite"
+                  : "map_component.favorite",
+              )}
+              class="fortress-control flex h-11 w-11 shrink-0 items-center justify-center rounded-[4px] text-white/45 hover:bg-white/5 hover:text-cyber-yellow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-malibu-blue/30 ${this
+                .favorite
+                ? "text-cyber-yellow"
+                : ""}"
+            >
+              ${starIcon(this.favorite, "w-4 h-4")}
+            </button>`
+          : null}
       </div>
     `;
-  }
-
-  private renderMedals() {
-    const wins = this.readWins();
-    return MEDAL_ORDER.map((medal) =>
-      medalIcon(medal, "w-5 h-5", wins.has(medal)),
-    );
-  }
-
-  private readWins(): Set<Difficulty> {
-    return this.wins ?? new Set();
   }
 }

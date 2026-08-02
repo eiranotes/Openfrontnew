@@ -3,9 +3,9 @@ precision highp float;
 
 layout(location = 0) in vec2 aPos;
 
-// Per-instance: x, y, ownerID, underConstruction, atlasIdx, markedForDeletion
+// Per-instance: x, y, ownerID, underConstruction, atlasIdx, markedForDeletion, developmentBand
 layout(location = 1) in vec4 aInst0; // x, y, ownerID, underConstruction
-layout(location = 2) in vec2 aInst1; // atlasIdx, markedForDeletion
+layout(location = 2) in vec3 aInst1; // atlasIdx, markedForDeletion, developmentBand
 
 uniform mat3  uCamera;
 uniform float uZoom;
@@ -26,6 +26,7 @@ flat out float vMarkedForDeletion;
 flat out float vZoom;
 flat out float vAtlasIdx;
 flat out float vShapeScale;
+flat out float vDevelopmentBand;
 
 void main() {
   float worldX = aInst0.x;
@@ -35,6 +36,7 @@ void main() {
   vMarkedForDeletion = aInst1.y;
   vZoom = uZoom;
   vAtlasIdx = aInst1.x;
+  vDevelopmentBand = aInst1.z;
 
   float iconScale;
   if (uZoom <= uDotsThreshold) {
@@ -50,6 +52,8 @@ void main() {
 
   int shapeIdx = int(aInst1.x);
   float shapeScale = uShapeScales[shapeIdx];
+  float developmentScale = aInst1.x < 0.5 ? 1.0 + aInst1.z * 0.08 : 1.0;
+  shapeScale *= developmentScale;
   vShapeScale = shapeScale;
 
   float halfSize = uIconSize * iconScale * 0.5 / uZoom * shapeScale;

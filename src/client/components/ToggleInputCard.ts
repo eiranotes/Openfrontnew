@@ -1,7 +1,7 @@
 import { LitElement, PropertyValues, html, nothing } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import { translateText } from "../Utils";
-import { CARD_LABEL_CLASS, INPUT_CLASS, cardClass } from "./InputCardStyles";
+import { INPUT_CLASS } from "./InputCardStyles";
 
 @customElement("toggle-input-card")
 export class ToggleInputCard extends LitElement {
@@ -15,8 +15,6 @@ export class ToggleInputCard extends LitElement {
   @property({ attribute: false }) inputValue?: number | string;
   @property({ attribute: false }) inputAriaLabel?: string;
   @property({ attribute: false }) inputPlaceholder?: string;
-  // Optional hint shown under the input when its value is 0 (e.g. "Disabled"),
-  // so a 0 that means "off" isn't cryptic.
   @property({ attribute: false }) zeroLabel?: string;
   @property({ attribute: false }) defaultInputValue?: number | string;
   @property({ attribute: false }) minValidOnEnable?: number;
@@ -32,8 +30,6 @@ export class ToggleInputCard extends LitElement {
     return this;
   }
 
-  // Autofocus + select the number input when the card is toggled on. Safe now
-  // that the input is always mounted (focusing a freshly-inserted one janked).
   protected updated(changedProperties: PropertyValues<this>) {
     if (!changedProperties.has("checked")) return;
     if (changedProperties.get("checked") === false && this.checked) {
@@ -60,116 +56,82 @@ export class ToggleInputCard extends LitElement {
 
   private resolveValueOnEnable(): number | string | undefined {
     const currentValue = this.inputValue;
-
-    if (
-      currentValue === undefined ||
-      currentValue === null ||
-      currentValue === ""
-    ) {
+    if (currentValue === undefined || currentValue === "") {
       return this.defaultInputValue;
     }
-
-    if (this.minValidOnEnable === undefined) {
-      return currentValue;
-    }
-
+    if (this.minValidOnEnable === undefined) return currentValue;
     const numericValue = this.toOptionalNumber(currentValue);
-    if (numericValue === undefined || numericValue < this.minValidOnEnable) {
-      return this.defaultInputValue;
-    }
-
-    return numericValue;
+    return numericValue === undefined || numericValue < this.minValidOnEnable
+      ? this.defaultInputValue
+      : numericValue;
   }
 
   private emitToggle() {
     const nextChecked = !this.checked;
-    const nextValue = nextChecked ? this.resolveValueOnEnable() : undefined;
-    this.onToggle?.(nextChecked, nextValue);
+    this.onToggle?.(
+      nextChecked,
+      nextChecked ? this.resolveValueOnEnable() : undefined,
+    );
   }
-
-  private handleCardClick = () => {
-    this.emitToggle();
-  };
 
   render() {
     return html`
-      <div class="${cardClass(this.checked)}">
-        <button
-          type="button"
-          aria-pressed=${this.checked}
-          @click=${this.handleCardClick}
-          class="w-full h-full p-3 flex flex-col items-center justify-between gap-2 focus:outline-none"
-        >
-          <div
-            class="w-5 h-5 rounded border flex items-center justify-center transition-colors mt-1 ${this
+      <div
+        class="rounded-[4px] border border-white/10 bg-[#11171e] px-3 py-2.5 ${this
+          .checked
+          ? "border-malibu-blue/70 bg-[#17232d]"
+          : ""}"
+      >
+        <div class="flex min-h-11 items-center gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked=${this.checked}
+            @click=${this.emitToggle}
+            class="fortress-control relative h-7 w-12 shrink-0 rounded-full border transition-[background-color,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-malibu-blue/30 ${this
               .checked
-              ? "bg-blue-500 border-blue-500"
-              : "border-white/20 bg-white/5"}"
+              ? "border-malibu-blue bg-malibu-blue"
+              : "border-white/20 bg-[#0d1116]"}"
           >
-            ${this.checked
-              ? html`<svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-3 w-3 text-white"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clip-rule="evenodd"
-                  />
-                </svg>`
-              : ""}
-          </div>
-
-          ${this.checked
-            ? html`<div class="h-[30px] my-1"></div>`
-            : html`<div class="h-[2px] w-4 rounded my-3 bg-white/10"></div>`}
-
-          <span
-            class="${CARD_LABEL_CLASS} text-center ${this.checked
-              ? "text-white"
-              : "text-white/60"}"
+            <span
+              class="absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white transition-transform duration-150 ${this
+                .checked
+                ? "translate-x-[22px]"
+                : "translate-x-[3px]"}"
+            ></span>
+          </button>
+          <button
+            type="button"
+            class="fortress-control min-h-11 flex-1 text-left text-sm font-medium text-white/85 focus-visible:outline-none"
+            @click=${this.emitToggle}
           >
             ${translateText(this.labelKey)}
-          </span>
-        </button>
-
-        <!-- Keep the input permanently mounted and just hide it when unchecked.
-             Rendering it conditionally (\${checked ? input : nothing}) inserts a
-             fresh input on enable, and focusing a just-inserted input forces
-             several ms of layout/paint per frame. CSS-hiding an always-present
-             input avoids that. -->
-        <div
-          class="absolute left-3 right-3 top-1/2 -translate-y-1/2 z-10 ${this
-            .checked
-            ? ""
-            : "hidden"}"
-        >
-          <input
-            type=${this.inputType}
-            id=${this.inputId ?? nothing}
-            min=${this.inputMin ?? nothing}
-            max=${this.inputMax ?? nothing}
-            step=${this.inputStep ?? nothing}
-            .value=${String(this.inputValue ?? "")}
-            class=${INPUT_CLASS}
-            aria-label=${this.inputAriaLabel ?? nothing}
-            placeholder=${this.inputPlaceholder ?? nothing}
-            @input=${this.onInput}
-            @change=${this.onChange}
-            @keydown=${this.onKeyDown}
-          />
-          ${this.checked &&
-          this.zeroLabel !== undefined &&
-          this.toOptionalNumber(this.inputValue) === 0
-            ? html`<div
-                class="pointer-events-none absolute left-0 right-0 top-full mt-0.5 text-center text-[10px] leading-none text-white/70"
-              >
-                ${this.zeroLabel}
-              </div>`
-            : nothing}
+          </button>
+          <div class="w-28 shrink-0 ${this.checked ? "" : "invisible"}">
+            <input
+              type=${this.inputType}
+              id=${this.inputId ?? nothing}
+              min=${this.inputMin ?? nothing}
+              max=${this.inputMax ?? nothing}
+              step=${this.inputStep ?? nothing}
+              .value=${String(this.inputValue ?? "")}
+              class=${INPUT_CLASS}
+              aria-label=${this.inputAriaLabel ?? nothing}
+              placeholder=${this.inputPlaceholder ?? nothing}
+              ?disabled=${!this.checked}
+              @input=${this.onInput}
+              @change=${this.onChange}
+              @keydown=${this.onKeyDown}
+            />
+          </div>
         </div>
+        ${this.checked &&
+        this.zeroLabel !== undefined &&
+        this.toOptionalNumber(this.inputValue) === 0
+          ? html`<div class="mt-1 pl-[60px] text-xs text-white/55">
+              ${this.zeroLabel}
+            </div>`
+          : nothing}
       </div>
     `;
   }

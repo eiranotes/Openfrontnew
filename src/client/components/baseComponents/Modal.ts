@@ -101,7 +101,7 @@ export class OModal extends LitElement {
               role="tab"
               data-key=${tab.key}
               aria-selected=${active}
-              class="px-4 py-3 text-sm font-bold uppercase tracking-wider transition-all relative cursor-pointer ${active
+              class="fortress-control px-4 py-3 text-sm font-semibold transition-[color,background-color,border-color] relative cursor-pointer ${active
                 ? "text-aquarius"
                 : "text-white/40 hover:text-white/70"}"
               @click=${() => this.handleTabClick(tab.key)}
@@ -127,11 +127,11 @@ export class OModal extends LitElement {
 
     const backdropClass = this.inline
       ? "relative z-10 w-full h-full flex items-stretch bg-transparent"
-      : "fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center overflow-hidden";
+      : "fixed inset-0 z-[9999] bg-black/70 flex items-end lg:items-center justify-center overflow-hidden";
 
     const wrapperClass = this.inline
       ? "relative flex flex-col w-full h-full m-0 max-w-full max-h-none shadow-none"
-      : `relative flex flex-col w-full h-full lg:w-[90%] lg:h-auto lg:min-w-[400px] lg:max-w-[900px] lg:m-8 lg:rounded-lg shadow-[0_20px_60px_rgba(0,0,0,0.8)] lg:max-h-[calc(100vh-4rem)] ${
+      : `relative flex flex-col w-full h-[min(92dvh,100%)] lg:w-[90%] lg:h-auto lg:min-w-[400px] lg:max-w-[900px] lg:m-8 lg:rounded-lg shadow-[var(--fortress-shadow-panel)] lg:max-h-[calc(100dvh-4rem)] ${
           this.alwaysMaximized ? "h-auto" : ""
         }`;
     const wrapperStyle =
@@ -139,11 +139,13 @@ export class OModal extends LitElement {
 
     const hasTabs = this.tabs.length > 0;
     const sectionClass =
-      "relative flex-1 min-h-0 flex flex-col text-white bg-black/70 backdrop-blur-xl lg:rounded-2xl lg:border border-white/10 overflow-hidden";
+      "relative flex-1 min-h-0 flex flex-col text-white bg-[#11171e] lg:rounded-lg border border-white/10 overflow-hidden";
 
     return html`
       <aside
         class="${backdropClass}"
+        role=${this.inline ? "region" : "dialog"}
+        aria-modal=${this.inline ? "false" : "true"}
         @click=${this.inline ? null : () => this.close()}
       >
         <div
@@ -153,15 +155,17 @@ export class OModal extends LitElement {
         >
           ${this.inline || this.hideCloseButton
             ? html``
-            : html`<div
-                class="absolute top-5 right-5 z-10 text-white cursor-pointer"
+            : html`<button
+                type="button"
+                class="fortress-control absolute top-3 right-3 z-10 flex h-9 w-9 items-center justify-center border border-white/10 bg-[#171e27] text-lg text-white/75 hover:border-white/25 hover:text-white"
+                aria-label="Close"
                 @click=${() => this.close()}
               >
-                ✕
-              </div>`}
+                ×
+              </button>`}
           ${!this.hideHeader && this.title
             ? html`<div
-                class="px-[1.4rem] py-[1rem] text-2xl font-bold text-white"
+                class="px-5 py-4 text-xl font-semibold text-white border-b border-white/10"
               >
                 ${this.title}
               </div>`

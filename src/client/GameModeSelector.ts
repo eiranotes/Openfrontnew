@@ -134,7 +134,7 @@ export class GameModeSelector extends LitElement {
           ${this.renderSmallActionCard(
             translateText("main.solo"),
             this.openSinglePlayerModal,
-            "bg-malibu-blue hover:bg-aquarius active:bg-malibu-blue/80 hover:scale-y-105 hover:scale-x-[1.01]",
+            "bg-malibu-blue hover:bg-aquarius active:bg-[#0877b4]",
           )}
         </div>
         <!-- Create/ranked/join: mobile only, below solo -->
@@ -142,17 +142,17 @@ export class GameModeSelector extends LitElement {
           ${this.renderSmallActionCard(
             translateText("main.create"),
             this.openHostLobby,
-            "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]",
+            "bg-[#151b22] border border-white/10 hover:border-white/25 hover:bg-[#1a222b] active:bg-[#10151b]",
           )}
           ${this.renderSmallActionCard(
             translateText("mode_selector.ranked_title"),
             this.openRankedMenu,
-            "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]",
+            "bg-[#151b22] border border-white/10 hover:border-white/25 hover:bg-[#1a222b] active:bg-[#10151b]",
           )}
           ${this.renderSmallActionCard(
             translateText("main.join"),
             this.openJoinLobby,
-            "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]",
+            "bg-[#151b22] border border-white/10 hover:border-white/25 hover:bg-[#1a222b] active:bg-[#10151b]",
             this.hostedLobbyCount(),
           )}
         </div>
@@ -215,7 +215,7 @@ export class GameModeSelector extends LitElement {
           ${this.renderSmallActionCard(
             translateText("main.solo"),
             this.openSinglePlayerModal,
-            "bg-malibu-blue hover:bg-aquarius active:bg-malibu-blue/80 hover:scale-y-105 hover:scale-x-[1.01]",
+            "bg-malibu-blue hover:bg-aquarius active:bg-[#0877b4]",
           )}
         </div>
         <!-- Bottom row: create + ranked + join (desktop only) -->
@@ -223,17 +223,17 @@ export class GameModeSelector extends LitElement {
           ${this.renderSmallActionCard(
             translateText("main.create"),
             this.openHostLobby,
-            "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]",
+            "bg-[#151b22] border border-white/10 hover:border-white/25 hover:bg-[#1a222b] active:bg-[#10151b]",
           )}
           ${this.renderSmallActionCard(
             translateText("mode_selector.ranked_title"),
             this.openRankedMenu,
-            "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]",
+            "bg-[#151b22] border border-white/10 hover:border-white/25 hover:bg-[#1a222b] active:bg-[#10151b]",
           )}
           ${this.renderSmallActionCard(
             translateText("main.join"),
             this.openJoinLobby,
-            "bg-surface hover:brightness-[1.08] active:brightness-[0.95] hover:scale-105 hover:shadow-[var(--shadow-action-card-hover)]",
+            "bg-[#151b22] border border-white/10 hover:border-white/25 hover:bg-[#1a222b] active:bg-[#10151b]",
             this.hostedLobbyCount(),
           )}
         </div>
@@ -283,7 +283,7 @@ export class GameModeSelector extends LitElement {
       <button
         @click=${onClick}
         ?disabled=${!this.inputValid}
-        class="relative flex items-center justify-center w-full h-full rounded-lg ${bgClass} transition-all duration-200 text-sm lg:text-base font-medium text-white uppercase tracking-wider text-center ${!this
+        class="fortress-control relative flex items-center justify-center w-full h-full rounded border ${bgClass} transition-[background-color,border-color,color,opacity,transform] duration-150 active:translate-y-px text-sm lg:text-base font-semibold text-white text-center ${!this
           .inputValid
           ? "opacity-50 cursor-not-allowed pointer-events-none"
           : ""}"
@@ -340,14 +340,14 @@ export class GameModeSelector extends LitElement {
       <button
         @click=${() => this.validateAndJoin(lobby)}
         ?disabled=${!this.inputValid}
-        class="group relative w-full h-44 sm:h-full text-white uppercase rounded-2xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bg-surface hover:shadow-[var(--shadow-lobby-card-hover)] ${!this
+        class="group fortress-control relative w-full h-44 sm:h-full text-white rounded-md border border-white/10 transition-[background-color,border-color,opacity,transform] duration-150 active:translate-y-px bg-[#11171e] hover:border-white/25 ${!this
           .inputValid
           ? "opacity-50 cursor-not-allowed pointer-events-none"
           : ""}"
       >
         <!-- Image clipped separately so overflow-hidden doesn't block absolute children -->
         <div
-          class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none"
+          class="absolute inset-0 rounded-md overflow-hidden pointer-events-none"
         >
           ${mapImageSrc
             ? html`<img
@@ -369,7 +369,7 @@ export class GameModeSelector extends LitElement {
                 ${modifierLabels.map(
                   (label) =>
                     html`<span
-                      class="px-2 py-1 rounded text-xs font-bold uppercase tracking-widest bg-malibu-blue text-white shadow-[var(--shadow-malibu-blue-pill)]"
+                      class="px-2 py-1 rounded text-xs font-bold uppercase tracking-widest bg-malibu-blue text-white "
                       >${label}</span
                     >`,
                 )}
@@ -386,7 +386,7 @@ export class GameModeSelector extends LitElement {
         </div>
         <!-- Bottom bar: map name + mode, with player count floating above -->
         <div
-          class="absolute bottom-0 left-0 right-0 flex flex-col px-3 py-2 bg-black/55 backdrop-blur-sm rounded-b-2xl"
+          class="absolute bottom-0 left-0 right-0 flex flex-col px-3 py-2 bg-black/55 backdrop-blur-sm rounded-b-md"
           style="overflow: visible;"
         >
           <span
@@ -406,12 +406,12 @@ export class GameModeSelector extends LitElement {
           </span>
           ${mapName
             ? html`<p
-                class="text-sm sm:text-base font-bold uppercase tracking-wider text-left leading-tight"
+                class="text-sm sm:text-base font-semibold text-left leading-tight"
               >
                 ${mapName}
               </p>`
             : ""}
-          <h3 class="text-xs text-white/70 uppercase tracking-wider text-left">
+          <h3 class="text-xs text-white/65 text-left">
             ${titleContent}
           </h3>
         </div>

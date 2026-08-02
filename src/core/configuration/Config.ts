@@ -18,6 +18,8 @@ import {
   UnitType,
 } from "../game/Game";
 import {
+  cityLevelCost,
+  fortressEconomyProfile,
   militaryQuality,
   overextensionPenalties,
 } from "../game/FortressBalance";
@@ -116,6 +118,16 @@ const DOOMSDAY_CLOCK_DEFAULTS = {
   warshipDrainMaxPercent: 50,
   warshipDrainCurveExponent: 8, // >1 = convex: stays gentle early, then spikes
 };
+
+export interface GoldIncomeBreakdown {
+  baseGoldPerTick: number;
+  cityBaseGoldPerTick: number;
+  administrativeEfficiency: number;
+  cityGoldPerTick: number;
+  multiplier: number;
+  totalGoldPerTick: number;
+  totalGoldPerSecond: number;
+}
 
 export class Config {
   private unitInfoCache = new Map<UnitType, UnitInfo>();
@@ -443,8 +455,8 @@ export class Config {
       case UnitType.City:
         info = {
           cost: this.costWrapper(
-            (numUnits: number) =>
-              Math.min(1_000_000, Math.pow(2, numUnits) * 125_000),
+            (totalCityLevels: number) =>
+              cityLevelCost(totalCityLevels + 1),
             UnitType.City,
           ),
           constructionDuration: this.instantBuild() ? 0 : 2 * 10,
@@ -512,7 +524,7 @@ export class Config {
       captured.type() === PlayerType.Bot ||
       captured.type() === PlayerType.Nation
     ) {
-      return captured.gold();
+      return (captured.gold() * 2n) / 5n;
     } else {
       return captured.gold() / 4n;
     }
@@ -897,15 +909,26 @@ export class Config {
     return Math.min(player.troops() + toAdd, max) - player.troops();
   }
 
-  goldAdditionRate(player: Player | PlayerView): Gold {
+  goldIncomeBreakdown(player: Player | PlayerView): GoldIncomeBreakdown {
     const multiplier = this.goldMultiplierFor(player);
-    let baseRate: bigint;
-    if (player.type() === PlayerType.Bot) {
-      baseRate = 50n;
-    } else {
-      baseRate = 100n;
-    }
-    return BigInt(Math.floor(Number(baseRate) * multiplier));
+    const baseGoldPerTick = player.type() === PlayerType.Bot ? 50 : 100;
+    const economy = fortressEconomyProfile(player);
+    const totalBeforeMultiplier = baseGoldPerTick + economy.cityGoldPerTick;
+    const totalGoldPerTick = totalBeforeMultiplier * multiplier;
+
+    return {
+      baseGoldPerTick,
+      cityBaseGoldPerTick: economy.cityBaseGoldPerTick,
+      administrativeEfficiency: economy.administrativeEfficiency,
+      cityGoldPerTick: economy.cityGoldPerTick,
+      multiplier,
+      totalGoldPerTick,
+      totalGoldPerSecond: totalGoldPerTick * 10,
+    };
+  }
+
+  goldAdditionRate(player: Player | PlayerView): Gold {
+    return BigInt(Math.floor(this.goldIncomeBreakdown(player).totalGoldPerTick));
   }
 
   nukeMagnitudes(unitType: UnitType): NukeMagnitude {

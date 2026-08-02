@@ -1,12 +1,12 @@
 export const ACTIVE_CARD =
-  "bg-malibu-blue/20 border-malibu-blue/50 shadow-[var(--shadow-malibu-blue)]";
+  "bg-[#17232d] border-malibu-blue text-white";
 export const INACTIVE_CARD =
-  "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20";
+  "bg-[#11171e] border-white/10 text-white/70 hover:border-white/25 hover:bg-[#171e27]";
 export const INPUT_CLASS =
-  "w-full text-center rounded bg-black/60 text-white text-sm font-bold border border-white/20 focus:outline-none focus:border-malibu-blue p-1 my-1";
+  "fortress-control w-full min-h-10 rounded-[4px] bg-[#0d1116] px-2 text-center text-sm font-semibold text-white tabular-nums border border-white/15 outline-none focus-visible:border-malibu-blue focus-visible:ring-2 focus-visible:ring-malibu-blue/25";
 export const CARD_LABEL_CLASS =
-  "text-xs uppercase font-bold tracking-wider leading-tight break-words hyphens-auto";
+  "text-sm font-medium leading-tight break-words hyphens-auto";
 
 export function cardClass(active: boolean, extra = ""): string {
-  return `w-full h-full rounded-xl border cursor-pointer transition-all duration-200 active:scale-95 relative overflow-hidden ${extra} ${active ? ACTIVE_CARD : INACTIVE_CARD}`;
+  return `fortress-control relative w-full h-full overflow-hidden rounded-[4px] border cursor-pointer transition-[color,background-color,border-color,opacity,transform] duration-150 active:translate-y-px ${extra} ${active ? ACTIVE_CARD : INACTIVE_CARD}`;
 }

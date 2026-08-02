@@ -86,17 +86,17 @@ export class FluentSlider extends LitElement {
           .max=${this.max}
           .step=${this.step}
           .valueAsNumber=${this.value}
-          style="background: linear-gradient(to right, var(--color-malibu-blue) 0%, var(--color-malibu-blue) ${percentage}%, rgba(255, 255, 255, 0.15) ${percentage}%, rgba(255, 255, 255, 0.15) 100%); background-size: 100% 6px; background-repeat: no-repeat; background-position: center; border-radius: 9999px;"
-          class="w-full h-6 p-0 m-0 bg-transparent appearance-none cursor-pointer focus:outline-none 
-                 [&::-webkit-slider-runnable-track]:w-full [&::-webkit-slider-runnable-track]:h-[6px] [&::-webkit-slider-runnable-track]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:transition-colors
-                 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-[18px] [&::-webkit-slider-thumb]:w-[18px] [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-malibu-blue [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:-mt-[6px] [&::-webkit-slider-thumb]:shadow-[var(--shadow-malibu-blue-ring-sm)] [&::-webkit-slider-thumb]:transition-all active:[&::-webkit-slider-thumb]:scale-110 active:[&::-webkit-slider-thumb]:shadow-[var(--shadow-malibu-blue-ring-lg)]
-                 [&::-moz-range-track]:w-full [&::-moz-range-track]:h-[6px] [&::-moz-range-track]:cursor-pointer [&::-moz-range-track]:bg-transparent [&::-moz-range-track]:rounded-full [&::-moz-range-track]:transition-colors
-                 [&::-moz-range-thumb]:h-[18px] [&::-moz-range-thumb]:w-[18px] [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-malibu-blue [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-[var(--shadow-malibu-blue-ring-sm)] [&::-moz-range-thumb]:transition-all active:[&::-moz-range-thumb]:scale-110 active:[&::-moz-range-thumb]:shadow-[var(--shadow-malibu-blue-ring-lg)]"
+          style="background: linear-gradient(to right, var(--color-malibu-blue) 0%, var(--color-malibu-blue) ${percentage}%, rgba(255, 255, 255, 0.14) ${percentage}%, rgba(255, 255, 255, 0.14) 100%); background-size: 100% 4px; background-repeat: no-repeat; background-position: center;"
+          class="fortress-range w-full h-10 p-0 m-0 bg-transparent appearance-none cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-malibu-blue/30
+                 [&::-webkit-slider-runnable-track]:w-full [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-transparent
+                 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#0d1116] [&::-webkit-slider-thumb]:bg-malibu-blue [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:-mt-2
+                 [&::-moz-range-track]:w-full [&::-moz-range-track]:h-1 [&::-moz-range-track]:cursor-pointer [&::-moz-range-track]:bg-transparent
+                 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#0d1116] [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-malibu-blue [&::-moz-range-thumb]:cursor-pointer"
           @input=${this.handleSliderInput}
           @change=${this.handleSliderChange}
         />
         <div
-          class="text-xs uppercase font-bold tracking-wider text-center w-full leading-tight mb-1 flex flex-col items-center ${this
+          class="text-sm font-medium text-center w-full leading-tight mb-1 flex flex-col items-center ${this
             .value > 0
             ? "text-white"
             : "text-white/60"}"
@@ -108,7 +108,7 @@ export class FluentSlider extends LitElement {
                 .min=${this.min}
                 .max=${this.max}
                 .valueAsNumber=${this.value}
-                class="w-[60px] bg-black/60 text-white border border-white/20 text-center rounded text-sm p-1 leading-none font-bold font-inherit mt-1 focus:outline-none focus:border-blue-500"
+                class="fortress-control w-20 min-h-10 bg-[#0d1116] text-white border border-white/15 text-center rounded-[4px] text-sm px-2 leading-none font-semibold font-inherit mt-1 focus-visible:outline-none focus-visible:border-malibu-blue focus-visible:ring-2 focus-visible:ring-malibu-blue/25"
                 @input=${this.handleNumberInput}
                 @blur=${() => {
                   this.isEditing = false;
@@ -117,7 +117,7 @@ export class FluentSlider extends LitElement {
                 @keydown=${this.handleNumberKeyDown}
               />`
             : html`<span
-                class="cursor-pointer min-w-[60px] inline-block text-center text-sm font-bold select-none hover:text-white transition-colors mt-1 ${this
+                class="fortress-control min-w-[72px] min-h-10 inline-flex items-center justify-center text-center text-sm font-semibold select-none hover:text-white transition-colors mt-1 rounded-[4px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-malibu-blue/30 ${this
                   .value > 0
                   ? "text-white"
                   : "text-white/60"}"

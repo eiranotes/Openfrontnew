@@ -50,7 +50,7 @@ export class DesktopNavBar extends LitElement {
 
     return html`
       <nav
-        class="hidden lg:flex w-full bg-zinc-900/90 backdrop-blur-md items-center justify-center gap-8 py-4 shrink-0 z-50 relative"
+        class="hidden lg:flex w-full min-h-14 bg-[#0d1116] border-b border-white/10 items-center justify-center gap-6 px-6 py-2 shrink-0 z-50 relative"
       >
         <div class="flex flex-col items-center justify-center">
           <div class="h-8">
@@ -68,7 +68,7 @@ export class DesktopNavBar extends LitElement {
         <button
           class="nav-menu-item ${currentPage === "page-play"
             ? "active"
-            : ""} text-white/70 hover:text-malibu-blue  font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-malibu-blue "
+            : ""} text-white/70 hover:text-malibu-blue  text-sm font-medium cursor-pointer transition-colors duration-150 [&.active]:text-malibu-blue "
           data-page="page-play"
           data-i18n="main.play"
         ></button>
@@ -77,7 +77,7 @@ export class DesktopNavBar extends LitElement {
           <button
             class="nav-menu-item ${currentPage === "page-news"
               ? "active"
-              : ""} text-white/70 hover:text-malibu-blue  font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-malibu-blue "
+              : ""} text-white/70 hover:text-malibu-blue  text-sm font-medium cursor-pointer transition-colors duration-150 [&.active]:text-malibu-blue "
             data-page="page-news"
             data-i18n="main.news"
             @click=${this._notifications.onNewsClick}
@@ -97,7 +97,7 @@ export class DesktopNavBar extends LitElement {
           <button
             class="nav-menu-item ${currentPage === "page-item-store"
               ? "active"
-              : ""} text-white/70 hover:text-malibu-blue  font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-malibu-blue "
+              : ""} text-white/70 hover:text-malibu-blue  text-sm font-medium cursor-pointer transition-colors duration-150 [&.active]:text-malibu-blue "
             data-page="page-item-store"
             data-i18n="main.store"
             @click=${this._notifications.onStoreClick}
@@ -114,23 +114,23 @@ export class DesktopNavBar extends LitElement {
             : ""}
         </div>
         <button
-          class="nav-menu-item text-white/70 hover:text-malibu-blue  font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-malibu-blue "
+          class="nav-menu-item text-white/70 hover:text-malibu-blue  text-sm font-medium cursor-pointer transition-colors duration-150 [&.active]:text-malibu-blue "
           data-page="page-settings"
           data-i18n="main.settings"
         ></button>
         <button
-          class="nav-menu-item text-white/70 hover:text-malibu-blue  font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-malibu-blue "
+          class="nav-menu-item text-white/70 hover:text-malibu-blue  text-sm font-medium cursor-pointer transition-colors duration-150 [&.active]:text-malibu-blue "
           data-page="page-leaderboard"
           data-i18n="main.leaderboard"
         ></button>
         <button
-          class="no-crazygames nav-menu-item text-white/70 hover:text-blue-500 font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-blue-500"
+          class="no-crazygames nav-menu-item text-white/70 hover:text-blue-500 text-sm font-medium cursor-pointer transition-colors duration-150 [&.active]:text-blue-500"
           data-page="page-clan"
           data-i18n="main.clans"
         ></button>
         <div class="relative">
           <button
-            class="nav-menu-item text-white/70 hover:text-malibu-blue  font-medium tracking-wider uppercase cursor-pointer transition-colors [&.active]:text-malibu-blue "
+            class="nav-menu-item text-white/70 hover:text-malibu-blue  text-sm font-medium cursor-pointer transition-colors duration-150 [&.active]:text-malibu-blue "
             data-page="page-help"
             data-i18n="main.help"
             @click=${this._notifications.onHelpClick}
@@ -148,7 +148,7 @@ export class DesktopNavBar extends LitElement {
         </div>
         <button
           id="nav-account-button"
-          class="nav-menu-item relative h-10 rounded-full overflow-hidden flex items-center justify-center gap-2 px-3 bg-transparent border border-white/20 text-white/80 hover:text-white cursor-pointer transition-colors [&.active]:text-white"
+          class="nav-menu-item relative h-10 rounded-full overflow-hidden flex items-center justify-center gap-2 px-3 bg-transparent border border-white/20 text-white/80 hover:text-white cursor-pointer transition-colors duration-150 [&.active]:text-white"
           data-page="page-account"
           data-i18n-aria-label="main.account"
           data-i18n-title="main.account"

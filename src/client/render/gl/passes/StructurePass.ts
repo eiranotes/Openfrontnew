@@ -61,8 +61,8 @@ const ATLAS_COLS = STRUCTURE_ORDER.length;
 // Instance data layout
 // ---------------------------------------------------------------------------
 
-// Per-instance: x, y, ownerID, underConstruction, atlasIdx, markedForDeletion
-const FLOATS_PER_INSTANCE = 6;
+// Per-instance: x, y, ownerID, underConstruction, atlasIdx, markedForDeletion, developmentBand
+const FLOATS_PER_INSTANCE = 7;
 const BYTES_PER_INSTANCE = FLOATS_PER_INSTANCE * 4;
 
 // ---------------------------------------------------------------------------
@@ -247,7 +247,6 @@ export class StructurePass {
     this.ghostInstanceBuf = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.ghostInstanceBuf);
     gl.bufferData(gl.ARRAY_BUFFER, BYTES_PER_INSTANCE, gl.DYNAMIC_DRAW);
-
     // --- VAO ---
     this.vao = gl.createVertexArray()!;
     gl.bindVertexArray(this.vao);
@@ -269,9 +268,9 @@ export class StructurePass {
     gl.vertexAttribPointer(1, 4, gl.FLOAT, false, BYTES_PER_INSTANCE, 0);
     gl.vertexAttribDivisor(1, 1);
 
-    // Attribute 2: per-instance vec2 (atlasIdx, markedForDeletion)
+    // Attribute 2: per-instance vec3 (atlasIdx, markedForDeletion, developmentBand)
     gl.enableVertexAttribArray(2);
-    gl.vertexAttribPointer(2, 2, gl.FLOAT, false, BYTES_PER_INSTANCE, 16);
+    gl.vertexAttribPointer(2, 3, gl.FLOAT, false, BYTES_PER_INSTANCE, 16);
     gl.vertexAttribDivisor(2, 1);
 
     gl.bindVertexArray(null);
@@ -324,6 +323,10 @@ export class StructurePass {
       this.instanceBuf.float32[off + 4] = atlasIdx;
       this.instanceBuf.float32[off + 5] =
         unit.markedForDeletion !== false ? 1 : 0;
+      this.instanceBuf.float32[off + 6] =
+        atlasIdx === 0
+          ? Math.min(4, Math.floor(Math.max(0, unit.level - 1) / 2))
+          : 0;
 
       count++;
     }
@@ -442,7 +445,7 @@ export class StructurePass {
       // Temporarily rebind instance attrs to ghost buffer
       gl.bindBuffer(gl.ARRAY_BUFFER, this.ghostInstanceBuf);
       gl.vertexAttribPointer(1, 4, gl.FLOAT, false, BYTES_PER_INSTANCE, 0);
-      gl.vertexAttribPointer(2, 2, gl.FLOAT, false, BYTES_PER_INSTANCE, 16);
+      gl.vertexAttribPointer(2, 3, gl.FLOAT, false, BYTES_PER_INSTANCE, 16);
 
       // -- Green highlight on existing structure being upgraded --
       if (g.canUpgrade && g.upgradeTargetTile !== null) {
@@ -454,6 +457,7 @@ export class StructurePass {
         this.ghostBuf[3] = 0;
         this.ghostBuf[4] = atlasIdx;
         this.ghostBuf[5] = 0;
+        this.ghostBuf[6] = 0;
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.ghostBuf);
 
         gl.uniform1f(this.uGhostAlpha, 0.6);
@@ -468,6 +472,7 @@ export class StructurePass {
       this.ghostBuf[3] = 0;
       this.ghostBuf[4] = atlasIdx;
       this.ghostBuf[5] = 0;
+      this.ghostBuf[6] = 0;
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.ghostBuf);
 
       gl.uniform1f(this.uGhostAlpha, 0.5);
@@ -483,7 +488,7 @@ export class StructurePass {
       // Restore instance attrs to main buffer
       gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuf.buffer);
       gl.vertexAttribPointer(1, 4, gl.FLOAT, false, BYTES_PER_INSTANCE, 0);
-      gl.vertexAttribPointer(2, 2, gl.FLOAT, false, BYTES_PER_INSTANCE, 16);
+      gl.vertexAttribPointer(2, 3, gl.FLOAT, false, BYTES_PER_INSTANCE, 16);
     }
   }
 

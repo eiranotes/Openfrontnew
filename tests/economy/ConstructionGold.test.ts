@@ -37,39 +37,38 @@ describe("Construction economy", () => {
     other.conquer(game.ref(10, 10));
   });
 
-  test("City charges gold once and no refund thereafter (allow passive income)", () => {
+  test("City charges gold once, then starts producing gold after completion", () => {
     const target = game.ref(0, 10);
     const cost = game.unitInfo(UnitType.City).cost(game, player);
+    expect(cost).toBe(120_000n);
     player.addGold(cost);
-    expect(player.gold()).toBe(cost);
 
-    const startTick = game.ticks();
     game.addExecution(new ConstructionExecution(player, UnitType.City, target));
 
-    // First tick usually initializes the execution, second tick performs build and deduction
+    // Initialisation and construction deduct the price exactly once. An
+    // unfinished city must not contribute to the city economy.
     game.executeNextTick();
     game.executeNextTick();
     const afterBuild = player.gold();
-    const ticksAfterBuild = BigInt(game.ticks() - startTick);
-    const passivePerTick = 100n; // DefaultConfig goldAdditionRate for humans
-    expect(afterBuild < cost).toBe(true); // cost was deducted
-    expect(afterBuild <= ticksAfterBuild * passivePerTick).toBe(true); // only passive income allowed
+    expect(afterBuild < cost).toBe(true);
+    expect(game.config().goldIncomeBreakdown(player).cityGoldPerTick).toBe(0);
 
-    // Advance through construction duration
     const duration = game.unitInfo(UnitType.City).constructionDuration ?? 0;
     for (let i = 0; i <= duration + 2; i++) game.executeNextTick();
 
-    const finalGold = player.gold();
-    const ticksElapsed = BigInt(game.ticks() - startTick);
-    // Ensure no refund equal to cost snuck back in; only passive income accumulated
-    expect(finalGold < cost).toBe(true);
-    expect(finalGold <= ticksElapsed * passivePerTick).toBe(true);
+    const city = player.units(UnitType.City)[0];
+    expect(city).toBeDefined();
+    expect(city.isUnderConstruction()).toBe(false);
 
-    // Structure exists and is active
-    expect(player.units(UnitType.City)).toHaveLength(1);
-    expect(
-      (player.units(UnitType.City)[0] as any).isUnderConstruction?.() ?? false,
-    ).toBe(false);
+    const income = game.config().goldIncomeBreakdown(player);
+    expect(income.baseGoldPerTick).toBe(100);
+    expect(income.cityBaseGoldPerTick).toBe(40);
+    expect(income.cityGoldPerTick).toBeGreaterThan(0);
+    expect(income.totalGoldPerTick).toBeGreaterThan(100);
+
+    // The build was not refunded; only passive base and city income accumulated.
+    expect(player.gold()).toBeGreaterThan(afterBuild);
+    expect(player.gold()).toBeLessThan(cost);
   });
 
   test("MIRV gets more expensive with each launch", () => {

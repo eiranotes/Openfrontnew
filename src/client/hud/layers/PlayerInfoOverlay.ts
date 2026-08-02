@@ -9,6 +9,12 @@ import {
   Unit,
   UnitType,
 } from "../../../core/game/Game";
+import {
+  cityBaseGoldPerTick,
+  cityUpgradePreview,
+  fortressEconomyProfile,
+  militaryProfile,
+} from "../../../core/game/FortressBalance";
 import { TileRef } from "../../../core/game/GameMap";
 import { AllianceView } from "../../../core/game/GameUpdates";
 import { Controller } from "../../Controller";
@@ -135,6 +141,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     this.setVisible(false);
     this.unit = null;
     this.player = null;
+    this.playerProfile = null;
   }
 
   public maybeShow(x: number, y: number) {
@@ -151,8 +158,12 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
 
     if (owner && owner.isPlayer()) {
       this.player = owner as PlayerView;
-      this.player.profile().then((p) => {
-        this.playerProfile = p;
+      this.unit =
+        this.game
+          .units(UnitType.City)
+          .find((candidate) => candidate.tile() === tile) ?? null;
+      this.player.profile().then((profile) => {
+        if (this.player === owner) this.playerProfile = profile;
       });
       this.setVisible(true);
     } else if (!this.game.isLand(tile)) {
@@ -212,7 +223,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
   private displayUnitCount(player: PlayerView, type: UnitType, icon: string) {
     return !this.game.config().isUnitDisabled(type)
       ? html`<div
-          class="flex items-center justify-center gap-0.5 lg:gap-1 p-0.5 lg:p-1 border rounded-md border-gray-500 text-[10px] lg:text-xs w-9 lg:w-12 h-6 lg:h-7"
+          class="flex items-center justify-center gap-0.5 lg:gap-1 p-0.5 lg:p-1 border rounded-[3px] border-white/15 bg-[#0d1116] text-[10px] lg:text-xs w-9 lg:w-12 h-6 lg:h-7"
           translate="no"
         >
           <img
@@ -259,6 +270,133 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     </span>`;
   }
 
+  private relativeAssessment(ownPower: number, enemyPower: number): string {
+    const ratio = ownPower / Math.max(1, enemyPower);
+    if (ratio >= 1.55) return "크게 우세";
+    if (ratio >= 1.12) return "우세";
+    if (ratio >= 0.88) return "비등";
+    if (ratio >= 0.64) return "불리";
+    return "크게 불리";
+  }
+
+  private assessmentTone(assessment: string): string {
+    if (assessment === "크게 우세") return "text-emerald-200";
+    if (assessment === "우세") return "text-sky-200";
+    if (assessment === "비등") return "text-white/70";
+    if (assessment === "불리") return "text-amber-200";
+    return "text-red-200";
+  }
+
+  private renderMilitaryComparison(player: PlayerView): TemplateResult {
+    const profile = militaryProfile(player);
+    const myPlayer = this.game.myPlayer();
+    const myProfile = myPlayer ? militaryProfile(myPlayer) : null;
+    const assessment =
+      myPlayer && myPlayer !== player && myProfile
+        ? this.relativeAssessment(
+            myProfile.totalManpower * myProfile.quality,
+            profile.totalManpower * profile.quality,
+          )
+        : null;
+
+    return html`<div
+      class="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-white/10 pt-2"
+    >
+      <div class="min-w-0">
+        <div class="flex items-baseline gap-2">
+          <span
+            class="flex min-w-6 items-center justify-center rounded-[3px] border border-malibu-blue/45 bg-malibu-blue/10 px-1 text-[10px] font-bold text-sky-200"
+            aria-hidden="true"
+            >${profile.glyph}</span
+          >
+          <strong class="truncate text-xs font-semibold text-white"
+            >${profile.label}</strong
+          >
+          <span class="text-xs font-semibold text-sky-200 tabular-nums"
+            >×${profile.quality.toFixed(2)}</span
+          >
+          <span class="text-[10px] text-white/35 tabular-nums"
+            >/ ×${profile.maxQuality.toFixed(2)}</span
+          >
+        </div>
+        <div class="mt-1 text-[10px] text-white/45 tabular-nums">
+          훈련 ${renderTroops(profile.trainedManpower)} /
+          ${renderTroops(profile.trainingCapacity)} · ${profile.coverageStatus}
+        </div>
+      </div>
+      ${assessment
+        ? html`<div class="text-right">
+            <div class="text-[10px] text-white/35">상대 전투력</div>
+            <div
+              class="mt-0.5 text-xs font-semibold ${this.assessmentTone(
+                assessment,
+              )}"
+            >
+              ${assessment}
+            </div>
+          </div>`
+        : html``}
+    </div>`;
+  }
+
+  private renderSelectedCityInfo(player: PlayerView): TemplateResult | string {
+    const city =
+      this.unit?.type() === UnitType.City && this.unit.owner() === player
+        ? this.unit
+        : null;
+    if (!city) return "";
+
+    const economy = fortressEconomyProfile(player);
+    const preview = cityUpgradePreview(player, city.level());
+    const cityAppliedPerSecond =
+      cityBaseGoldPerTick(city.level()) *
+      economy.administrativeEfficiency *
+      10;
+    const tierResult = preview.unlocksTier
+      ? `${preview.currentTier.label} → ${preview.nextTier.label}`
+      : preview.followingTier
+        ? `${preview.nextTier.label} 유지 · ${preview.followingTier.label}까지 ${preview.levelsToFollowingTier}레벨`
+        : `${preview.nextTier.label} · 최고 등급`;
+
+    return html`<section
+      class="mt-2 border-t border-white/10 pt-2 text-[11px]"
+      aria-label="선택한 도시 발전 정보"
+    >
+      <div class="flex items-center justify-between gap-3">
+        <strong class="text-xs text-white">도시 Lv${city.level()}</strong>
+        <span class="text-yellow-200 tabular-nums"
+          >+${renderNumber(Math.floor(cityAppliedPerSecond))}/s</span
+        >
+      </div>
+      <div class="mt-1 grid grid-cols-2 gap-x-4 gap-y-1 text-white/50 tabular-nums">
+        <span>기본 생산</span>
+        <span class="text-right text-white/75"
+          >${renderNumber(preview.currentCityBaseGoldPerSecond)}/s</span
+        >
+        <span>행정 효율 적용</span>
+        <span class="text-right text-white/75"
+          >${Math.round(economy.administrativeEfficiency * 100)}%</span
+        >
+        <span>다음 레벨 비용</span>
+        <span class="text-right text-yellow-200"
+          >${renderNumber(preview.cost)}</span
+        >
+        <span>다음 도시 생산</span>
+        <span class="text-right text-sky-200"
+          >${renderNumber(preview.nextCityBaseGoldPerSecond)}/s</span
+        >
+        <span>최대 병력</span>
+        <span class="text-right text-white/75"
+          >${renderTroops(preview.currentMaxTroopsFromCities)} →
+          ${renderTroops(preview.nextMaxTroopsFromCities)}</span
+        >
+      </div>
+      <div class="mt-2 border-l-2 border-malibu-blue/60 pl-2 text-white/60">
+        ${tierResult}
+      </div>
+    </section>`;
+  }
+
   private renderPlayerInfo(player: PlayerView) {
     const myPlayer = this.game.myPlayer();
     const isFriendly = myPlayer?.isFriendly(player);
@@ -299,12 +437,12 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     const playerTeam = getTranslatedPlayerTeamLabel(player.team());
 
     return html`
-      <div class="flex items-start gap-1 lg:gap-2 p-1 lg:p-1.5">
+      <div class="flex flex-col gap-2 p-2 sm:flex-row sm:items-start sm:gap-3">
         <!-- Left: Gold & Troop bar -->
-        <div class="flex flex-col gap-1 shrink-0 w-28 md:w-36">
+        <div class="flex w-full shrink-0 flex-col gap-1 sm:w-36">
           <div class="flex items-center gap-1">
             <div
-              class="flex items-center justify-center px-1 py-0.5 border rounded-md border-yellow-400 font-bold text-yellow-400 text-sm lg:gap-1"
+              class="flex items-center justify-center px-1 py-0.5 border rounded-[3px] border-yellow-400/50 bg-yellow-300/5 font-semibold text-yellow-200 text-sm lg:gap-1"
               translate="no"
             >
               <img src=${goldCoinIcon} width="13" height="13" />
@@ -332,12 +470,12 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
               >
             </div>
           </div>
-          <div class="w-28 md:w-36" translate="no">
+          <div class="w-full" translate="no">
             ${this.renderTroopBar(totalTroops, attackingTroops, maxTroops)}
           </div>
         </div>
         <!-- Right: Player identity + Units below -->
-        <div class="flex flex-col justify-between self-stretch">
+        <div class="flex min-w-0 flex-1 flex-col justify-between self-stretch">
           <div
             class="flex items-center gap-2 font-bold text-sm lg:text-lg ${this.getPlayerNameColor(
               isFriendly ?? false,
@@ -387,6 +525,8 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
             )}
             ${this.displayUnitCount(player, UnitType.Warship, warshipIcon)}
           </div>
+          ${this.renderMilitaryComparison(player)}
+          ${this.renderSelectedCityInfo(player)}
         </div>
       </div>
     `;
@@ -409,7 +549,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
 
     return html`
       <div
-        class="w-full h-5 lg:h-6 border border-gray-600 rounded-md bg-gray-900/60 overflow-hidden relative"
+        class="w-full h-5 lg:h-6 border border-white/15 rounded-[3px] bg-[#080b0f] overflow-hidden relative"
       >
         <div class="relative h-full">
           <div
@@ -490,7 +630,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
       >
         <div
-          class="bg-gray-800/92 backdrop-blur-sm shadow-xs min-[1200px]:rounded-lg sm:rounded-b-lg shadow-lg text-white text-lg lg:text-base w-full sm:w-[500px] overflow-hidden ${containerClasses}"
+          class="border-b border-white/12 bg-[#11171e]/96 text-white text-lg lg:text-base w-full sm:w-[min(94vw,620px)] sm:rounded-b-[6px] sm:border-x overflow-hidden shadow-[0_10px_28px_rgba(0,0,0,0.32)] ${containerClasses}"
         >
           ${this.player !== null ? this.renderPlayerInfo(this.player) : ""}
           ${this.unit !== null ? this.renderUnitInfo(this.unit) : ""}

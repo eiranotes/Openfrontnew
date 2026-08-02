@@ -24,19 +24,19 @@ describe("DefaultConfig.conquerGoldAmount", () => {
     game = await setup("ocean_and_land");
   });
 
-  test("returns full gold for Bot", () => {
+  test("returns 40% gold for Bot", () => {
     const bot = addPlayerWithGold(game, "bot", PlayerType.Bot, 1000n);
-    expect(game.config().conquerGoldAmount(bot)).toBe(1000n);
+    expect(game.config().conquerGoldAmount(bot)).toBe(400n);
   });
 
-  test("returns full gold for Nation", () => {
+  test("returns 40% gold for Nation", () => {
     const nation = addPlayerWithGold(game, "nation", PlayerType.Nation, 2000n);
-    expect(game.config().conquerGoldAmount(nation)).toBe(2000n);
+    expect(game.config().conquerGoldAmount(nation)).toBe(800n);
   });
 
-  test("returns half gold for Human", () => {
+  test("returns 25% gold for Human", () => {
     const human = addPlayerWithGold(game, "human", PlayerType.Human, 1000n);
-    expect(game.config().conquerGoldAmount(human)).toBe(500n);
+    expect(game.config().conquerGoldAmount(human)).toBe(250n);
   });
 });
 
@@ -59,23 +59,23 @@ describe("Conquest gold transfer", () => {
     conqueror = game.player(conquerorInfo.id);
   });
 
-  test("conqueror receives 100% of gold when conquering a Bot", () => {
+  test("conqueror receives 40% of gold when conquering a Bot", () => {
     const bot = addPlayerWithGold(game, "bot", PlayerType.Bot, 1000n);
     const goldBefore = conqueror.gold();
     game.conquerPlayer(conqueror, bot);
-    expect(conqueror.gold()).toBe(goldBefore + 1000n);
+    expect(conqueror.gold()).toBe(goldBefore + 400n);
     expect(bot.gold()).toBe(0n);
   });
 
-  test("conqueror receives 100% of gold when conquering a Nation", () => {
+  test("conqueror receives 40% of gold when conquering a Nation", () => {
     const nation = addPlayerWithGold(game, "nation", PlayerType.Nation, 800n);
     const goldBefore = conqueror.gold();
     game.conquerPlayer(conqueror, nation);
-    expect(conqueror.gold()).toBe(goldBefore + 800n);
+    expect(conqueror.gold()).toBe(goldBefore + 320n);
     expect(nation.gold()).toBe(0n);
   });
 
-  test("conqueror receives 50% of gold when conquering a Human who has attacked", () => {
+  test("conqueror receives 25% of gold when conquering a Human who has attacked", () => {
     // clientID must be non-null for stats tracking to work
     game.addPlayer(
       new PlayerInfo("victim", PlayerType.Human, "victim_client", "victim"),
@@ -86,7 +86,7 @@ describe("Conquest gold transfer", () => {
     game.stats().attack(victim, game.terraNullius(), 100);
     const goldBefore = conqueror.gold();
     game.conquerPlayer(conqueror, victim);
-    expect(conqueror.gold()).toBe(goldBefore + 500n);
+    expect(conqueror.gold()).toBe(goldBefore + 250n);
     expect(victim.gold()).toBe(0n);
   });
 

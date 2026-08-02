@@ -24,10 +24,11 @@ export class OButton extends LitElement {
   }
 
   private readonly BASE =
-    "font-bold uppercase tracking-wider rounded-xl border border-transparent " +
-    "transition-all duration-300 transform hover:-translate-y-px " +
-    "outline-none text-center whitespace-normal break-words leading-tight overflow-hidden relative " +
-    "disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:opacity-70";
+    "fortress-control font-semibold rounded border border-transparent " +
+    "transition-[color,background-color,border-color,opacity,transform] duration-150 " +
+    "active:translate-y-px outline-none focus-visible:ring-2 focus-visible:ring-aquarius/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d1116] " +
+    "text-center whitespace-normal break-words leading-tight overflow-hidden relative " +
+    "disabled:cursor-not-allowed disabled:active:translate-y-0 disabled:opacity-55";
 
   private variantClasses(): string {
     switch (this.variant) {
@@ -63,9 +64,9 @@ export class OButton extends LitElement {
       case "sm":
         return "py-1.5 px-3 text-sm";
       case "md":
-        return "py-3 px-4 text-base lg:text-lg";
+        return "min-h-10 py-2 px-4 text-sm lg:text-base";
       case "lg":
-        return "py-4 px-6 text-lg lg:text-xl";
+        return "min-h-11 py-2.5 px-5 text-base lg:text-lg";
     }
   }
 

@@ -1,6 +1,6 @@
 import { html, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { translateText } from "../client/Utils";
+import { getMapName, translateText } from "../client/Utils";
 import { UserMeResponse } from "../core/ApiSchemas";
 import { assetUrl } from "../core/AssetUrls";
 import { DoomsdayClockSpeed } from "../core/game/DoomsdayClock";
@@ -20,6 +20,7 @@ import "./components/baseComponents/Button";
 import "./components/baseComponents/Modal";
 import { BaseModal } from "./components/BaseModal";
 import "./components/GameConfigSettings";
+import type { GameConfigMobileSection } from "./components/GameConfigSettings";
 import { MEDAL_ORDER, medalIcon } from "./components/map/Medals";
 import "./components/ToggleInputCard";
 import { modalHeader } from "./components/ui/ModalHeader";
@@ -113,6 +114,10 @@ async function loadAchievementEligibleMaps(): Promise<Set<GameMapType> | null> {
 export class SinglePlayerModal extends BaseModal {
   protected routerName = "single-player";
 
+  protected modalConfig() {
+    return { maxWidth: "1180px", hideHeader: true, hideCloseButton: true };
+  }
+
   @state() private selectedMap: GameMapType = DEFAULT_OPTIONS.selectedMap;
   @state() private selectedDifficulty: Difficulty =
     DEFAULT_OPTIONS.selectedDifficulty;
@@ -153,6 +158,7 @@ export class SinglePlayerModal extends BaseModal {
   @state() private doomsdayClock: boolean = DEFAULT_OPTIONS.doomsdayClock;
   @state() private doomsdayClockSpeed: DoomsdayClockSpeed =
     DEFAULT_OPTIONS.doomsdayClockSpeed;
+  @state() private mobileSection: GameConfigMobileSection = "map";
 
   private mapLoader = terrainMapFileLoader;
 
@@ -261,19 +267,20 @@ export class SinglePlayerModal extends BaseModal {
       ariaLabel: translateText("common.back"),
       rightContent: hasLinkedAccount(this.userMeResponse)
         ? html`<button
+              type="button"
               @click=${this.toggleAchievements}
-              class="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all shrink-0 ${this
+              aria-pressed=${this.showAchievements}
+              class="fortress-control min-h-10 flex items-center gap-2 rounded-[4px] border px-3 text-xs font-semibold transition-[color,background-color,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-malibu-blue/30 ${this
                 .showAchievements
-                ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
-                : "text-white/60"}"
+                ? "border-yellow-400/50 bg-yellow-400/10 text-yellow-300"
+                : "border-white/10 bg-[#11171e] text-white/65 hover:border-white/25 hover:text-white"}"
             >
               <img
                 src=${assetUrl("images/MedalIconWhite.svg")}
-                class="w-4 h-4 opacity-80 shrink-0"
-                style="${this.showAchievements ? "" : "filter: grayscale(1);"}"
+                class="h-4 w-4 opacity-80"
+                alt=""
               />
-              <span
-                class="text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+              <span class="hidden sm:inline"
                 >${translateText("single_modal.toggle_achievements")}</span
               >
             </button>
@@ -288,23 +295,17 @@ export class SinglePlayerModal extends BaseModal {
   private renderMedalOverview(): TemplateResult {
     const counts = this.medalCounts();
     const total = this.eligibleMaps?.size ?? null;
-    return html`<div class="basis-full w-full">
+    return html`<div class="basis-full w-full pt-2">
       <div
-        class="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 rounded-xl border border-yellow-500/20 bg-yellow-500/5"
+        class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/10 pt-2 text-xs"
       >
-        <span
-          class="text-[11px] font-bold uppercase tracking-wider text-yellow-400/80 shrink-0"
+        <span class="font-semibold text-yellow-300/80"
+          >${translateText("single_modal.medals_earned")}</span
         >
-          ${translateText("single_modal.medals_earned")}
-        </span>
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-          ${MEDAL_ORDER.map((difficulty) =>
-            this.renderMedalStat(difficulty, counts[difficulty]),
-          )}
-        </div>
-        <span
-          class="ml-auto text-[11px] font-semibold uppercase tracking-wider text-white/40 shrink-0"
-        >
+        ${MEDAL_ORDER.map((difficulty) =>
+          this.renderMedalStat(difficulty, counts[difficulty]),
+        )}
+        <span class="ml-auto text-white/40">
           ${translateText("single_modal.medals_of_maps", {
             total: total ?? "…",
           })}
@@ -326,6 +327,53 @@ export class SinglePlayerModal extends BaseModal {
         >${translateText(`difficulty.${difficulty.toLowerCase()}`)}</span
       >
       <span class="text-sm font-bold text-white tabular-nums">${count}</span>
+    </div>`;
+  }
+
+  private advancedOptionsChangedCount(): number {
+    return [
+      this.infiniteGold,
+      this.infiniteTroops,
+      this.compactMap,
+      this.maxTimer,
+      this.instantBuild,
+      this.randomSpawn,
+      this.goldMultiplier,
+      this.startingGold,
+      this.customAlliances,
+      this.waterNukes,
+      this.doomsdayClock,
+    ].filter(Boolean).length + this.disabledUnits.length;
+  }
+
+  private selectedMapLabel(): string {
+    return getMapName(this.selectedMap) ?? String(this.selectedMap);
+  }
+
+  private renderMobileSectionTabs(): TemplateResult {
+    const sections: Array<[GameConfigMobileSection, string]> = [
+      ["map", translateText("map.map")],
+      ["match", translateText("host_modal.settings") || "Match"],
+      ["rules", translateText("single_modal.options_title") || "Rules"],
+    ];
+    return html`<div
+      class="grid grid-cols-3 gap-1 border-b border-white/10 bg-[#0d1116] p-2 lg:hidden"
+      role="tablist"
+    >
+      ${sections.map(
+        ([key, label]) => html`<button
+          type="button"
+          role="tab"
+          aria-selected=${this.mobileSection === key}
+          @click=${() => (this.mobileSection = key)}
+          class="fortress-control min-h-11 rounded-[4px] border px-2 text-sm font-medium transition-[color,background-color,border-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-malibu-blue/30 ${this
+            .mobileSection === key
+            ? "border-malibu-blue bg-[#173044] text-white"
+            : "border-white/10 bg-[#11171e] text-white/60"}"
+        >
+          ${label}
+        </button>`,
+      )}
     </div>`;
   }
 
@@ -355,9 +403,7 @@ export class SinglePlayerModal extends BaseModal {
         .inputStep=${"any"}
         .inputValue=${this.goldMultiplierValue}
         .inputAriaLabel=${translateText("single_modal.gold_multiplier")}
-        .inputPlaceholder=${translateText(
-          "single_modal.gold_multiplier_placeholder",
-        )}
+        .inputPlaceholder=${translateText("single_modal.gold_multiplier_placeholder")}
         .defaultInputValue=${2}
         .minValidOnEnable=${0.1}
         .onToggle=${this.handleGoldMultiplierToggle}
@@ -373,9 +419,7 @@ export class SinglePlayerModal extends BaseModal {
         .inputStep=${"any"}
         .inputValue=${this.startingGoldValue}
         .inputAriaLabel=${translateText("single_modal.starting_gold")}
-        .inputPlaceholder=${translateText(
-          "single_modal.starting_gold_placeholder",
-        )}
+        .inputPlaceholder=${translateText("single_modal.starting_gold_placeholder")}
         .defaultInputValue=${5}
         .minValidOnEnable=${0.1}
         .onToggle=${this.handleStartingGoldToggle}
@@ -401,13 +445,15 @@ export class SinglePlayerModal extends BaseModal {
     ];
 
     return html`
-      <div class="flex flex-col h-full">
+      <div class="flex h-full min-h-0 flex-col bg-[#0d1116]">
+        ${this.renderMobileSectionTabs()}
         <div
-          class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 pt-4 pb-6 mr-1 mx-auto w-full max-w-5xl"
+          class="custom-scrollbar min-h-0 flex-1 overflow-y-auto px-2 py-3 sm:px-4 lg:px-5"
         >
           <game-config-settings
-            class="block"
-            .sectionGapClass=${"space-y-6"}
+            class="mx-auto block w-full max-w-[1180px]"
+            .sectionGapClass=${"space-y-4"}
+            .mobileSection=${this.mobileSection}
             .settings=${{
               map: {
                 selected: this.selectedMap,
@@ -419,14 +465,11 @@ export class SinglePlayerModal extends BaseModal {
                 selected: this.selectedDifficulty,
                 disabled: this.nations === 0,
               },
-              gameMode: {
-                selected: this.gameMode,
-              },
-              teamCount: {
-                selected: this.teamCount,
-              },
+              gameMode: { selected: this.gameMode },
+              teamCount: { selected: this.teamCount },
               options: {
                 titleKey: "single_modal.options_title",
+                changedCount: this.advancedOptionsChangedCount(),
                 bots: {
                   value: this.bots,
                   labelKey: "single_modal.bots",
@@ -439,30 +482,12 @@ export class SinglePlayerModal extends BaseModal {
                   disabledKey: "single_modal.nations_disabled",
                 },
                 toggles: [
-                  {
-                    labelKey: "single_modal.instant_build",
-                    checked: this.instantBuild,
-                  },
-                  {
-                    labelKey: "single_modal.random_spawn",
-                    checked: this.randomSpawn,
-                  },
-                  {
-                    labelKey: "single_modal.infinite_gold",
-                    checked: this.infiniteGold,
-                  },
-                  {
-                    labelKey: "single_modal.infinite_troops",
-                    checked: this.infiniteTroops,
-                  },
-                  {
-                    labelKey: "single_modal.compact_map",
-                    checked: this.compactMap,
-                  },
-                  {
-                    labelKey: "single_modal.water_nukes",
-                    checked: this.waterNukes,
-                  },
+                  { labelKey: "single_modal.instant_build", checked: this.instantBuild },
+                  { labelKey: "single_modal.random_spawn", checked: this.randomSpawn },
+                  { labelKey: "single_modal.infinite_gold", checked: this.infiniteGold },
+                  { labelKey: "single_modal.infinite_troops", checked: this.infiniteTroops },
+                  { labelKey: "single_modal.compact_map", checked: this.compactMap },
+                  { labelKey: "single_modal.water_nukes", checked: this.waterNukes },
                   {
                     labelKey: "single_modal.doomsday_clock",
                     checked: this.doomsdayClock,
@@ -479,8 +504,7 @@ export class SinglePlayerModal extends BaseModal {
             @map-selected=${this.handleConfigMapSelected}
             @random-map-selected=${this.handleConfigRandomMapSelected}
             @difficulty-selected=${this.handleConfigDifficultySelected}
-            @doomsday-clock-speed-selected=${this
-              .handleConfigDoomsdayClockSpeedSelected}
+            @doomsday-clock-speed-selected=${this.handleConfigDoomsdayClockSpeedSelected}
             @game-mode-selected=${this.handleConfigGameModeSelected}
             @team-count-selected=${this.handleConfigTeamCountSelected}
             @bots-changed=${this.handleBotsChange}
@@ -490,23 +514,51 @@ export class SinglePlayerModal extends BaseModal {
           ></game-config-settings>
         </div>
 
-        <!-- Footer Action -->
-        <div class="p-6 border-t border-white/10 bg-black/20 shrink-0">
-          ${hasLinkedAccount(this.userMeResponse) && this.hasOptionsChanged()
-            ? html`<div
-                class="mb-4 px-4 py-3 rounded-xl bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 text-xs font-bold uppercase tracking-wider text-center"
+        <footer
+          class="shrink-0 border-t border-white/10 bg-[#11171e] px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5"
+        >
+          <div
+            class="mx-auto flex max-w-[1180px] flex-col gap-3 sm:flex-row sm:items-center"
+          >
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-sm font-semibold text-white">
+                ${this.selectedMapLabel()} · ${this.selectedDifficulty} ·
+                ${this.bots} bots
+              </div>
+              <div class="mt-0.5 text-xs text-white/50">
+                ${this.compactMap ? "Compact" : "Normal"} ·
+                ${this.gameMode === GameMode.Team
+                  ? `Team ${this.teamCount}`
+                  : "FFA"}
+                ${this.advancedOptionsChangedCount() > 0
+                  ? ` · ${this.advancedOptionsChangedCount()} rules changed`
+                  : ""}
+              </div>
+              ${hasLinkedAccount(this.userMeResponse) && this.hasOptionsChanged()
+                ? html`<div class="mt-1 text-xs text-yellow-300/80">
+                    ${translateText("single_modal.options_changed_no_achievements")}
+                  </div>`
+                : null}
+            </div>
+            <div class="grid grid-cols-[auto_1fr] gap-2 sm:flex sm:w-[340px]">
+              <button
+                type="button"
+                class="fortress-control min-h-11 rounded-[4px] border border-white/15 bg-[#0d1116] px-4 text-sm font-medium text-white/70 hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-malibu-blue/30"
+                @click=${this.resetOptions}
               >
-                ${translateText("single_modal.options_changed_no_achievements")}
-              </div>`
-            : null}
-          <o-button
-            variant="primary"
-            width="block"
-            size="lg"
-            translationKey="single_modal.start"
-            @click=${this.startGame}
-          ></o-button>
-        </div>
+                Reset
+              </button>
+              <o-button
+                class="min-w-0 flex-1"
+                variant="primary"
+                width="block"
+                size="lg"
+                translationKey="single_modal.start"
+                @click=${this.startGame}
+              ></o-button>
+            </div>
+          </div>
+        </footer>
       </div>
     `;
   }
@@ -536,8 +588,7 @@ export class SinglePlayerModal extends BaseModal {
     );
   }
 
-  protected onClose(): void {
-    // Reset all transient form state to ensure clean slate
+  private resetOptions = () => {
     this.selectedMap = DEFAULT_OPTIONS.selectedMap;
     this.selectedDifficulty = DEFAULT_OPTIONS.selectedDifficulty;
     this.gameMode = DEFAULT_OPTIONS.gameMode;
@@ -563,6 +614,12 @@ export class SinglePlayerModal extends BaseModal {
     this.waterNukes = DEFAULT_OPTIONS.waterNukes;
     this.doomsdayClock = DEFAULT_OPTIONS.doomsdayClock;
     this.doomsdayClockSpeed = DEFAULT_OPTIONS.doomsdayClockSpeed;
+    this.mobileSection = "map";
+    void this.loadNationCount();
+  };
+
+  protected onClose(): void {
+    this.resetOptions();
   }
 
   protected onOpen(): void {

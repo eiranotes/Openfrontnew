@@ -35,6 +35,7 @@ flat in float vMarkedForDeletion;
 flat in float vZoom;
 flat in float vAtlasIdx;
 flat in float vShapeScale;
+flat in float vDevelopmentBand;
 
 out vec4 fragColor;
 
@@ -188,6 +189,25 @@ void main() {
   }
 
   vec4 bgColor = mix(borderColor, fillColor, borderMask);
+
+  // City development is visible directly on the map. The five military
+  // development bands match Lv1-2, Lv3-4, Lv5-6, Lv7-8 and Lv9+.
+  // Higher bands enlarge the city in the vertex shader and add one or two
+  // restrained civic rings here, so opponents can read development without
+  // opening a panel or relying on a detailed illustration.
+  if (vAtlasIdx < 0.5 && vDevelopmentBand > 0.5 && vUnderConstruction < 0.5) {
+    float ringWidth = 0.012 + 0.0025 * vDevelopmentBand;
+    float ringOneDistance = abs(dist - (radius - 0.105));
+    float ringOne = 1.0 - smoothstep(ringWidth, ringWidth + fw, ringOneDistance);
+    float ringTwoDistance = abs(dist - (radius - 0.175));
+    float ringTwo =
+      step(2.5, vDevelopmentBand) *
+      (1.0 - smoothstep(ringWidth, ringWidth + fw, ringTwoDistance));
+    float developmentRing = clamp(ringOne + ringTwo, 0.0, 1.0) * borderMask;
+    vec3 ringColor = mix(uIconColor, vec3(1.0), 0.35);
+    bgColor.rgb = mix(bgColor.rgb, ringColor, developmentRing * 0.72);
+    bgColor.rgb *= 1.0 + min(vDevelopmentBand, 4.0) * 0.025;
+  }
 
   // Sample icon from atlas (white on transparent)
   // Only show icon detail when zoomed in enough

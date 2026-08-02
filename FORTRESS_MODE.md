@@ -14,13 +14,22 @@ delete a small country outright.
 | 7–8 | Elite | 1.70x |
 | 9+ | Guard | 2.00x |
 
-Each completed city level trains 200,000 troops. If total manpower exceeds the
+Each completed city level trains 300,000 troops. If total manpower exceeds the
 training capacity, quality is blended back toward 1.00x. Total manpower includes
 home troops, active field armies, and troops embarked on transports.
 
 Quality modifies casualty exchange through the square root of the quality ratio,
 with safety caps. It also changes conquest speed only slightly. Opposing field
 armies cancel by effective power rather than raw headcount.
+
+## Internal development economy
+
+- Cities generate `10 × (min(level, 9) + 1)²` gold per tick.
+- Administrative capacity is 6,000 tiles per completed city level.
+- City income is multiplied by `clamp(sqrt(capacity / territory), 0.40, 1.20)`.
+- City costs follow `min(1.2M, 100K + 20K × next total city level²)`.
+- Concentrated high-level cities outperform equivalent level-one city spam.
+- Bot and nation conquest transfers 40% of stored gold; human transfer remains 25%.
 
 ## Anti-snowball rules
 

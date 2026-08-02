@@ -11,12 +11,10 @@ import { setup } from "../util/Setup";
 // Regression test: the ghost/build-menu price of a structure must not double-count
 // a player's first structure while it is still under construction.
 //
-// The cost scales as 2^(units built) * base: 1st city 125k, 2nd 250k, 3rd 500k.
-// Cost uses Math.min(unitsOwned, unitsConstructed) so CAPTURED units (owned but
-// not built) don't inflate the price. unitsConstructed used to also loop over
-// under-construction units, double-counting them and defeating that Math.min —
-// a captured city plus a first city under construction showed 500k (3rd-city
-// price) instead of 250k.
+// Fortress city prices use the next total city level:
+// min(1.2m, 100k + 20k * nextLevel^2). The 1st city is 120k and the 2nd
+// city level is 180k. Cost still uses Math.min(unitsOwned, unitsConstructed)
+// so captured cities do not inflate a player's own development curve.
 describe("Structure cost while under construction", () => {
   let game: Game;
   let player: Player;
@@ -58,9 +56,9 @@ describe("Structure cost while under construction", () => {
 
   test("first city under construction does not double-count itself", () => {
     buildFirstCityUnderConstruction();
-    // One built city (under construction) → next city is the 2nd → 250k.
+    // One constructed city level → next total city level is 2 → 180k.
     expect(player.unitsConstructed(UnitType.City)).toBe(1);
-    expect(game.unitInfo(UnitType.City).cost(game, player)).toBe(250_000n);
+    expect(game.unitInfo(UnitType.City).cost(game, player)).toBe(180_000n);
   });
 
   test("captured city does not inflate the price of a city under construction", () => {
@@ -70,9 +68,9 @@ describe("Structure cost while under construction", () => {
 
     buildFirstCityUnderConstruction();
 
-    // Player has BUILT exactly one city (still under construction). The captured
-    // city must not count toward build cost, so the next city is still 250k.
+    // Player has built exactly one city level. The captured city must not count
+    // toward the builder's price curve, so the next city level remains 180k.
     expect(player.unitsConstructed(UnitType.City)).toBe(1);
-    expect(game.unitInfo(UnitType.City).cost(game, player)).toBe(250_000n);
+    expect(game.unitInfo(UnitType.City).cost(game, player)).toBe(180_000n);
   });
 });
