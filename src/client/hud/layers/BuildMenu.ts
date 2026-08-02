@@ -26,6 +26,7 @@ import {
 import { UIState } from "../../UIState";
 import { renderNumber } from "../../Utils";
 import { GameView } from "../../view";
+
 const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
@@ -135,23 +136,13 @@ export class BuildMenu extends LitElement implements Controller {
 
   init() {
     this.eventBus.on(ShowBuildMenuEvent, (e) => {
-      if (!this.game.myPlayer()?.isAlive()) {
-        return;
-      }
-      if (!this._hidden) {
-        // Players sometimes hold control while building a unit,
-        // so if the menu is already open, ignore the event.
-        return;
-      }
+      if (!this.game.myPlayer()?.isAlive() || !this._hidden) return;
       const clickedCell = this.transformHandler.screenToWorldCoordinates(
         e.x,
         e.y,
       );
-      if (!this.game.isValidCoord(clickedCell.x, clickedCell.y)) {
-        return;
-      }
-      const tile = this.game.ref(clickedCell.x, clickedCell.y);
-      this.showMenu(tile);
+      if (!this.game.isValidCoord(clickedCell.x, clickedCell.y)) return;
+      this.showMenu(this.game.ref(clickedCell.x, clickedCell.y));
     });
     this.eventBus.on(CloseViewEvent, () => this.hideMenu());
     this.eventBus.on(ShowEmojiMenuEvent, () => this.hideMenu());
@@ -159,202 +150,328 @@ export class BuildMenu extends LitElement implements Controller {
   }
 
   tick() {
-    if (!this._hidden) {
-      this.refresh();
-    }
+    if (!this._hidden) this.refresh();
   }
 
   static styles = css`
     :host {
       display: block;
+      --build-surface: var(--ui-surface, #0e151a);
+      --build-raised: var(--ui-surface-raised, #131c22);
+      --build-hover: var(--ui-surface-hover, #1a2730);
+      --build-border: var(--ui-border, rgba(219, 234, 240, 0.13));
+      --build-border-strong: var(
+        --ui-border-strong,
+        rgba(219, 234, 240, 0.23)
+      );
+      --build-text: var(--ui-text, #f1f5f6);
+      --build-muted: var(--ui-text-muted, #8e9ca3);
+      --build-accent: var(--ui-accent, #1596b5);
+      --build-support: var(--ui-support, #c6a158);
     }
-    .build-menu {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 9999;
-      background-color: #1e1e1e;
-      padding: 15px;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      max-width: 95vw;
-      max-height: 95vh;
-      overflow-y: auto;
+
+    * {
+      box-sizing: border-box;
     }
-    .build-description {
-      font-size: 0.6rem;
+
+    button {
+      font: inherit;
+      -webkit-tap-highlight-color: transparent;
     }
-    .build-row {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      width: 100%;
-    }
-    .build-button {
-      position: relative;
-      width: 120px;
-      height: 140px;
-      border: 2px solid #444;
-      background-color: #2c2c2c;
-      color: white;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      margin: 8px;
-      padding: 10px;
-      gap: 5px;
-    }
-    .build-button:not(:disabled):hover {
-      background-color: #3a3a3a;
-      transform: scale(1.05);
-      border-color: #666;
-    }
-    .build-button:not(:disabled):active {
-      background-color: #4a4a4a;
-      transform: scale(0.95);
-    }
-    .build-button:disabled {
-      background-color: #1a1a1a;
-      border-color: #333;
-      cursor: not-allowed;
-      opacity: 0.7;
-    }
-    .build-button:disabled img {
-      opacity: 0.5;
-    }
-    .build-button:disabled .build-cost {
-      color: #ff4444;
-    }
-    .build-icon {
-      font-size: 40px;
-      margin-bottom: 5px;
-    }
-    .build-name {
-      font-size: 14px;
-      font-weight: bold;
-      margin-bottom: 5px;
-      text-align: center;
-    }
-    .build-cost {
-      font-size: 14px;
-    }
+
     .hidden {
       display: none !important;
     }
-    .build-count-chip {
-      position: absolute;
-      top: -10px;
-      right: -10px;
-      background-color: #2c2c2c;
-      color: white;
-      padding: 2px 10px;
-      border-radius: 10000px;
-      transition: all 0.3s ease;
-      font-size: 12px;
-      display: flex;
+
+    .build-menu {
+      position: fixed;
+      z-index: 9999;
+      left: 50%;
+      bottom: max(14px, env(safe-area-inset-bottom));
+      width: min(820px, calc(100vw - 32px));
+      max-height: min(48dvh, 520px);
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
+      transform: translateX(-50%);
+      border: 1px solid var(--build-border-strong);
+      border-radius: var(--ui-radius-lg, 7px);
+      background: var(--build-surface);
+      color: var(--build-text);
+      box-shadow: var(--ui-shadow-panel, 0 16px 38px rgba(0, 0, 0, 0.38));
+    }
+
+    .build-header {
+      min-height: 58px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 38px;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 10px 9px 14px;
+      border-bottom: 1px solid var(--build-border);
+      background: var(--build-raised);
+    }
+
+    .build-heading {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .build-heading strong {
+      overflow: hidden;
+      color: var(--build-text);
+      font-size: 13px;
+      font-weight: 760;
+      letter-spacing: 0.015em;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .build-heading small {
+      overflow: hidden;
+      color: var(--build-muted);
+      font-size: 10px;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .build-close {
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
       justify-content: center;
-      align-content: center;
-      border: 1px solid #444;
+      border: 1px solid transparent;
+      border-radius: var(--ui-radius-md, 5px);
+      background: transparent;
+      color: var(--build-muted);
+      cursor: pointer;
+      transition:
+        background-color 120ms ease,
+        border-color 120ms ease,
+        color 120ms ease,
+        transform 80ms ease;
     }
-    .build-button:not(:disabled):hover > .build-count-chip {
-      background-color: #3a3a3a;
-      border-color: #666;
+
+    .build-close:hover,
+    .build-close:focus-visible {
+      border-color: var(--build-border);
+      background: var(--build-hover);
+      color: var(--build-text);
     }
-    .build-button:not(:disabled):active > .build-count-chip {
-      background-color: #4a4a4a;
+
+    .build-close:active {
+      transform: translateY(1px);
     }
-    .build-button:disabled > .build-count-chip {
-      background-color: #1a1a1a;
-      border-color: #333;
+
+    .build-close:focus-visible,
+    .build-command:focus-visible {
+      outline: 2px solid var(--build-accent);
+      outline-offset: -2px;
+    }
+
+    .build-grid {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--build-border-strong) transparent;
+    }
+
+    .build-command {
+      position: relative;
+      min-width: 0;
+      min-height: 66px;
+      display: grid;
+      grid-template-columns: 38px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--build-border);
+      border-radius: var(--ui-radius-md, 5px);
+      background: var(--ui-control, #10191f);
+      color: var(--build-text);
+      text-align: left;
+      cursor: pointer;
+      transition:
+        background-color 120ms ease,
+        border-color 120ms ease,
+        color 120ms ease,
+        transform 80ms ease;
+    }
+
+    .build-command:hover:not(:disabled) {
+      border-color: var(--build-border-strong);
+      background: var(--build-hover);
+    }
+
+    .build-command:active:not(:disabled) {
+      transform: translateY(1px);
+      background: var(--ui-surface-strong, #18232b);
+    }
+
+    .build-command:disabled {
       cursor: not-allowed;
+      opacity: 0.52;
     }
+
+    .build-command:disabled .build-cost {
+      color: #df7a70;
+    }
+
+    .build-icon-frame {
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--build-border);
+      border-radius: var(--ui-radius-sm, 3px);
+      background: var(--build-raised);
+    }
+
+    .build-icon-frame img {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+    }
+
+    .build-copy {
+      min-width: 0;
+      display: grid;
+      gap: 3px;
+    }
+
+    .build-name {
+      overflow: hidden;
+      color: var(--build-text);
+      font-size: 12px;
+      font-weight: 720;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .build-description {
+      display: -webkit-box;
+      overflow: hidden;
+      color: var(--build-muted);
+      font-size: 10px;
+      line-height: 1.25;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .build-meta {
+      min-width: 66px;
+      display: grid;
+      justify-items: end;
+      gap: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .build-cost {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--build-support);
+      font-size: 11px;
+      font-weight: 720;
+      white-space: nowrap;
+    }
+
+    .build-cost img {
+      width: 12px;
+      height: 12px;
+    }
+
     .build-count {
-      font-weight: bold;
-      font-size: 14px;
+      min-width: 22px;
+      padding: 1px 5px;
+      border: 1px solid var(--build-border);
+      border-radius: var(--ui-radius-xs, 2px);
+      color: var(--build-muted);
+      font-size: 9px;
+      line-height: 16px;
+      text-align: center;
     }
 
-    @media (max-width: 768px) {
-      .build-menu {
-        padding: 10px;
-        max-height: 80vh;
-        width: 80vw;
+    @media (min-width: 980px) {
+      .build-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
-      .build-button {
-        width: 140px;
-        height: 120px;
-        margin: 4px;
-        padding: 6px;
+    }
+
+    @media (max-width: 639px) {
+      .build-menu {
+        bottom: 0;
+        width: 100vw;
+        max-height: min(52dvh, 480px);
+        border-right: 0;
+        border-bottom: 0;
+        border-left: 0;
+        border-radius: var(--ui-radius-lg, 7px) var(--ui-radius-lg, 7px) 0 0;
+      }
+
+      .build-header {
+        min-height: 54px;
+        padding-left: 12px;
+      }
+
+      .build-heading small {
+        max-width: 70vw;
+      }
+
+      .build-grid {
+        grid-template-columns: 1fr;
         gap: 5px;
+        padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
       }
-      .build-icon {
-        font-size: 28px;
+
+      .build-command {
+        min-height: 58px;
+        grid-template-columns: 34px minmax(0, 1fr) auto;
+        padding: 7px 9px;
       }
-      .build-name {
-        font-size: 12px;
-        margin-bottom: 3px;
+
+      .build-icon-frame {
+        width: 34px;
+        height: 34px;
       }
-      .build-cost {
-        font-size: 11px;
+
+      .build-icon-frame img {
+        width: 22px;
+        height: 22px;
       }
-      .build-count {
-        font-weight: bold;
-        font-size: 10px;
-      }
-      .build-count-chip {
-        padding: 1px 5px;
+
+      .build-description {
+        -webkit-line-clamp: 1;
       }
     }
 
-    @media (max-width: 480px) {
-      .build-menu {
-        padding: 8px;
-        max-height: 70vh;
+    @media (pointer: coarse) {
+      .build-close,
+      .build-command {
+        min-height: 44px;
       }
-      .build-button {
-        width: calc(50% - 6px);
-        height: 100px;
-        margin: 3px;
-        padding: 4px;
-        border-width: 1px;
-      }
-      .build-icon {
-        font-size: 24px;
-      }
-      .build-name {
-        font-size: 10px;
-        margin-bottom: 2px;
-      }
-      .build-cost {
-        font-size: 9px;
-      }
-      .build-count {
-        font-weight: bold;
-        font-size: 8px;
-      }
-      .build-count-chip {
-        padding: 0 3px;
-      }
-      .build-button img {
-        width: 24px;
-        height: 24px;
-      }
-      .build-cost img {
-        width: 10px;
-        height: 10px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .build-close,
+      .build-command {
+        transition-duration: 1ms !important;
       }
     }
   `;
 
-  @state()
-  private _hidden = true;
+  @state() private _hidden = true;
 
   public canBuildOrUpgrade(item: BuildItemDisplay): boolean {
     if (this.game?.myPlayer() === null || this.playerBuildables === null) {
@@ -365,21 +482,14 @@ export class BuildMenu extends LitElement implements Controller {
   }
 
   public cost(item: BuildItemDisplay): Gold {
-    for (const bu of this.playerBuildables ?? []) {
-      if (bu.type === item.unitType) {
-        return bu.cost;
-      }
-    }
-    return 0n;
+    return (
+      this.playerBuildables?.find((unit) => unit.type === item.unitType)?.cost ??
+      0n
+    );
   }
 
   public count(item: BuildItemDisplay): string {
-    const player = this.game?.myPlayer();
-    if (!player) {
-      return "?";
-    }
-
-    return player.totalUnitLevels(item.unitType).toString();
+    return this.game?.myPlayer()?.totalUnitLevels(item.unitType).toString() ?? "?";
   }
 
   public sendBuildOrUpgrade(buildableUnit: BuildableUnit, tile: TileRef): void {
@@ -404,78 +514,84 @@ export class BuildMenu extends LitElement implements Controller {
   }
 
   render() {
+    const items = this.filteredBuildTable.flat();
     return html`
-      <div
-        class="build-menu ${this._hidden ? "hidden" : ""}"
-        @contextmenu=${(e: MouseEvent) => e.preventDefault()}
+      <section
+        class="build-menu command-build-dock ${this._hidden ? "hidden" : ""}"
+        role="dialog"
+        aria-modal="false"
+        aria-label=${translateText("help_modal.build_menu_title")}
+        @contextmenu=${(event: MouseEvent) => event.preventDefault()}
       >
-        ${this.filteredBuildTable.map(
-          (row) => html`
-            <div class="build-row">
-              ${row.map((item) => {
-                const buildableUnit = this.playerBuildables?.find(
-                  (bu) => bu.type === item.unitType,
-                );
-                if (buildableUnit === undefined) {
-                  return html``;
-                }
-                const enabled =
-                  buildableUnit.canBuild !== false ||
-                  buildableUnit.canUpgrade !== false;
-                return html`
-                  <button
-                    class="build-button"
-                    @click=${() =>
-                      this.sendBuildOrUpgrade(buildableUnit, this.clickedTile)}
-                    ?disabled=${!enabled}
-                    title=${!enabled
-                      ? translateText("build_menu.not_enough_money")
-                      : ""}
-                  >
-                    <img
-                      src=${item.icon}
-                      alt="${item.unitType}"
-                      width="40"
-                      height="40"
-                    />
-                    <span class="build-name"
-                      >${item.key && translateText(item.key)}</span
-                    >
-                    <span class="build-description"
-                      >${item.description &&
-                      translateText(item.description)}</span
-                    >
-                    <span class="build-cost" translate="no">
-                      ${renderNumber(
-                        this.game && this.game.myPlayer() ? this.cost(item) : 0,
-                      )}
-                      <img
-                        src=${goldCoinIcon}
-                        alt="gold"
-                        width="12"
-                        height="12"
-                        class="align-middle"
-                      />
-                    </span>
-                    ${item.countable
-                      ? html`<div class="build-count-chip">
-                          <span class="build-count">${this.count(item)}</span>
-                        </div>`
-                      : ""}
-                  </button>
-                `;
-              })}
-            </div>
-          `,
-        )}
-      </div>
+        <header class="build-header">
+          <div class="build-heading">
+            <strong>${translateText("help_modal.build_menu_title")}</strong>
+            <small>${translateText("help_modal.build_menu_desc")}</small>
+          </div>
+          <button
+            class="build-close"
+            @click=${this.hideMenu}
+            aria-label="Close"
+            title="Close"
+          >
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path d="M5.3 4.2 10 8.9l4.7-4.7 1.1 1.1-4.7 4.7 4.7 4.7-1.1 1.1-4.7-4.7-4.7 4.7-1.1-1.1L8.9 10 4.2 5.3l1.1-1.1Z" />
+            </svg>
+          </button>
+        </header>
+
+        <div class="build-grid">
+          ${items.map((item) => {
+            const buildableUnit = this.playerBuildables?.find(
+              (unit) => unit.type === item.unitType,
+            );
+            if (buildableUnit === undefined) return html``;
+            const enabled =
+              buildableUnit.canBuild !== false ||
+              buildableUnit.canUpgrade !== false;
+            const name = item.key ? translateText(item.key) : item.unitType;
+            const description = item.description
+              ? translateText(item.description)
+              : "";
+            return html`
+              <button
+                class="build-command"
+                @click=${() =>
+                  this.sendBuildOrUpgrade(buildableUnit, this.clickedTile)}
+                ?disabled=${!enabled}
+                aria-label=${`${name}, ${renderNumber(this.cost(item))}`}
+                title=${enabled
+                  ? description
+                  : translateText("build_menu.not_enough_money")}
+              >
+                <span class="build-icon-frame">
+                  <img src=${item.icon} alt="" width="24" height="24" />
+                </span>
+                <span class="build-copy">
+                  <span class="build-name">${name}</span>
+                  <span class="build-description">${description}</span>
+                </span>
+                <span class="build-meta" translate="no">
+                  <span class="build-cost">
+                    ${renderNumber(this.cost(item))}
+                    <img src=${goldCoinIcon} alt="" width="12" height="12" />
+                  </span>
+                  ${item.countable
+                    ? html`<span class="build-count">×${this.count(item)}</span>`
+                    : html``}
+                </span>
+              </button>
+            `;
+          })}
+        </div>
+      </section>
     `;
   }
 
-  hideMenu() {
+  hideMenu = () => {
     this._hidden = true;
     this.requestUpdate();
-  }
+  };
 
   showMenu(clickedTile: TileRef) {
     this.clickedTile = clickedTile;
@@ -491,8 +607,6 @@ export class BuildMenu extends LitElement implements Controller {
         this.playerBuildables = buildables;
         this.requestUpdate();
       });
-
-    // remove disabled buildings from the buildtable
     this.filteredBuildTable = this.getBuildableUnits();
   }
 

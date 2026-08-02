@@ -133,6 +133,7 @@ const page = await context.newPage();
 const pageErrors = [];
 const workerErrors = [];
 const sameOriginFailures = [];
+const sameOriginHttpErrors = [];
 const allowedOrigin = new URL(siteUrl).origin;
 
 page.on("pageerror", (error) => {
@@ -155,6 +156,8 @@ page.on("requestfailed", (request) => {
 });
 page.on("response", (response) => {
   if (response.url().startsWith(allowedOrigin) && response.status() >= 400) {
+    const failure = `${response.status()} ${response.url()}`;
+    sameOriginHttpErrors.push(failure);
     console.error(`[response:${response.status()}] ${response.url()}`);
   }
 });
@@ -192,6 +195,35 @@ try {
     path: `${artifactPrefix}-home.png`,
     fullPage: true,
   });
+
+  const homeAudit = await page.evaluate(() => {
+    const playPage = document.querySelector("play-page");
+    const primaryAction = document.querySelector(
+      '.command-action-button[data-primary="true"]',
+    );
+    const steamPromo = document.querySelector("steam-wishlist-button");
+    const news = document.querySelector(".command-news-box");
+    const primaryStyle = primaryAction ? getComputedStyle(primaryAction) : null;
+    const newsRect = news?.getBoundingClientRect();
+    return {
+      steamIframeCount: playPage?.querySelectorAll("iframe").length ?? 0,
+      steamPromoCount: playPage?.querySelectorAll("steam-wishlist-button").length ?? 0,
+      primaryBackgroundImage: primaryStyle?.backgroundImage ?? null,
+      primaryRadius: primaryStyle?.borderRadius ?? null,
+      newsHeight: newsRect?.height ?? 0,
+      viewportWidth: innerWidth,
+    };
+  });
+
+  if (homeAudit.steamIframeCount !== 0 || homeAudit.steamPromoCount !== 1) {
+    throw new Error(`Home Steam promotion is not compact: ${JSON.stringify(homeAudit)}`);
+  }
+  if (homeAudit.primaryBackgroundImage && homeAudit.primaryBackgroundImage !== "none") {
+    throw new Error(`Primary home action uses an ornamental image/gradient: ${JSON.stringify(homeAudit)}`);
+  }
+  if (homeAudit.viewportWidth <= 430 && homeAudit.newsHeight > 96) {
+    throw new Error(`Mobile news surface is too tall: ${JSON.stringify(homeAudit)}`);
+  }
 
   const uiLayout = await page.evaluate(async () => {
     const modal = document.querySelector("single-player-modal");
@@ -426,6 +458,78 @@ try {
     );
   }
 
+  const buildMenuAudit = await page.evaluate(async () => {
+    const menu = document.querySelector("build-menu");
+    const game = menu?.game;
+    const myPlayer = game?.myPlayer();
+    const tile = myPlayer?.state?.spawnTile;
+    if (!menu || !game || !myPlayer || tile === undefined) {
+      return { available: false };
+    }
+
+    menu.showMenu(tile);
+    await menu.updateComplete;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await menu.updateComplete;
+      if (menu.shadowRoot?.querySelectorAll(".build-command").length) break;
+    }
+
+    const shell = menu.shadowRoot?.querySelector(".build-menu");
+    const buttons = [...(menu.shadowRoot?.querySelectorAll(".build-command") ?? [])].filter(
+      (button) => button.getBoundingClientRect().width > 0,
+    );
+    const closeButton = menu.shadowRoot?.querySelector(".build-close");
+    const rect = shell?.getBoundingClientRect();
+    const shellStyle = shell ? getComputedStyle(shell) : null;
+    const styleText = [...(menu.shadowRoot?.querySelectorAll("style") ?? [])]
+      .map((style) => style.textContent ?? "")
+      .join("\n");
+    return {
+      available: Boolean(shell && rect && buttons.length),
+      top: rect?.top ?? 0,
+      bottom: rect?.bottom ?? 0,
+      width: rect?.width ?? 0,
+      height: rect?.height ?? 0,
+      viewportWidth: innerWidth,
+      viewportHeight: innerHeight,
+      buttonCount: buttons.length,
+      minButtonHeight: buttons.length
+        ? Math.min(...buttons.map((button) => button.getBoundingClientRect().height))
+        : 0,
+      closeButtonHeight: closeButton?.getBoundingClientRect().height ?? 0,
+      position: shellStyle?.position ?? null,
+      backgroundImage: shellStyle?.backgroundImage ?? null,
+      backdropFilter: shellStyle?.backdropFilter ?? null,
+      containsTransitionAll: /transition\s*:\s*all/i.test(styleText),
+    };
+  });
+
+  if (!buildMenuAudit.available || buildMenuAudit.buttonCount < 1) {
+    throw new Error(`Build command dock unavailable: ${JSON.stringify(buildMenuAudit)}`);
+  }
+  if (buildMenuAudit.bottom > buildMenuAudit.viewportHeight + 1) {
+    throw new Error(`Build command dock exceeds the viewport: ${JSON.stringify(buildMenuAudit)}`);
+  }
+  if (buildMenuAudit.height > buildMenuAudit.viewportHeight * 0.56) {
+    throw new Error(`Build command dock hides too much of the map: ${JSON.stringify(buildMenuAudit)}`);
+  }
+  if (buildMenuAudit.position !== "fixed" || buildMenuAudit.containsTransitionAll) {
+    throw new Error(`Build command dock regressed to legacy modal styling: ${JSON.stringify(buildMenuAudit)}`);
+  }
+  if (buildMenuAudit.backgroundImage && buildMenuAudit.backgroundImage !== "none") {
+    throw new Error(`Build command dock uses an ornamental gradient: ${JSON.stringify(buildMenuAudit)}`);
+  }
+  if (mobileViewport && (buildMenuAudit.minButtonHeight < 44 || buildMenuAudit.closeButtonHeight < 44)) {
+    throw new Error(`Mobile build command target is too small: ${JSON.stringify(buildMenuAudit)}`);
+  }
+
+  await page.screenshot({
+    path: `${artifactPrefix}-build-menu.png`,
+    fullPage: true,
+  });
+  await page.evaluate(() => document.querySelector("build-menu")?.hideMenu());
+
   const allianceSheet = await page.evaluate(async () => {
     const panel = document.querySelector("player-panel");
     const game = panel?.g;
@@ -500,6 +604,12 @@ try {
     fullPage: true,
   });
   await page.evaluate(() => document.querySelector("player-panel")?.hide());
+  const missingCoreAssets = [...sameOriginFailures, ...sameOriginHttpErrors].filter((entry) =>
+    /OpenFront\.ttf|OpenFrontLogo\.svg/i.test(entry),
+  );
+  if (missingCoreAssets.length > 0) {
+    throw new Error(`Core UI asset requests failed:\n${missingCoreAssets.join("\n")}`);
+  }
   if (workerErrors.length > 0) {
     throw new Error(`Worker errors:\n${workerErrors.join("\n")}`);
   }
@@ -516,9 +626,12 @@ try {
         defaults,
         emitted,
         runtime,
+        homeAudit,
         uiLayout,
+        buildMenuAudit,
         allianceSheet,
         sameOriginFailures,
+        sameOriginHttpErrors,
       },
       null,
       2,
@@ -534,7 +647,7 @@ try {
   if (!passed) {
     console.error(
       JSON.stringify(
-        { pageErrors, workerErrors, sameOriginFailures },
+        { pageErrors, workerErrors, sameOriginFailures, sameOriginHttpErrors },
         null,
         2,
       ),
