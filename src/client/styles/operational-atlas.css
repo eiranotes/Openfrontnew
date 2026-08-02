@@ -1104,3 +1104,8 @@ control-panel [class*="hover:scale"] {
     opacity: 0.72;
   }
 }
+
+/* Keep routed play page hidden when Navigation activates an inline modal. */
+.command-play-page.hidden {
+  display: none !important;
+}
