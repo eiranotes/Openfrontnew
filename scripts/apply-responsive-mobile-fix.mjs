@@ -110,81 +110,31 @@ const controlPanelPath = "src/client/hud/layers/ControlPanel.ts";
 let controlPanel = read(controlPanelPath);
 controlPanel = replaceOnce(
   controlPanel,
-  `      <div class="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-2">
-        <div
-          class="command-resource relative flex min-h-10 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-yellow-300"`,
-  `      <div class="grid grid-cols-[88px_minmax(0,1fr)] items-center gap-2">
-        <div
-          class="command-resource relative flex min-h-11 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-yellow-300"`,
+  "command-resource relative flex min-h-10 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-yellow-300",
+  "command-resource relative flex min-h-11 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-yellow-300",
   "mobile gold target height",
 );
 controlPanel = replaceOnce(
   controlPanel,
-  `      <div class="mt-2 grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2">
-        <div
-          class="command-resource flex min-h-10 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-white"
-          translate="no"
-        >
-          <img
-            src=${swordIcon}
-            alt=""
-            aria-hidden="true"
-            width="13"
-            height="13"
-            style="filter: brightness(0) invert(1);"
-          />
-          <span class="tabular-nums"
-            >${(this.attackRatio * 100).toFixed(0)}%</span
-          >
-          <span class="truncate text-[10px] text-white/50">
-            ${renderTroops(
-              (this.game?.myPlayer()?.troops() ?? 0) * this.attackRatio,
-            )}
-          </span>
-        </div>
-        <input
-          type="range"
-          min="1"
-          max="100"
-          aria-label="Attack ratio"
-          .value=${String(Math.round(this.attackRatio * 100))}
-          @input=${(e: Event) => this.handleRatioSliderInput(e)}
-          @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
-          class="h-10 w-full accent-aquarius"
-        />
-      </div>`,
-  `      <div class="mt-2 grid grid-cols-[76px_minmax(0,1fr)] items-center gap-2">
-        <div
-          class="command-resource flex min-h-11 items-center justify-center gap-1 rounded-md border px-2 text-sm font-semibold text-white"
-          translate="no"
-          title="${renderTroops(
-            (this.game?.myPlayer()?.troops() ?? 0) * this.attackRatio,
-          )} troops"
-        >
-          <img
-            src=${swordIcon}
-            alt=""
-            aria-hidden="true"
-            width="13"
-            height="13"
-            style="filter: brightness(0) invert(1);"
-          />
-          <span class="tabular-nums"
-            >${(this.attackRatio * 100).toFixed(0)}%</span
-          >
-        </div>
-        <input
-          type="range"
-          min="1"
-          max="100"
-          aria-label="Attack ratio"
-          .value=${String(Math.round(this.attackRatio * 100))}
-          @input=${(e: Event) => this.handleRatioSliderInput(e)}
-          @pointerup=${(e: Event) => this.handleRatioSliderPointerUp(e)}
-          class="h-11 w-full accent-aquarius"
-        />
-      </div>`,
-  "compact mobile attack ratio",
+  "mt-2 grid grid-cols-[96px_minmax(0,1fr)] items-center gap-2",
+  "mt-2 grid grid-cols-[76px_minmax(0,1fr)] items-center gap-2",
+  "mobile ratio column width",
+);
+controlPanel = replaceOnce(
+  controlPanel,
+  "command-resource flex min-h-10 items-center justify-center gap-1 rounded-md border px-2 text-xs font-semibold text-white",
+  "command-resource flex min-h-11 items-center justify-center gap-1 rounded-md border px-2 text-sm font-semibold text-white",
+  "mobile ratio target height",
+);
+const troopEstimatePattern = /          <span class="truncate text-\[10px\] text-white\/50">\n            \$\{renderTroops\(\n              \(this\.game\?\.myPlayer\(\)\?\.troops\(\) \?\? 0\) \* this\.attackRatio,\n            \)\}\n          <\/span>\n/;
+if (troopEstimatePattern.test(controlPanel)) {
+  controlPanel = controlPanel.replace(troopEstimatePattern, "");
+}
+controlPanel = replaceOnce(
+  controlPanel,
+  'class="h-10 w-full accent-aquarius"',
+  'class="h-11 w-full accent-aquarius"',
+  "mobile attack slider height",
 );
 write(controlPanelPath, controlPanel);
 
