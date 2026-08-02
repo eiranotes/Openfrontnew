@@ -1411,3 +1411,49 @@ game-right-sidebar .cursor-pointer:active {
     min-height: 44px;
   }
 }
+
+
+/* Mobile tactical chrome compression. */
+@media (max-width: 639px) {
+  game-left-sidebar aside,
+  game-right-sidebar aside {
+    min-height: 52px;
+    gap: 0 !important;
+    padding: 4px 6px !important;
+    border-top: 0 !important;
+    background: #0a0f14 !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.24) !important;
+  }
+
+  game-left-sidebar aside {
+    border-left: 0 !important;
+    border-radius: 0 0 7px 0 !important;
+  }
+
+  game-right-sidebar aside {
+    border-right: 0 !important;
+    border-radius: 0 0 0 7px !important;
+  }
+
+  game-right-sidebar aside > div:first-child {
+    min-width: 58px;
+    padding-inline: 8px;
+    color: #cbd5e1;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  game-left-sidebar [role="button"],
+  game-right-sidebar .cursor-pointer {
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 4px !important;
+  }
+
+  game-left-sidebar img,
+  game-right-sidebar img {
+    width: 18px !important;
+    height: 18px !important;
+    opacity: 0.9;
+  }
+}
