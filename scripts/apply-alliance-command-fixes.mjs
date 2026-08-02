@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 const root = path.resolve(process.argv[2] ?? ".");
 
@@ -73,6 +74,28 @@ if (!playerPanel.includes(guardedCoordinate)) {
   write(playerPanelPath, playerPanel);
 }
 
+const touchScript = path.join(root, "scripts/apply-touch-ui-polish.mjs");
+if (fs.existsSync(touchScript)) {
+  const touchResult = spawnSync(process.execPath, [touchScript, root], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  if (touchResult.status !== 0) {
+    throw new Error(
+      `Touch UI polish failed:\n${touchResult.stdout}\n${touchResult.stderr}`,
+    );
+  }
+  if (touchResult.stdout) process.stdout.write(touchResult.stdout);
+
+  const coordinationTestPath = "tests/AllianceCoordination.test.ts";
+  let coordinationTest = read(coordinationTestPath);
+  const touchTestImport = 'import "./TouchSelectionUi.test";';
+  if (!coordinationTest.includes(touchTestImport)) {
+    coordinationTest = `${touchTestImport}\n${coordinationTest}`;
+    write(coordinationTestPath, coordinationTest);
+  }
+}
+
 console.log(
-  "Applied alliance support, touch-test, compatibility, and command visibility fixes.",
+  "Applied alliance support, touch selection, compatibility, and command UI fixes.",
 );
