@@ -376,8 +376,8 @@ export class PlayerView {
   ): Promise<PlayerActions> {
     return this.game.worker.playerInteraction(
       this.id(),
-      tile && this.game.x(tile),
-      tile && this.game.y(tile),
+      tile !== undefined ? this.game.x(tile) : undefined,
+      tile !== undefined ? this.game.y(tile) : undefined,
       units,
     );
   }
@@ -388,8 +388,8 @@ export class PlayerView {
   ): Promise<BuildableUnit[]> {
     return this.game.worker.playerBuildables(
       this.id(),
-      tile && this.game.x(tile),
-      tile && this.game.y(tile),
+      tile !== undefined ? this.game.x(tile) : undefined,
+      tile !== undefined ? this.game.y(tile) : undefined,
       units,
     );
   }

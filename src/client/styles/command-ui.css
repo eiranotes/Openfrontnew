@@ -1134,7 +1134,7 @@ control-panel input[type="range"]::-webkit-slider-thumb {
 .command-player-support-actions,
 .command-player-diplomacy-actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
   gap: 6px;
 }
 
@@ -1172,10 +1172,36 @@ control-panel input[type="range"]::-webkit-slider-thumb {
   opacity: 0.9;
 }
 
-.command-action-control span {
+.command-action-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.command-action-label {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.command-action-control small {
+  max-width: 100%;
+  overflow: hidden;
+  color: currentColor;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 560;
+  opacity: 0.72;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-player-primary-actions .command-action-control {
+  min-height: 50px;
 }
 
 .command-action-control[data-layout="stacked"] {
@@ -1185,6 +1211,10 @@ control-panel input[type="range"]::-webkit-slider-thumb {
   padding: 5px 6px;
   color: #b8c4d2;
   font-size: 10px;
+}
+
+.command-action-control[data-layout="stacked"] .command-action-copy {
+  align-items: center;
 }
 
 .command-action-control[data-layout="stacked"] img {
@@ -1464,12 +1494,8 @@ game-right-sidebar .cursor-pointer:active {
   transform-origin: bottom center;
 }
 
-@keyframes command-dock-enter {
-  from {
-    opacity: 0;
-    transform: scaleY(0.985);
-  }
-}
+/* Preserve full control geometry throughout dock entrance. The canonical
+   command-dock-enter keyframes are defined once above. */
 
 
 /* Preserve full control geometry throughout dock entrance. */

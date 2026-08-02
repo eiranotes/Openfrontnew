@@ -17,6 +17,7 @@ export interface ActionButtonProps {
   iconAlt: string;
   title: string;
   label: string;
+  detail?: string;
   disabled?: boolean;
   priority?: ActionPriority;
   layout?: ActionLayout;
@@ -30,10 +31,12 @@ export const actionButton = (props: ActionButtonProps): TemplateResult => {
     iconAlt,
     title,
     label,
+    detail,
     disabled = false,
     priority = "secondary",
     layout = "inline",
   } = props;
+  const accessibleLabel = detail ? `${title}, ${detail}` : title;
 
   return html`
     <button
@@ -42,13 +45,16 @@ export const actionButton = (props: ActionButtonProps): TemplateResult => {
       data-variant=${type}
       data-priority=${priority}
       data-layout=${layout}
-      title=${title}
+      title=${accessibleLabel}
       type="button"
-      aria-label=${title}
+      aria-label=${accessibleLabel}
       ?disabled=${disabled}
     >
       <img src=${icon} alt=${iconAlt} aria-hidden="true" />
-      <span>${label}</span>
+      <span class="command-action-copy">
+        <span class="command-action-label">${label}</span>
+        ${detail ? html`<small>${detail}</small>` : ""}
+      </span>
     </button>
   `;
 };

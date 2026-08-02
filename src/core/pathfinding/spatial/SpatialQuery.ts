@@ -104,13 +104,13 @@ export class SpatialQuery {
   }
 
   /**
-   * Find the closest shore tile owned by `targetOwner` near `tile` that sits on
-   * a water component reachable from `attacker`'s own shoreline.
+   * Find the closest shore tile owned by `targetOwner` that sits on a water
+   * component reachable from `attacker`'s own shoreline.
    *
-   * Unlike {@link closestShore}, this skips shores that only border a
-   * disconnected water body (e.g. an inland lake) that the attacker's boats
-   * could never traverse. Returns null when no reachable target shore exists
-   * within `maxDist`.
+   * Player territory is searched across its complete border. This lets a
+   * country-level landing command work even when the selected tile is deep
+   * inland. Terra nullius still uses the bounded local search because it has no
+   * maintained border set.
    */
   closestReachableShore(
     targetOwner: Owner,
@@ -119,25 +119,54 @@ export class SpatialQuery {
     maxDist: number = 50,
   ): TileRef | null {
     const gm = this.game;
+    const map = gm.map();
     const targetId = targetOwner.smallID();
 
-    // Water components adjacent to the attacker's own shoreline.
+    // Read component IDs from adjacent water tiles instead of asking for one
+    // arbitrary component on a shore that may touch multiple water bodies.
     const reachable = new Set<number>();
-    for (const t of attacker.borderTiles()) {
-      if (!gm.isShore(t) || !gm.isLand(t)) continue;
-      const component = gm.getWaterComponent(t);
-      if (component !== null) reachable.add(component);
+    for (const shore of attacker.borderTiles()) {
+      if (!gm.isShore(shore) || !gm.isLand(shore)) continue;
+      map.forEachNeighbor(shore, (neighbor) => {
+        if (!gm.isWater(neighbor)) return;
+        const component = gm.getWaterComponent(neighbor);
+        if (component !== null) reachable.add(component);
+      });
     }
     if (reachable.size === 0) return null;
 
-    const isValidTile = (t: TileRef) => {
-      if (!gm.isShore(t) || !gm.isLand(t)) return false;
-      if (gm.ownerID(t) !== targetId) return false;
-      const component = gm.getWaterComponent(t);
-      return component !== null && reachable.has(component);
+    const isValidTile = (candidate: TileRef) => {
+      if (!gm.isShore(candidate) || !gm.isLand(candidate)) return false;
+      if (gm.ownerID(candidate) !== targetId) return false;
+
+      let touchesReachableWater = false;
+      map.forEachNeighbor(candidate, (neighbor) => {
+        if (touchesReachableWater || !gm.isWater(neighbor)) return;
+        const component = gm.getWaterComponent(neighbor);
+        touchesReachableWater =
+          component !== null && reachable.has(component);
+      });
+      return touchesReachableWater;
     };
 
-    return this.bfsNearest(tile, maxDist, isValidTile);
+    if (!targetOwner.isPlayer()) {
+      return this.bfsNearest(tile, maxDist, isValidTile);
+    }
+
+    let best: TileRef | null = null;
+    let bestDist = Infinity;
+    for (const candidate of targetOwner.borderTiles()) {
+      if (!isValidTile(candidate)) continue;
+      const distance = map.manhattanDist(tile, candidate);
+      if (
+        distance < bestDist ||
+        (distance === bestDist && (best === null || candidate < best))
+      ) {
+        best = candidate;
+        bestDist = distance;
+      }
+    }
+    return best;
   }
 
   /**
