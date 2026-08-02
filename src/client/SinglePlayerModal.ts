@@ -41,13 +41,13 @@ import {
 
 import { terrainMapFileLoader } from "./TerrainMapFileLoader";
 
-const DEFAULT_OPTIONS = {
+export const DEFAULT_OPTIONS = {
   selectedMap: GameMapType.World,
-  selectedDifficulty: Difficulty.Medium,
-  bots: 80,
+  selectedDifficulty: Difficulty.Easy,
+  bots: 400,
   infiniteGold: false,
   infiniteTroops: false,
-  compactMap: true,
+  compactMap: false,
   maxTimer: false,
   maxTimerValue: undefined as number | undefined,
   instantBuild: false,
@@ -59,7 +59,7 @@ const DEFAULT_OPTIONS = {
   goldMultiplierValue: undefined as number | undefined,
   startingGold: false,
   startingGoldValue: undefined as number | undefined,
-  disabledUnits: [UnitType.HydrogenBomb, UnitType.MIRV] as UnitType[],
+  disabledUnits: [] as UnitType[],
   customAlliances: false,
   customAllianceMinutes: undefined as number | undefined,
   waterNukes: false,
