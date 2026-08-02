@@ -19,6 +19,15 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
+      - name: Diagnose patch parts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in $(find .patches/fortress-ui -maxdepth 1 -name '*.part' | sort); do
+            printf '%s ' "$(wc -c < "${file}")"
+            sha256sum "${file}"
+          done
+
       - name: Reconstruct, verify, and apply patch
         shell: bash
         run: |
