@@ -3,6 +3,18 @@ import path from "node:path";
 const root = path.resolve(process.argv[2] ?? ".");
 const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
 const write = (p, c) => fs.writeFileSync(path.join(root, p), c);
+
+const touchController = read(
+  "src/client/controllers/WarshipSelectionController.ts",
+);
+if (
+  touchController.includes("this.game.hasOwner(clickRef)") &&
+  touchController.includes("country command sheet")
+) {
+  console.log("Mobile combat already uses the alliance-aware country sheet.");
+  process.exit(0);
+}
+
 function replaceOnce(file, before, after, label) {
   let content = read(file);
   if (content.includes(after)) return;
