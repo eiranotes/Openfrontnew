@@ -805,7 +805,8 @@ export class PlayerPanel extends LitElement implements Controller {
     const canEmbargo = this.actions?.interaction?.canEmbargo;
 
     const canAttack = !!this.actions?.canAttack;
-    const canCoordinateAttack = !!this.actions?.interaction?.canTarget;
+    const canCoordinateAttack =
+      !!this.actions?.interaction?.canTarget && my.allies().length > 0;
     const canLand =
       this.tile !== null &&
       (this.actions?.buildableUnits.some(
