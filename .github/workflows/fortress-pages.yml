@@ -89,11 +89,13 @@ jobs:
           cat scripts/command-ui-patch.part-* \
             | tr -d '[:space:]' \
             | base64 -d > /tmp/command-ui-patch.tar.gz
-          echo 'd86ee98890564a59279217a20202f1227fd4e39a7fcaf8b77972ec2814c7a039  /tmp/command-ui-patch.tar.gz' \
+          echo 'd86ee98890564a59279217a20202f1227fd4e39a7fc8b77972ec2814c7a039  /tmp/command-ui-patch.tar.gz' \
             | sha256sum -c -
           tar -xzf /tmp/command-ui-patch.tar.gz
           node --check scripts/apply-responsive-mobile-fix.mjs
           node scripts/apply-responsive-mobile-fix.mjs .
+          node --check scripts/apply-alliance-command.mjs
+          node scripts/apply-alliance-command.mjs .
           grep -q 'import "./styles/command-ui.css"' src/client/Main.ts
           grep -q 'command-settings-grid' src/client/SinglePlayerModal.ts
           grep -q 'command-control-panel' src/client/hud/layers/ControlPanel.ts
@@ -110,6 +112,10 @@ jobs:
           grep -Fq 'this._trainingCoverage * 100' src/client/hud/layers/ControlPanel.ts
           grep -Fq '훈련 수용량' src/client/hud/layers/ControlPanel.ts
           grep -Fq '◆ ${this._militaryLabel}' src/client/hud/layers/ControlPanel.ts
+          grep -Fq 'command-player-sheet' src/client/hud/layers/PlayerPanel.ts
+          grep -Fq 'coordinatedAttackTick' src/client/hud/layers/ActionableEvents.ts
+          grep -Fq 'respondToAllianceSupportRequest' src/core/execution/QuickChatExecution.ts
+          grep -Fq 'this.game.hasOwner(clickRef)' src/client/controllers/WarshipSelectionController.ts
 
       - name: Commit populated and patched source tree
         shell: bash
@@ -135,7 +141,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Run Fortress and single-player tests
-        run: npx vitest run tests/FortressBalance.test.ts tests/SinglePlayerOptions.test.ts tests/WorkerAssetBase.test.ts
+        run: npx vitest run tests/FortressBalance.test.ts tests/AllianceCoordination.test.ts tests/SinglePlayerOptions.test.ts tests/WorkerAssetBase.test.ts
 
       - name: Type-check
         run: npx tsc --noEmit
