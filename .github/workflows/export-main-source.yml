@@ -1,0 +1,28 @@
+name: Export latest main source
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: github.head_ref == 'agent/export-main-snapshot'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Archive latest main
+        shell: bash
+        run: git archive --format=tar.gz --output=openfront-main.tar.gz HEAD
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: openfront-main-source
+          path: openfront-main.tar.gz
+          if-no-files-found: error
