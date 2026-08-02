@@ -118,7 +118,13 @@ if (fs.existsSync(touchScript)) {
   const boundedAnimationMarker =
     "/* Keep the dock entrance animation inside the viewport. */";
   if (!commandUi.includes(boundedAnimationMarker)) {
-    commandUi += `\n\n${boundedAnimationMarker}\n.command-player-dock {\n  transform-origin: bottom center;\n}\n\n@keyframes command-dock-enter {\n  from {\n    opacity: 0;\n    transform: scaleY(0.985);\n  }\n}\n`;
+    commandUi += `\n\n${boundedAnimationMarker}\n.command-player-dock {\n  transform-origin: bottom center;\n}\n`;
+  }
+
+  const fullSizeAnimationMarker =
+    "/* Preserve full control geometry throughout dock entrance. */";
+  if (!commandUi.includes(fullSizeAnimationMarker)) {
+    commandUi += `\n\n${fullSizeAnimationMarker}\n@keyframes command-dock-enter {\n  from {\n    opacity: 0;\n  }\n}\n`;
   }
 
   write(commandUiPath, commandUi);
