@@ -19,23 +19,30 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: Diagnose patch parts
-        shell: bash
-        run: |
-          set -euo pipefail
-          for file in $(find .patches/fortress-ui -maxdepth 1 -name '*.part' | sort); do
-            printf '%s ' "$(wc -c < "${file}")"
-            sha256sum "${file}"
-          done
-
       - name: Reconstruct, verify, and apply patch
         shell: bash
         run: |
           set -euo pipefail
           test -f .patches/fortress-ui/APPLY
-          find .patches/fortress-ui -maxdepth 1 -name '*.part' -print0 \
-            | sort -z \
-            | xargs -0 cat \
+          git show b777d4691baff9b5bd99bdbeb1c81016478be280:.patches/fortress-ui/001-002.part \
+            | head -c 14000 > /tmp/001-002.part
+          head -c 7000 .patches/fortress-ui/003.part > /tmp/003.part
+          echo '9400d3a2378cc36c085e1e133b4fa146ec299b0fb59e7dc3c9231fae58b4854f  /tmp/001-002.part' \
+            | sha256sum --check --strict
+          echo '18a21862b12821d1c256b66b352f656139e947c20b1473cb56ce08562e732401  /tmp/003.part' \
+            | sha256sum --check --strict
+          cat \
+            .patches/fortress-ui/000.part \
+            /tmp/001-002.part \
+            /tmp/003.part \
+            .patches/fortress-ui/004.part \
+            .patches/fortress-ui/005-006.part \
+            .patches/fortress-ui/007-008.part \
+            .patches/fortress-ui/009.part \
+            .patches/fortress-ui/010.part \
+            .patches/fortress-ui/011.part \
+            .patches/fortress-ui/012.part \
+            .patches/fortress-ui/013.part \
             | base64 --decode \
             | gzip --decompress \
             > /tmp/fortress-ui.patch
