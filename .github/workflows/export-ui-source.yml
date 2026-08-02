@@ -1,0 +1,26 @@
+name: Export UI source
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Package UI source
+        run: |
+          tar -czf openfront-ui-source.tar.gz \
+            package.json package-lock.json index.html \
+            src/client src/core tests scripts .github/workflows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openfront-ui-source
+          path: openfront-ui-source.tar.gz
+          retention-days: 1
