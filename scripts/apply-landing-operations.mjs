@@ -38,7 +38,7 @@ const sourceAlreadyApplied = [
   ["src/client/hud/layers/PlayerPanel.ts", "private selectionRevision = 0;"],
   ["src/client/components/ui/ActionButton.ts", "detail?: string;"],
   ["src/client/view/PlayerView.ts", "tile !== undefined ? this.game.x(tile)"],
-  ["tests/LandingOperations.test.ts", "Landing operations"],
+  ["tests/LandingOperations.test.ts", 'describe("landing operations"'],
 ].every(([relativePath, marker]) => contains(relativePath, marker));
 
 if (!sourceAlreadyApplied) {
