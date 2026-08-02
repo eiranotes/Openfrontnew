@@ -49,6 +49,23 @@ jobs:
           node --check scripts/apply-compact-state-combat.mjs
           node scripts/apply-responsive-mobile-fix.mjs .
 
+      - name: Package patched source snapshot
+        if: matrix.name == 'desktop'
+        run: |
+          tar -czf /tmp/openfront-alliance-source.tar.gz \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='static' \
+            .
+
+      - name: Upload patched source snapshot
+        if: matrix.name == 'desktop'
+        uses: actions/upload-artifact@v4
+        with:
+          name: openfront-alliance-source
+          path: /tmp/openfront-alliance-source.tar.gz
+          if-no-files-found: error
+
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
