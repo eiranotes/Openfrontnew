@@ -19,9 +19,11 @@ on:
       - 'tests/FortressBalance.test.ts'
       - 'tests/AllianceCoordination.test.ts'
       - 'tests/LandingOperations.test.ts'
+      - 'tests/OperationalAtlasUi.test.ts'
       - 'tests/SinglePlayerOptions.test.ts'
       - 'tests/WorkerAssetBase.test.ts'
       - 'scripts/apply-*.mjs'
+      - 'scripts/operational-atlas-ui.patch.part-*'
       - 'scripts/browser-single-player-smoke.mjs'
       - '.github/workflows/browser-single-player-smoke.yml'
 
@@ -50,14 +52,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Apply compact-state and alliance command updates
+      - name: Apply the complete Fortress UI overhaul
         run: |
-          node --check scripts/apply-compact-state-combat.mjs
-          node scripts/apply-responsive-mobile-fix.mjs .
-          node --check scripts/apply-alliance-command.mjs
-          node scripts/apply-alliance-command.mjs .
-          node --check scripts/apply-alliance-command-fixes.mjs
-          node scripts/apply-alliance-command-fixes.mjs .
+          node --check scripts/apply-ui-overhaul.mjs
+          node scripts/apply-ui-overhaul.mjs .
+          node scripts/apply-ui-overhaul.mjs .
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -73,12 +72,13 @@ jobs:
           npm install --no-save --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Run configuration tests
+      - name: Run configuration and UI tests
         run: >-
           npx vitest run
           tests/FortressBalance.test.ts
           tests/AllianceCoordination.test.ts
           tests/LandingOperations.test.ts
+          tests/OperationalAtlasUi.test.ts
           tests/SinglePlayerOptions.test.ts
           tests/WorkerAssetBase.test.ts
 
