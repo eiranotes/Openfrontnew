@@ -18,6 +18,7 @@ const finalMarkerChecks = [
   ["src/client/components/PlayPage.ts", "command-steam-promo-slot"],
   ["src/client/hud/layers/BuildMenu.ts", "command-build-dock"],
   ["src/client/styles/operational-atlas.css", "Keep routed play page hidden"],
+  ["src/client/styles/operational-atlas.css", "Size setup to the modal section"],
 ];
 
 function absolute(relativePath) {
@@ -134,6 +135,19 @@ appendOnce(
   `/* Keep routed play page hidden when Navigation activates an inline modal. */
 .command-play-page.hidden {
   display: none !important;
+}`,
+);
+appendOnce(
+  "src/client/styles/operational-atlas.css",
+  "Size setup to the modal section",
+  `/* Size setup to the modal section, not the outer viewport. The modal header
+   already consumes part of 100dvh; a second viewport subtraction pushed the
+   desktop action bar by one pixel and the tablet action bar below the fold. */
+@media (min-width: 640px) {
+  .command-single-player {
+    height: 100%;
+    max-height: 100%;
+  }
 }`,
 );
 
