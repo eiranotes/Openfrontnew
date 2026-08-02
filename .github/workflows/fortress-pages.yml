@@ -61,8 +61,19 @@ jobs:
             touch .fortress-patched
           fi
 
+      - name: Apply Fortress military HUD
+        shell: bash
+        run: |
+          if [[ ! -f .fortress-hud ]]; then
+            node --check scripts/apply-fortress-hud.mjs
+            node scripts/apply-fortress-hud.mjs .
+            touch .fortress-hud
+          fi
+
       - name: Verify patch anchors
-        run: node scripts/verify-fortress.mjs
+        run: |
+          node scripts/verify-fortress.mjs
+          node scripts/verify-fortress-hud.mjs
 
       - name: Commit populated and patched source tree
         shell: bash
