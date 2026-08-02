@@ -12,6 +12,7 @@ import { TileRef } from "../game/GameMap";
 import { ErrorUpdate, GameUpdateViewData } from "../game/GameUpdates";
 import { ClientID, GameStartInfo, Turn } from "../Schemas";
 import { generateID } from "../Util";
+import { resolveWorkerAssetBase } from "./WorkerAssetBase";
 import { WorkerMessage } from "./WorkerMessages";
 
 // Inlined as a same-origin Blob (Vite's `?worker&inline`), sidestepping the
@@ -93,7 +94,7 @@ export class WorkerClient {
         id: messageId,
         gameStartInfo: this.gameStartInfo,
         clientID: this.clientID,
-        cdnBase: getCdnBase(),
+        cdnBase: resolveWorkerAssetBase(getCdnBase(), window.location.origin),
       });
 
       setTimeout(() => {
