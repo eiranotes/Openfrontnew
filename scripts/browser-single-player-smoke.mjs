@@ -133,6 +133,7 @@ const page = await context.newPage();
 const pageErrors = [];
 const workerErrors = [];
 const sameOriginFailures = [];
+const sameOriginHttpErrors = [];
 const allowedOrigin = new URL(siteUrl).origin;
 
 page.on("pageerror", (error) => {
@@ -155,6 +156,8 @@ page.on("requestfailed", (request) => {
 });
 page.on("response", (response) => {
   if (response.url().startsWith(allowedOrigin) && response.status() >= 400) {
+    const failure = `${response.status()} ${response.url()}`;
+    sameOriginHttpErrors.push(failure);
     console.error(`[response:${response.status()}] ${response.url()}`);
   }
 });
@@ -192,6 +195,67 @@ try {
     path: `${artifactPrefix}-home.png`,
     fullPage: true,
   });
+
+  const homeAudit = await page.evaluate(() => {
+    const playPage = document.querySelector("play-page");
+    const primaryAction = document.querySelector(
+      '.command-action-button[data-primary="true"]',
+    );
+    const news = document.querySelector(".command-news-box");
+    const homeShell = document.querySelector(".command-home-shell");
+    const utility = document.querySelector(".command-home-utility");
+    const stage = document.querySelector(".command-home-stage");
+    const navigation = document.querySelector("desktop-nav-bar");
+    const primaryStyle = primaryAction ? getComputedStyle(primaryAction) : null;
+    const newsRect = news?.getBoundingClientRect();
+    const utilityRect = utility?.getBoundingClientRect();
+    const stageRect = stage?.getBoundingClientRect();
+    return {
+      steamIframeCount: playPage?.querySelectorAll("iframe").length ?? 0,
+      steamPromoCount:
+        playPage?.querySelectorAll("steam-wishlist-button").length ?? 0,
+      primaryBackgroundImage: primaryStyle?.backgroundImage ?? null,
+      primaryRadius: primaryStyle?.borderRadius ?? null,
+      newsHeight: newsRect?.height ?? 0,
+      homeShellCount: playPage?.querySelectorAll(".command-home-shell").length ?? 0,
+      primaryNavItemCount:
+        navigation?.querySelectorAll(
+          ".command-desktop-nav__menu .nav-menu-item",
+        ).length ?? 0,
+      utilityMenuCount:
+        navigation?.querySelectorAll(".command-desktop-nav__more").length ?? 0,
+      desktopTwoColumn:
+        Boolean(utilityRect && stageRect) && stageRect.left > utilityRect.right,
+      mobileStacked:
+        Boolean(utilityRect && stageRect) && stageRect.top >= utilityRect.bottom,
+      viewportWidth: innerWidth,
+    };
+  });
+
+  if (homeAudit.steamIframeCount !== 0 || homeAudit.steamPromoCount !== 1) {
+    throw new Error(`Home Steam promotion is not compact: ${JSON.stringify(homeAudit)}`);
+  }
+  if (homeAudit.primaryBackgroundImage && homeAudit.primaryBackgroundImage !== "none") {
+    throw new Error(`Primary home action uses an ornamental image/gradient: ${JSON.stringify(homeAudit)}`);
+  }
+  if (homeAudit.viewportWidth <= 430 && homeAudit.newsHeight > 96) {
+    throw new Error(`Mobile news surface is too tall: ${JSON.stringify(homeAudit)}`);
+  }
+
+  if (homeAudit.homeShellCount !== 1) {
+    throw new Error(`Home operations desk missing: ${JSON.stringify(homeAudit)}`);
+  }
+  if (
+    homeAudit.viewportWidth >= 1024 &&
+    (homeAudit.primaryNavItemCount !== 4 ||
+      homeAudit.utilityMenuCount !== 1 ||
+      !homeAudit.desktopTwoColumn)
+  ) {
+    throw new Error(`Desktop home hierarchy regressed: ${JSON.stringify(homeAudit)}`);
+  }
+  if (homeAudit.viewportWidth <= 430 && !homeAudit.mobileStacked) {
+    throw new Error(`Mobile home hierarchy regressed: ${JSON.stringify(homeAudit)}`);
+  }
 
   const uiLayout = await page.evaluate(async () => {
     const modal = document.querySelector("single-player-modal");
@@ -276,6 +340,7 @@ try {
       difficulty: modal.selectedDifficulty,
       bots: modal.bots,
       compact: modal.compactMap,
+      randomSpawn: modal.randomSpawn,
       disabledUnits: [...modal.disabledUnits],
     };
   });
@@ -285,6 +350,7 @@ try {
     difficulty: "Easy",
     bots: 400,
     compact: false,
+    randomSpawn: false,
   };
   for (const [key, value] of Object.entries(expectedDefaults)) {
     if (defaults[key] !== value) {
@@ -314,6 +380,7 @@ try {
               gameMode: config.gameMode,
               playerTeams: config.playerTeams,
               gameType: config.gameType,
+              randomSpawn: config.randomSpawn,
             }
           : null;
       },
@@ -327,6 +394,7 @@ try {
     modal.compactMap = true;
     modal.gameMode = "Team";
     modal.teamCount = 4;
+    modal.randomSpawn = true;
     modal.nations = 0;
     modal.defaultNationCount = 0;
     modal.disabledUnits = [];
@@ -350,6 +418,7 @@ try {
     gameMode: "Team",
     playerTeams: 4,
     gameType: "Singleplayer",
+    randomSpawn: true,
   };
   for (const [key, value] of Object.entries(expectedConfig)) {
     if (emitted[key] !== value) {
@@ -400,24 +469,45 @@ try {
     throw new Error("No visible game canvas found after entering the game");
   }
 
+  // Use the game's random-spawn path for deterministic CI. A single click at
+  // the canvas centre is not guaranteed to hit land at every viewport and map
+  // scale, which made the tablet build-menu audit intermittently run before a
+  // player spawn existed.
+  await page.waitForFunction(
+    () => {
+      const game = document.querySelector("build-menu")?.game;
+      const player = game?.myPlayer?.();
+      return player?.state?.spawnTile !== undefined;
+    },
+    undefined,
+    { timeout: 120_000 },
+  );
+
   await page.mouse.click(
     canvasBox.x + canvasBox.width / 2,
     canvasBox.y + canvasBox.height / 2,
   );
-  await page.waitForTimeout(8_000);
+  await page.waitForTimeout(2_000);
 
-  const runtime = await page.evaluate(() => ({
-    inGame: document.body.classList.contains("in-game"),
-    path: window.location.pathname,
-    canvasCount: document.querySelectorAll("canvas").length,
-    visibleCanvasCount: [...document.querySelectorAll("canvas")].filter((canvas) => {
-      const rect = canvas.getBoundingClientRect();
-      return rect.width >= 100 && rect.height >= 100;
-    }).length,
-  }));
+  const runtime = await page.evaluate(() => {
+    const game = document.querySelector("build-menu")?.game;
+    return {
+      inGame: document.body.classList.contains("in-game"),
+      path: window.location.pathname,
+      canvasCount: document.querySelectorAll("canvas").length,
+      visibleCanvasCount: [...document.querySelectorAll("canvas")].filter(
+        (canvas) => {
+          const rect = canvas.getBoundingClientRect();
+          return rect.width >= 100 && rect.height >= 100;
+        },
+      ).length,
+      spawnReady: game?.myPlayer?.()?.state?.spawnTile !== undefined,
+    };
+  });
 
   if (
     !runtime.inGame ||
+    !runtime.spawnReady ||
     runtime.visibleCanvasCount < 1 ||
     !/^\/w\d+\/game\/[A-Za-z0-9_-]+$/.test(runtime.path)
   ) {
@@ -425,6 +515,78 @@ try {
       `Game runtime did not remain active: ${JSON.stringify(runtime)}`,
     );
   }
+
+  const buildMenuAudit = await page.evaluate(async () => {
+    const menu = document.querySelector("build-menu");
+    const game = menu?.game;
+    const myPlayer = game?.myPlayer();
+    const tile = myPlayer?.state?.spawnTile;
+    if (!menu || !game || !myPlayer || tile === undefined) {
+      return { available: false };
+    }
+
+    menu.showMenu(tile);
+    await menu.updateComplete;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      await menu.updateComplete;
+      if (menu.shadowRoot?.querySelectorAll(".build-command").length) break;
+    }
+
+    const shell = menu.shadowRoot?.querySelector(".build-menu");
+    const buttons = [...(menu.shadowRoot?.querySelectorAll(".build-command") ?? [])].filter(
+      (button) => button.getBoundingClientRect().width > 0,
+    );
+    const closeButton = menu.shadowRoot?.querySelector(".build-close");
+    const rect = shell?.getBoundingClientRect();
+    const shellStyle = shell ? getComputedStyle(shell) : null;
+    const styleText = [...(menu.shadowRoot?.querySelectorAll("style") ?? [])]
+      .map((style) => style.textContent ?? "")
+      .join("\n");
+    return {
+      available: Boolean(shell && rect && buttons.length),
+      top: rect?.top ?? 0,
+      bottom: rect?.bottom ?? 0,
+      width: rect?.width ?? 0,
+      height: rect?.height ?? 0,
+      viewportWidth: innerWidth,
+      viewportHeight: innerHeight,
+      buttonCount: buttons.length,
+      minButtonHeight: buttons.length
+        ? Math.min(...buttons.map((button) => button.getBoundingClientRect().height))
+        : 0,
+      closeButtonHeight: closeButton?.getBoundingClientRect().height ?? 0,
+      position: shellStyle?.position ?? null,
+      backgroundImage: shellStyle?.backgroundImage ?? null,
+      backdropFilter: shellStyle?.backdropFilter ?? null,
+      containsTransitionAll: /transition\s*:\s*all/i.test(styleText),
+    };
+  });
+
+  if (!buildMenuAudit.available || buildMenuAudit.buttonCount < 1) {
+    throw new Error(`Build command dock unavailable: ${JSON.stringify(buildMenuAudit)}`);
+  }
+  if (buildMenuAudit.bottom > buildMenuAudit.viewportHeight + 1) {
+    throw new Error(`Build command dock exceeds the viewport: ${JSON.stringify(buildMenuAudit)}`);
+  }
+  if (buildMenuAudit.height > buildMenuAudit.viewportHeight * 0.56) {
+    throw new Error(`Build command dock hides too much of the map: ${JSON.stringify(buildMenuAudit)}`);
+  }
+  if (buildMenuAudit.position !== "fixed" || buildMenuAudit.containsTransitionAll) {
+    throw new Error(`Build command dock regressed to legacy modal styling: ${JSON.stringify(buildMenuAudit)}`);
+  }
+  if (buildMenuAudit.backgroundImage && buildMenuAudit.backgroundImage !== "none") {
+    throw new Error(`Build command dock uses an ornamental gradient: ${JSON.stringify(buildMenuAudit)}`);
+  }
+  if (mobileViewport && (buildMenuAudit.minButtonHeight < 44 || buildMenuAudit.closeButtonHeight < 44)) {
+    throw new Error(`Mobile build command target is too small: ${JSON.stringify(buildMenuAudit)}`);
+  }
+
+  await page.screenshot({
+    path: `${artifactPrefix}-build-menu.png`,
+    fullPage: true,
+  });
+  await page.evaluate(() => document.querySelector("build-menu")?.hideMenu());
 
   const allianceSheet = await page.evaluate(async () => {
     const panel = document.querySelector("player-panel");
@@ -500,6 +662,17 @@ try {
     fullPage: true,
   });
   await page.evaluate(() => document.querySelector("player-panel")?.hide());
+  const missingCoreAssets = [...sameOriginFailures, ...sameOriginHttpErrors].filter(
+    (entry) => /OpenFront\.ttf|OpenFrontLogo\.svg/i.test(entry),
+  );
+  if (missingCoreAssets.length > 0) {
+    throw new Error(`Core UI asset requests failed:\n${missingCoreAssets.join("\n")}`);
+  }
+  if (sameOriginHttpErrors.length > 0) {
+    throw new Error(
+      `Same-origin HTTP errors:\n${sameOriginHttpErrors.join("\n")}`,
+    );
+  }
   if (workerErrors.length > 0) {
     throw new Error(`Worker errors:\n${workerErrors.join("\n")}`);
   }
@@ -516,9 +689,12 @@ try {
         defaults,
         emitted,
         runtime,
+        homeAudit,
         uiLayout,
+        buildMenuAudit,
         allianceSheet,
         sameOriginFailures,
+        sameOriginHttpErrors,
       },
       null,
       2,
@@ -534,7 +710,7 @@ try {
   if (!passed) {
     console.error(
       JSON.stringify(
-        { pageErrors, workerErrors, sameOriginFailures },
+        { pageErrors, workerErrors, sameOriginFailures, sameOriginHttpErrors },
         null,
         2,
       ),

@@ -1,0 +1,195 @@
+name: Deploy Operational Atlas UI preview
+
+on:
+  push:
+    branches: [agent/ui-system-overhaul-2026-08-02]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: operational-atlas-pages-preview
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout UI overhaul branch
+        uses: actions/checkout@v6
+        with:
+          ref: agent/ui-system-overhaul-2026-08-02
+          fetch-depth: 1
+
+      - name: Apply and verify the full UI patch chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/apply-ui-overhaul.mjs
+          node scripts/apply-ui-overhaul.mjs .
+          node scripts/apply-ui-overhaul.mjs .
+          grep -Fq 'import "./styles/operational-atlas.css"' src/client/Main.ts
+          grep -Fq 'Operational Atlas' src/client/styles/operational-atlas.css
+          grep -Fq 'command-build-dock' src/client/hud/layers/BuildMenu.ts
+          grep -Fq 'Show one Steam promotion per viewport' src/client/styles/operational-atlas.css
+          ! grep -Rq 'fonts/OpenFront.ttf' src/client
+          ! grep -Rq 'images/OpenFrontLogo.svg' src/client
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run Fortress, landing and UI tests
+        run: >-
+          npx vitest run
+          tests/FortressBalance.test.ts
+          tests/AllianceCoordination.test.ts
+          tests/LandingOperations.test.ts
+          tests/OperationalAtlasUi.test.ts
+          tests/TouchSelectionUi.test.ts
+          tests/SinglePlayerOptions.test.ts
+          tests/WorkerAssetBase.test.ts
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build project-scoped Pages site
+        env:
+          GITHUB_PAGES: 'true'
+          CDN_BASE: /Openfrontnew
+          GAME_ENV: dev
+          DOMAIN: localhost
+          NUM_WORKERS: '2'
+        run: npm run build-dev
+
+      - name: Verify built UI assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          touch static/.nojekyll
+          cp static/index.html static/404.html
+          test -s static/index.html
+          grep -Rq 'Operational Atlas' src/client/styles/operational-atlas.css
+          ! grep -Rq 'fonts/OpenFront.ttf' static
+          ! grep -Rq 'images/OpenFrontLogo.svg' static
+          asset_path=$(grep -oE '/Openfrontnew/assets/index-[^" ]+\.js' static/index.html | head -n 1)
+          test -n "${asset_path}"
+          test -s "static${asset_path#/Openfrontnew}"
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: static
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy UI preview
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Verify the live Pages deployment
+        id: verify
+        env:
+          SITE_URL: ${{ steps.deployment.outputs.page_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          success=false
+          for attempt in $(seq 1 40); do
+            if curl --fail --location --silent --show-error \
+              --max-time 20 "${SITE_URL}?ui-preview=${GITHUB_RUN_ID}-${attempt}" \
+              -o /tmp/pages-index.html; then
+              success=true
+              break
+            fi
+            sleep 3
+          done
+          test "${success}" = true
+
+          js_path=$(grep -oE '/Openfrontnew/assets/index-[^" ]+\.js' \
+            /tmp/pages-index.html | head -n 1)
+          css_path=$(grep -oE '/Openfrontnew/assets/index-[^" ]+\.css' \
+            /tmp/pages-index.html | head -n 1)
+          test -n "${js_path}"
+          test -n "${css_path}"
+
+          origin=$(python3 - "${SITE_URL}" <<'PY'
+          import sys
+          from urllib.parse import urlparse
+          parsed = urlparse(sys.argv[1])
+          print(f"{parsed.scheme}://{parsed.netloc}")
+          PY
+          )
+          curl --fail --location --silent --show-error --max-time 30 \
+            "${origin}${js_path}" -o /tmp/pages-app.js
+          curl --fail --location --silent --show-error --max-time 30 \
+            "${origin}${css_path}" -o /tmp/pages-app.css
+          test -s /tmp/pages-app.js
+          test -s /tmp/pages-app.css
+          ! grep -q 'fonts/OpenFront.ttf' /tmp/pages-app.js /tmp/pages-app.css
+          ! grep -q 'images/OpenFrontLogo.svg' /tmp/pages-app.js /tmp/pages-app.css
+          grep -q -- '--command-surface-panel' /tmp/pages-app.css
+
+          echo "site_url=${SITE_URL}" >> "${GITHUB_OUTPUT}"
+          echo "js_path=${js_path}" >> "${GITHUB_OUTPUT}"
+          echo "css_path=${css_path}" >> "${GITHUB_OUTPUT}"
+          echo "js_bytes=$(wc -c < /tmp/pages-app.js | tr -d ' ')" >> "${GITHUB_OUTPUT}"
+          echo "css_bytes=$(wc -c < /tmp/pages-app.css | tr -d ' ')" >> "${GITHUB_OUTPUT}"
+
+      - name: Record verified preview status
+        uses: actions/checkout@v6
+        with:
+          ref: agent/ui-system-overhaul-2026-08-02
+          fetch-depth: 0
+
+      - name: Commit UI preview verification
+        env:
+          SITE_URL: ${{ steps.verify.outputs.site_url }}
+          JS_PATH: ${{ steps.verify.outputs.js_path }}
+          CSS_PATH: ${{ steps.verify.outputs.css_path }}
+          JS_BYTES: ${{ steps.verify.outputs.js_bytes }}
+          CSS_BYTES: ${{ steps.verify.outputs.css_bytes }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git pull --rebase origin agent/ui-system-overhaul-2026-08-02
+          verified_at=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          cat > UI_PREVIEW_STATUS.md <<EOF
+          # Operational Atlas UI preview
+
+          - Status: verified
+          - URL: ${SITE_URL}
+          - Verified at: ${verified_at}
+          - Source commit: ${GITHUB_SHA}
+          - Workflow run: ${GITHUB_RUN_ID}
+          - JavaScript: ${JS_PATH} (${JS_BYTES} bytes)
+          - CSS: ${CSS_PATH} (${CSS_BYTES} bytes)
+          - Design token probe: --command-surface-panel
+          - Missing legacy font/logo requests: none
+          EOF
+
+          git config user.name 'openai-codex[bot]'
+          git config user.email 'openai-codex[bot]@users.noreply.github.com'
+          git add UI_PREVIEW_STATUS.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record verified UI preview [skip ci]'
+            git push origin HEAD:agent/ui-system-overhaul-2026-08-02
+          fi

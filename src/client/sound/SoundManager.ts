@@ -12,6 +12,11 @@ import {
 
 export const MAX_CONCURRENT_SOUNDS = 8;
 
+// The public repository currently ships no background-music assets. Keep the
+// playlist explicit and empty instead of issuing guaranteed same-origin 404s.
+// Add repository-backed paths here when distributable tracks are restored.
+export const BACKGROUND_MUSIC_TRACK_PATHS: readonly string[] = [];
+
 export class SoundManager {
   private backgroundMusic: Howl[] = [];
   private currentTrack: number = 0;
@@ -29,26 +34,15 @@ export class SoundManager {
   constructor(eventBus: EventBus, userSettings: UserSettings) {
     this.eventBus = eventBus;
     this.safely("initialize background music", () => {
-      this.backgroundMusic = [
-        new Howl({
-          src: [assetUrl("sounds/music/of4.mp3")],
-          loop: false,
-          onend: this.playNext.bind(this),
-          volume: 0,
-        }),
-        new Howl({
-          src: [assetUrl("sounds/music/openfront.mp3")],
-          loop: false,
-          onend: this.playNext.bind(this),
-          volume: 0,
-        }),
-        new Howl({
-          src: [assetUrl("sounds/music/war.mp3")],
-          loop: false,
-          onend: this.playNext.bind(this),
-          volume: 0,
-        }),
-      ];
+      this.backgroundMusic = BACKGROUND_MUSIC_TRACK_PATHS.map(
+        (trackPath) =>
+          new Howl({
+            src: [assetUrl(trackPath)],
+            loop: false,
+            onend: this.playNext.bind(this),
+            volume: 0,
+          }),
+      );
     });
     this.setBackgroundMusicVolume(userSettings.backgroundMusicVolume());
     this.setSoundEffectsVolume(userSettings.soundEffectsVolume());
@@ -125,6 +119,7 @@ export class SoundManager {
   }
 
   private playNext(): void {
+    if (this.backgroundMusic.length === 0) return;
     this.currentTrack = (this.currentTrack + 1) % this.backgroundMusic.length;
     this.playBackgroundMusic();
   }

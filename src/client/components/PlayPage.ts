@@ -1,9 +1,10 @@
 import { LitElement, html } from "lit";
 import { customElement } from "lit/decorators.js";
 import { crazyGamesSDK } from "../CrazyGamesSDK";
+import "../styles/home-operations-desk.css";
 import "./CosmeticBackground";
 import "./NewsBox";
-import "./SteamWishlist";
+import "./SteamWishlistButton";
 import "./StreamingNow";
 
 @customElement("play-page")
@@ -14,22 +15,17 @@ export class PlayPage extends LitElement {
 
   render() {
     return html`
-      <div
-        id="page-play"
-        class="command-play-page flex min-h-0 w-full flex-col gap-3"
-      >
+      <div id="page-play" class="command-play-page">
         <token-login class="absolute"></token-login>
         <rewards-modal class="absolute"></rewards-modal>
 
         <div
           class="command-mobile-topbar fixed inset-x-0 top-0 z-40 pt-[env(safe-area-inset-top)] lg:hidden"
         >
-          <div
-            class="grid h-14 grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 px-2"
-          >
+          <div class="command-mobile-topbar__inner">
             <button
               id="hamburger-btn"
-              class="flex h-11 w-11 items-center justify-center rounded-md border border-transparent text-white/80 transition-[background-color,border-color,color] duration-150 hover:border-white/10 hover:bg-white/[0.06] hover:text-white"
+              class="command-icon-button"
               data-i18n-aria-label="main.menu"
               aria-expanded="false"
               aria-controls="sidebar-menu"
@@ -42,7 +38,7 @@ export class PlayPage extends LitElement {
                 viewBox="0 0 24 24"
                 stroke-width="1.6"
                 stroke="currentColor"
-                class="h-6 w-6"
+                aria-hidden="true"
               >
                 <path
                   stroke-linecap="round"
@@ -52,9 +48,13 @@ export class PlayPage extends LitElement {
               </svg>
             </button>
 
-            <div class="flex min-w-0 items-center justify-center">
-              <span class="command-wordmark command-wordmark--mobile" aria-label="OpenFront">
-                <span>OPEN</span><span class="command-wordmark__accent">FRONT</span>
+            <div class="command-mobile-topbar__brand">
+              <span
+                class="command-wordmark command-wordmark--mobile"
+                aria-label="OpenFront"
+              >
+                <span>OPEN</span
+                ><span class="command-wordmark__accent">FRONT</span>
               </span>
             </div>
 
@@ -63,13 +63,13 @@ export class PlayPage extends LitElement {
                   <button
                     id="crazygames-account-btn"
                     data-page="page-account"
-                    class="nav-menu-item flex h-11 w-11 items-center justify-center overflow-hidden rounded-md border border-transparent text-white/80 transition-[background-color,border-color,color] duration-150 hover:border-white/10 hover:bg-white/[0.06] hover:text-white"
+                    class="command-icon-button nav-menu-item"
                     data-i18n-aria-label="main.account"
                     data-i18n-title="main.account"
                   >
                     <img
                       id="crazygames-account-avatar"
-                      class="hidden h-8 w-8 rounded object-cover"
+                      class="hidden"
                       alt=""
                       referrerpolicy="no-referrer"
                     />
@@ -83,7 +83,6 @@ export class PlayPage extends LitElement {
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       aria-hidden="true"
-                      class="h-6 w-6"
                     >
                       <path d="M20 21a8 8 0 0 0-16 0" />
                       <path d="M12 13a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" />
@@ -94,46 +93,46 @@ export class PlayPage extends LitElement {
           </div>
         </div>
 
-        <div class="h-[calc(56px+env(safe-area-inset-top))] lg:hidden"></div>
+        <div class="command-mobile-topbar-spacer lg:hidden"></div>
 
-        <div
-          class="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.34fr)]"
-        >
-          <div class="flex min-w-0 flex-col gap-2">
-            <news-box></news-box>
+        <h1 id="command-home-title" class="sr-only" data-i18n="main.play"></h1>
 
-            <div class="command-identity-bar relative min-h-[56px] overflow-hidden">
-              <cosmetic-background
-                class="pointer-events-none absolute inset-0 overflow-hidden rounded-md"
-              ></cosmetic-background>
-              <div
-                class="relative z-10 flex min-h-[56px] min-w-0 items-center gap-2 bg-[#10161c]/90 p-1.5"
-              >
-                <flag-input
-                  show-select-label
-                  class="h-11 w-11 shrink-0"
-                ></flag-input>
-                <username-input class="h-11 min-w-0 flex-1"></username-input>
-                <cosmetics-input
-                  id="cosmetics-input-mobile"
-                  show-select-label
-                  class="no-crazygames h-11 w-11 shrink-0 rounded-md"
-                ></cosmetics-input>
+        <div class="command-home-shell">
+          <aside class="command-home-utility" aria-label="Player setup">
+            <div class="command-home-brief">
+              <div class="command-identity-bar relative overflow-hidden">
+                <cosmetic-background
+                  class="pointer-events-none absolute inset-0 overflow-hidden"
+                ></cosmetic-background>
+                <div class="command-identity-bar__controls">
+                  <flag-input
+                    data-compact-control
+                    class="h-11 w-11 shrink-0"
+                  ></flag-input>
+                  <username-input class="h-11 min-w-0 flex-1"></username-input>
+                  <cosmetics-input
+                    id="cosmetics-input-mobile"
+                    data-compact-control
+                    class="no-crazygames h-11 w-11 shrink-0"
+                  ></cosmetics-input>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <streaming-now
-            class="hidden min-w-0 flex-col lg:flex lg:h-full"
-          ></streaming-now>
+              <news-box></news-box>
+            </div>
+
+            <streaming-now class="command-stream-panel"></streaming-now>
+          </aside>
+
+          <main class="command-home-stage" aria-labelledby="command-home-title">
+            <game-mode-selector></game-mode-selector>
+          </main>
         </div>
 
-        <game-mode-selector></game-mode-selector>
-
-        <steam-wishlist
+        <steam-wishlist-button
           campaign="home_mobile"
-          class="block px-4 pb-[calc(12px+env(safe-area-inset-bottom))] lg:hidden"
-        ></steam-wishlist>
+          class="command-home-steam command-steam-promo-slot lg:hidden"
+        ></steam-wishlist-button>
       </div>
     `;
   }

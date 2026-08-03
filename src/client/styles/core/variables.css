@@ -3,37 +3,73 @@
   --breakPoint-tablet: 800px;
   --breakPoint-Desktop: 1024px;
 
-  --ui-canvas: #080c10;
-  --ui-surface: #10161c;
-  --ui-surface-raised: #161d24;
-  --ui-surface-hover: #1b252e;
-  --ui-surface-selected: #102a3b;
-  --ui-border: rgba(255, 255, 255, 0.1);
-  --ui-border-strong: rgba(255, 255, 255, 0.18);
-  --ui-text: #f5f7f9;
-  --ui-text-muted: #a5afb9;
-  --ui-text-faint: #6f7a85;
-  --ui-accent: #1687c9;
-  --ui-accent-hover: #2497d8;
-  --ui-danger: #dc4b4b;
-  --ui-warning: #d6a63b;
-  --ui-success: #46a76f;
-  --ui-radius-sm: 4px;
-  --ui-radius-md: 6px;
-  --ui-radius-lg: 8px;
-  --ui-control-height: 38px;
+  /* Operational Atlas: one compact command language across the site and HUD. */
+  --ui-canvas: #070b0e;
+  --ui-canvas-raised: #0a1014;
+  --ui-surface: #0e151a;
+  --ui-surface-raised: #131c22;
+  --ui-surface-strong: #18232b;
+  --ui-surface-hover: #1a2730;
+  --ui-surface-selected: #0e2932;
+  --ui-control: #10191f;
+  --ui-overlay: rgba(5, 9, 12, 0.86);
+
+  --ui-border-subtle: rgba(219, 234, 240, 0.075);
+  --ui-border: rgba(219, 234, 240, 0.13);
+  --ui-border-strong: rgba(219, 234, 240, 0.23);
+  --ui-divider: rgba(219, 234, 240, 0.1);
+
+  --ui-text: #f1f5f6;
+  --ui-text-secondary: #c0cbd0;
+  --ui-text-muted: #8e9ca3;
+  --ui-text-faint: #64737a;
+  --ui-text-inverse: #071014;
+
+  --ui-accent: #1596b5;
+  --ui-accent-hover: #22a7c6;
+  --ui-accent-active: #0d7f99;
+  --ui-accent-soft: rgba(21, 150, 181, 0.15);
+  --ui-support: #c6a158;
+  --ui-support-soft: rgba(198, 161, 88, 0.14);
+  --ui-danger: #d55b50;
+  --ui-danger-soft: rgba(213, 91, 80, 0.14);
+  --ui-warning: #d3a34c;
+  --ui-warning-soft: rgba(211, 163, 76, 0.13);
+  --ui-success: #48a878;
+  --ui-success-soft: rgba(72, 168, 120, 0.13);
+
+  --ui-space-1: 2px;
+  --ui-space-2: 4px;
+  --ui-space-3: 6px;
+  --ui-space-4: 8px;
+  --ui-space-5: 12px;
+  --ui-space-6: 16px;
+  --ui-space-7: 20px;
+  --ui-space-8: 24px;
+
+  --ui-radius-xs: 2px;
+  --ui-radius-sm: 3px;
+  --ui-radius-md: 5px;
+  --ui-radius-lg: 7px;
+  --ui-control-height: 36px;
   --ui-touch-height: 44px;
-  --ui-shadow-panel: 0 12px 28px rgba(0, 0, 0, 0.34);
-  --ui-transition-fast: 120ms cubic-bezier(0.2, 0, 0, 1);
-  --ui-transition: 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  --ui-shadow-dock: 0 10px 26px rgba(0, 0, 0, 0.32);
+  --ui-shadow-panel: 0 16px 38px rgba(0, 0, 0, 0.38);
+  --ui-shadow-modal: 0 22px 64px rgba(0, 0, 0, 0.48);
+
+  --ui-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ui-transition-instant: 80ms var(--ui-ease);
+  --ui-transition-fast: 120ms var(--ui-ease);
+  --ui-transition: 180ms var(--ui-ease);
 
   --blur-md: 0px;
-  --boxBackgroundColor: rgba(16, 22, 28, 0.96);
+  --boxBackgroundColor: rgba(14, 21, 26, 0.98);
   --fontColor: #202020;
   --fontColorLight: var(--ui-text);
 
   --primaryColorHover: var(--ui-accent-hover);
-  --primaryColorDisabled: #3c454d;
+  --primaryColorDisabled: #38444a;
   --secondaryColor: var(--ui-accent);
   --secondaryColorHover: var(--ui-accent-hover);
   --transition:
@@ -44,21 +80,21 @@
     transform var(--ui-transition-fast);
 
   --primaryColorHoverDark: var(--ui-accent-hover);
-  --primaryColorDisabledDark: #3c454d;
+  --primaryColorDisabledDark: #38444a;
   --secondaryColorDark: var(--ui-accent);
   --secondaryColorHoverDark: var(--ui-accent-hover);
   --fontColorDark: var(--ui-text);
 
-  /* Kept for compatibility with existing components. These are restrained
-     selection outlines rather than neon glows. */
-  --shadow-malibu-blue: 0 0 0 1px rgba(22, 135, 201, 0.65);
-  --shadow-malibu-blue-soft: 0 0 0 1px rgba(22, 135, 201, 0.42);
-  --shadow-malibu-blue-strong: 0 0 0 2px rgba(22, 135, 201, 0.64);
+  /* Legacy component compatibility. Selection is expressed through edges,
+     never through luminous glows. */
+  --shadow-malibu-blue: 0 0 0 1px rgba(21, 150, 181, 0.62);
+  --shadow-malibu-blue-soft: 0 0 0 1px rgba(21, 150, 181, 0.4);
+  --shadow-malibu-blue-strong: 0 0 0 2px rgba(21, 150, 181, 0.58);
   --shadow-malibu-blue-pill: none;
-  --shadow-malibu-blue-ring-sm: 0 0 0 2px rgba(22, 135, 201, 0.25);
-  --shadow-malibu-blue-ring-lg: 0 0 0 3px rgba(22, 135, 201, 0.25);
-  --shadow-lobby-card-hover: 0 0 0 1px rgba(22, 135, 201, 0.7);
-  --shadow-action-card-hover: 0 0 0 1px rgba(22, 135, 201, 0.55);
+  --shadow-malibu-blue-ring-sm: 0 0 0 2px rgba(21, 150, 181, 0.2);
+  --shadow-malibu-blue-ring-lg: 0 0 0 3px rgba(21, 150, 181, 0.2);
+  --shadow-lobby-card-hover: 0 0 0 1px rgba(21, 150, 181, 0.62);
+  --shadow-action-card-hover: 0 0 0 1px rgba(21, 150, 181, 0.48);
 
   /* Achievements */
   --medal-easy: #cd7f32;

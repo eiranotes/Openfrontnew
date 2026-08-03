@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, agent/project-handoff-2026-08-02]
     types: [opened, synchronize, reopened]
   workflow_dispatch:
 
@@ -82,7 +82,7 @@ jobs:
           test "$(grep -c '^export const DEFAULT_OPTIONS = {' src/client/SinglePlayerModal.ts)" -eq 1
           ! grep -q 'export export' src/client/SinglePlayerModal.ts
 
-      - name: Apply responsive command UI
+      - name: Apply the complete responsive command UI
         shell: bash
         run: |
           set -euo pipefail
@@ -100,12 +100,15 @@ jobs:
           else
             echo 'Alliance command source already materialized; skipping legacy UI archive.'
           fi
-          node --check scripts/apply-alliance-command-fixes.mjs
-          node scripts/apply-alliance-command-fixes.mjs .
+          node --check scripts/apply-ui-overhaul.mjs
+          node scripts/apply-ui-overhaul.mjs .
+          node scripts/apply-ui-overhaul.mjs .
           grep -q 'import "./styles/command-ui.css"' src/client/Main.ts
+          grep -q 'import "./styles/operational-atlas.css"' src/client/Main.ts
           grep -q 'command-settings-grid' src/client/SinglePlayerModal.ts
           grep -q 'command-control-panel' src/client/hud/layers/ControlPanel.ts
-          grep -q 'Keep the single-player action bar inside the mobile viewport' src/client/styles/command-ui.css
+          grep -q 'Operational Atlas' src/client/styles/operational-atlas.css
+          grep -q 'bottom: max(14px, env(safe-area-inset-bottom))' src/client/hud/layers/BuildMenu.ts
           node --check scripts/browser-single-player-smoke.mjs
 
       - name: Verify patch anchors
@@ -122,6 +125,10 @@ jobs:
           grep -Fq 'coordinatedAttackTick' src/client/hud/layers/ActionableEvents.ts
           grep -Fq 'respondToAllianceSupportRequest' src/core/execution/QuickChatExecution.ts
           grep -Fq 'this.game.hasOwner(clickRef)' src/client/controllers/WarshipSelectionController.ts
+          grep -Fq 'command-steam-promo' src/client/components/PlayPage.ts
+          grep -Fq 'command-build-dock' src/client/hud/layers/BuildMenu.ts
+          ! grep -Rq 'fonts/OpenFront.ttf' src/client
+          ! grep -Rq 'images/OpenFrontLogo.svg' src/client
 
       - name: Commit populated and patched source tree
         shell: bash
@@ -133,7 +140,7 @@ jobs:
           git restore --source=HEAD -- .github/workflows
           git add -A
           if ! git diff --cached --quiet; then
-            git commit -m 'Apply responsive command UI [skip ci]'
+            git commit -m 'Apply Operational Atlas UI system [skip ci]'
             git push origin "HEAD:${target_branch}"
           fi
 
@@ -146,8 +153,16 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Run Fortress and single-player tests
-        run: npx vitest run tests/FortressBalance.test.ts tests/AllianceCoordination.test.ts tests/SinglePlayerOptions.test.ts tests/WorkerAssetBase.test.ts
+      - name: Run Fortress and UI tests
+        run: >-
+          npx vitest run
+          tests/FortressBalance.test.ts
+          tests/AllianceCoordination.test.ts
+          tests/LandingOperations.test.ts
+          tests/OperationalAtlasUi.test.ts
+          tests/TouchSelectionUi.test.ts
+          tests/SinglePlayerOptions.test.ts
+          tests/WorkerAssetBase.test.ts
 
       - name: Type-check
         run: npx tsc --noEmit

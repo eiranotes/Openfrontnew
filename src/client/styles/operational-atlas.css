@@ -1,0 +1,1128 @@
+/* Operational Atlas
+   A map-first strategy interface: solid command surfaces, explicit hierarchy,
+   restrained semantic colour and input feedback that works without hover. */
+
+:root {
+  --command-accent: var(--ui-accent);
+  --command-support: var(--ui-support);
+  --command-danger: var(--ui-danger);
+}
+
+html,
+body {
+  min-width: 320px;
+  background: var(--ui-canvas);
+}
+
+body {
+  color: var(--ui-text);
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.002em;
+}
+
+button,
+a,
+summary,
+input,
+select,
+textarea {
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 2px;
+}
+
+.command-icon-button {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-md);
+  background: transparent;
+  color: var(--ui-text-secondary);
+  transition:
+    background-color var(--ui-transition-fast),
+    border-color var(--ui-transition-fast),
+    color var(--ui-transition-fast),
+    transform var(--ui-transition-instant);
+}
+
+.command-icon-button svg {
+  width: 23px;
+  height: 23px;
+}
+
+.command-icon-button img {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+}
+
+.command-icon-button:hover,
+.command-icon-button:focus-visible {
+  border-color: var(--ui-border);
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+}
+
+.command-icon-button:active {
+  transform: translateY(1px);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Home command deck                                                          */
+/* -------------------------------------------------------------------------- */
+
+.command-play-page {
+  width: min(100%, 1480px);
+  min-width: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+  margin-inline: auto;
+  padding: 12px 18px 16px;
+}
+
+.command-mobile-topbar {
+  background: var(--ui-canvas);
+  border-bottom: 1px solid var(--ui-border);
+  box-shadow: none;
+}
+
+.command-mobile-topbar__inner {
+  height: 54px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 4px;
+  padding-inline: 8px;
+}
+
+.command-mobile-topbar__brand {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.command-mobile-topbar-spacer {
+  height: calc(54px + env(safe-area-inset-top));
+  flex: 0 0 auto;
+}
+
+.command-wordmark {
+  color: var(--ui-text);
+  font-family: "Arial Narrow", "Roboto Condensed", ui-sans-serif, system-ui,
+    sans-serif;
+  font-weight: 850;
+  letter-spacing: -0.045em;
+}
+
+.command-wordmark__accent {
+  color: var(--ui-accent);
+}
+
+.command-home-utility {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.command-home-brief {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.command-stream-panel {
+  display: none;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+}
+
+.command-news-box {
+  min-width: 0;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--ui-border);
+  border-left: 3px solid var(--ui-accent);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface);
+}
+
+.command-news-box[data-news-type="warning"] {
+  border-left-color: var(--ui-danger);
+}
+
+.command-news-box[data-news-type="tournament"] {
+  border-left-color: var(--ui-support);
+}
+
+.command-news-box[data-news-type="tutorial"] {
+  border-left-color: var(--ui-success);
+}
+
+.command-news-tag {
+  min-width: 60px;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 7px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-xs);
+  background: var(--ui-surface-raised);
+  color: var(--ui-text-secondary);
+  font-size: 9px;
+  font-weight: 780;
+  letter-spacing: 0.065em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.command-news-box[data-news-type="warning"] .command-news-tag {
+  border-color: rgba(213, 91, 80, 0.34);
+  background: var(--ui-danger-soft);
+  color: #f2a29b;
+}
+
+.command-news-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.command-news-title {
+  overflow: hidden;
+  color: var(--ui-text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-news-title:hover {
+  color: #8ed7e8;
+}
+
+.command-news-description {
+  overflow: hidden;
+  color: var(--ui-text-muted);
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-news-description a {
+  color: #85cddd;
+}
+
+.command-news-pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.command-news-pagination button {
+  width: 12px;
+  height: 20px;
+  min-height: 20px;
+  position: relative;
+  border: 0;
+  background: transparent;
+}
+
+.command-news-pagination button::after {
+  content: "";
+  position: absolute;
+  inset: 8px 3px;
+  border-radius: var(--ui-radius-xs);
+  background: var(--ui-border-strong);
+}
+
+.command-news-pagination button[data-active="true"]::after {
+  background: var(--ui-accent);
+}
+
+.command-news-dismiss {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-sm);
+  background: transparent;
+  color: var(--ui-text-faint);
+  transition:
+    background-color var(--ui-transition-fast),
+    border-color var(--ui-transition-fast),
+    color var(--ui-transition-fast);
+}
+
+.command-news-dismiss svg {
+  width: 16px;
+  height: 16px;
+}
+
+.command-news-dismiss:hover,
+.command-news-dismiss:focus-visible {
+  border-color: var(--ui-border);
+  background: var(--ui-surface-hover);
+  color: var(--ui-text);
+}
+
+.command-identity-bar {
+  min-height: 56px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface);
+}
+
+.command-identity-bar cosmetic-background {
+  border-radius: inherit;
+  opacity: 0.1;
+  filter: saturate(0.45) contrast(0.9);
+}
+
+.command-identity-bar__controls {
+  position: relative;
+  z-index: 1;
+  min-height: 56px;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 7px;
+  background: rgba(14, 21, 26, 0.94);
+}
+
+.command-home {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+}
+
+.command-home-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  padding: 7px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+}
+
+.command-secondary-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.command-action-button {
+  min-height: var(--ui-touch-height);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-control);
+  color: var(--ui-text-secondary);
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0.01em;
+  transition:
+    background-color var(--ui-transition-fast),
+    border-color var(--ui-transition-fast),
+    color var(--ui-transition-fast),
+    transform var(--ui-transition-instant);
+}
+
+.command-action-button:hover:not(:disabled),
+.command-action-button:focus-visible:not(:disabled) {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-hover);
+  color: var(--ui-text);
+}
+
+.command-action-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.command-action-button[data-primary="true"] {
+  min-height: 48px;
+  justify-content: flex-start;
+  padding-inline: 16px;
+  border-color: rgba(21, 150, 181, 0.65);
+  border-left: 4px solid #64c5d9;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-accent-active);
+  color: white;
+  font-size: 14px;
+  letter-spacing: 0.015em;
+  box-shadow: none;
+}
+
+.command-action-button[data-primary="true"]:hover:not(:disabled),
+.command-action-button[data-primary="true"]:focus-visible:not(:disabled) {
+  border-color: #67c8da;
+  background: var(--ui-accent);
+}
+
+.command-action-badge {
+  min-width: 20px;
+  height: 18px;
+  padding-inline: 5px;
+  border: 1px solid rgba(213, 91, 80, 0.48);
+  border-radius: var(--ui-radius-xs);
+  background: var(--ui-danger-soft);
+  color: #f2a29b;
+  font-size: 10px;
+}
+
+.command-loading-panel {
+  min-height: 104px;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  padding: 20px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+}
+
+.command-loading-panel span {
+  height: 7px;
+  border-radius: var(--ui-radius-xs);
+  background: var(--ui-surface-strong);
+  animation: atlas-pulse 1.4s ease-in-out infinite alternate;
+}
+
+.command-loading-panel span:nth-child(2) {
+  animation-delay: 120ms;
+}
+
+.command-loading-panel span:nth-child(3) {
+  animation-delay: 240ms;
+}
+
+@keyframes atlas-pulse {
+  from {
+    opacity: 0.48;
+  }
+  to {
+    opacity: 0.9;
+  }
+}
+
+.command-lobby-stage {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+}
+
+.command-lobby-card {
+  min-height: 112px;
+  overflow: hidden;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-surface);
+  box-shadow: none;
+}
+
+.command-lobby-card:hover:not(:disabled),
+.command-lobby-card:focus-visible:not(:disabled) {
+  border-color: rgba(21, 150, 181, 0.55);
+  background: var(--ui-surface-hover);
+}
+
+.command-lobby-card__image {
+  inset: 0 auto 0 0;
+  width: 58%;
+  border-right: 1px solid var(--ui-border);
+  border-radius: 0;
+  background: #071014;
+}
+
+.command-lobby-card__image::after {
+  display: none;
+}
+
+.command-lobby-card__meta {
+  inset: 0 0 0 56%;
+  align-items: stretch;
+  padding: 9px 10px;
+  background: var(--ui-surface);
+}
+
+.command-lobby-card__tags {
+  max-width: 100%;
+  justify-content: flex-start;
+}
+
+.command-status-tag {
+  min-height: 19px;
+  padding-inline: 5px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-xs);
+  background: var(--ui-surface-raised);
+  color: var(--ui-text-muted);
+  font-size: 9px;
+  font-weight: 680;
+}
+
+.command-lobby-card__title {
+  width: 100%;
+  margin-left: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.command-home-steam {
+  display: block;
+  margin-top: 2px;
+  padding-bottom: calc(2px + env(safe-area-inset-bottom));
+}
+
+.command-steam-promo {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface-raised);
+  color: var(--ui-text);
+  text-decoration: none;
+  transition:
+    background-color var(--ui-transition-fast),
+    border-color var(--ui-transition-fast),
+    transform var(--ui-transition-instant);
+}
+
+.command-steam-promo:hover,
+.command-steam-promo:focus-visible {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-hover);
+}
+
+.command-steam-promo:active {
+  transform: translateY(1px);
+}
+
+.command-steam-promo__mark {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #d7e0e4;
+}
+
+.command-steam-promo__mark svg {
+  width: 24px;
+  height: 24px;
+}
+
+.command-steam-promo__copy {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+  line-height: 1.15;
+}
+
+.command-steam-promo__copy strong,
+.command-steam-promo__copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-steam-promo__copy strong {
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.command-steam-promo__copy small {
+  color: var(--ui-text-muted);
+  font-size: 9px;
+}
+
+.command-steam-promo__action {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-inline: 9px;
+  border: 1px solid rgba(72, 168, 120, 0.46);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-success-soft);
+  color: #96d5b5;
+  font-size: 10px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+/* Footer is utility chrome, not a second landing page. */
+page-footer footer {
+  min-height: 58px;
+  padding: 6px 12px calc(7px + env(safe-area-inset-bottom)) !important;
+  border-top: 1px solid var(--ui-border) !important;
+  background: var(--ui-canvas-raised) !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+page-footer footer a {
+  transition:
+    color var(--ui-transition-fast),
+    opacity var(--ui-transition-fast),
+    background-color var(--ui-transition-fast) !important;
+}
+
+page-footer footer a:hover {
+  transform: none !important;
+}
+
+page-footer footer > div:first-child {
+  gap: 2px !important;
+}
+
+page-footer footer > div:first-child > div:first-child {
+  padding-top: 2px !important;
+}
+
+page-footer footer > div:first-child > div:last-child {
+  margin-top: 1px !important;
+  gap: 10px !important;
+  font-size: 10px !important;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Single-player operations setup                                             */
+/* -------------------------------------------------------------------------- */
+
+.command-single-player {
+  min-height: 0;
+  height: min(100%, calc(100dvh - 56px));
+  max-height: calc(100dvh - 56px);
+  overflow: hidden;
+  background: var(--ui-canvas-raised);
+}
+
+.command-settings-scroll {
+  min-height: 0;
+  padding: 12px 14px 14px;
+  background: var(--ui-canvas-raised);
+}
+
+.command-settings-grid {
+  width: min(100%, 1240px);
+  gap: 10px;
+}
+
+.command-settings-grid > section,
+.command-settings-grid > details {
+  padding: 11px;
+  border-color: var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-surface);
+  box-shadow: none;
+}
+
+.command-settings-grid > section:first-child {
+  background: #0b1217;
+}
+
+.command-section-header {
+  min-height: 30px;
+  margin-bottom: 8px;
+  padding-bottom: 7px;
+}
+
+.command-section-header__icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-control) !important;
+}
+
+.command-choice,
+.command-setting-card,
+.command-slider-panel {
+  border-color: var(--ui-border) !important;
+  border-radius: var(--ui-radius-md) !important;
+  background: var(--ui-control) !important;
+  box-shadow: none !important;
+}
+
+.command-choice:hover,
+.command-setting-card:hover {
+  border-color: var(--ui-border-strong) !important;
+  background: var(--ui-surface-hover) !important;
+}
+
+.command-choice[data-active="true"],
+.command-choice.is-active,
+.command-setting-card[data-active="true"],
+.command-setting-card.is-active {
+  border-color: rgba(21, 150, 181, 0.72) !important;
+  background: var(--ui-accent-soft) !important;
+  box-shadow: inset 3px 0 0 var(--ui-accent) !important;
+}
+
+.command-advanced__count {
+  border: 1px solid rgba(21, 150, 181, 0.32);
+  border-radius: var(--ui-radius-xs);
+  background: var(--ui-accent-soft);
+}
+
+.command-settings-footer {
+  position: relative;
+  bottom: auto;
+  min-height: 64px;
+  padding: 8px 14px calc(8px + env(safe-area-inset-bottom));
+  border-color: var(--ui-border);
+  background: var(--ui-canvas);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.command-settings-warning {
+  border-left-color: var(--ui-warning);
+  background: var(--ui-warning-soft);
+}
+
+single-player-modal o-button button {
+  min-height: 46px;
+  border-radius: var(--ui-radius-md) !important;
+  background: var(--ui-accent-active) !important;
+  box-shadow: none !important;
+}
+
+single-player-modal o-button button:hover {
+  background: var(--ui-accent) !important;
+}
+
+single-player-modal .rounded-xl,
+map-picker .rounded-xl,
+game-config-settings .rounded-xl,
+toggle-input-card .rounded-xl {
+  border-radius: var(--ui-radius-md) !important;
+}
+
+single-player-modal .transition-all,
+map-picker .transition-all,
+game-config-settings .transition-all,
+toggle-input-card .transition-all {
+  transition-property: background-color, border-color, color, opacity, transform !important;
+  transition-duration: var(--ui-transition-fast) !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* In-game command surfaces                                                   */
+/* -------------------------------------------------------------------------- */
+
+control-panel .command-control-panel {
+  overflow: hidden;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--ui-radius-lg);
+  background: rgba(8, 13, 17, 0.98);
+  box-shadow: var(--ui-shadow-dock);
+}
+
+control-panel .command-control-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--ui-accent);
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+control-panel .command-resource,
+control-panel .command-military {
+  border-color: var(--ui-border) !important;
+  border-radius: var(--ui-radius-md) !important;
+  background: var(--ui-control) !important;
+  box-shadow: none !important;
+}
+
+control-panel .command-military::after {
+  right: auto;
+  width: var(--training-coverage, 0%);
+  height: 2px;
+  background: var(--ui-accent);
+  transform: none;
+}
+
+control-panel input[type="range"] {
+  accent-color: var(--ui-accent);
+}
+
+.command-player-layer {
+  padding: 0 !important;
+}
+
+.command-player-dock,
+.command-request-inbox,
+.command-notification-inbox {
+  border-color: var(--ui-border-strong);
+  border-radius: var(--ui-radius-lg);
+  background: rgba(8, 13, 17, 0.985);
+  box-shadow: var(--ui-shadow-dock);
+}
+
+.command-player-header,
+.command-player-metrics,
+.command-player-details,
+.command-player-details-toggle {
+  border-color: var(--ui-border);
+}
+
+.command-player-flag,
+.command-player-flag-fallback,
+.command-player-metrics > div {
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-control);
+}
+
+.command-action-control {
+  min-height: 44px;
+  border-color: var(--ui-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-control);
+  box-shadow: none;
+}
+
+.command-action-control[data-priority="primary"] {
+  border-color: rgba(21, 150, 181, 0.52);
+  background: var(--ui-accent-soft);
+}
+
+.command-action-control[data-variant="red"] {
+  border-color: rgba(213, 91, 80, 0.4);
+  background: var(--ui-danger-soft);
+}
+
+.command-action-control[data-variant="green"],
+.command-action-control[data-variant="yellow"] {
+  border-color: rgba(198, 161, 88, 0.4);
+  background: var(--ui-support-soft);
+}
+
+.command-action-control:hover:not(:disabled),
+.command-action-control:focus-visible:not(:disabled) {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-hover);
+  transform: none;
+}
+
+.command-action-control:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.command-player-details-toggle {
+  border-radius: 0;
+  background: transparent;
+}
+
+.command-request-card,
+.command-notification-card {
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-control);
+}
+
+game-left-sidebar aside,
+game-right-sidebar aside {
+  border-color: var(--ui-border-strong) !important;
+  background: rgba(8, 13, 17, 0.985) !important;
+  box-shadow: var(--ui-shadow-dock) !important;
+}
+
+/* Remove ornamental effects from the core play surfaces. */
+.command-play-page [class*="backdrop-blur"],
+.command-single-player [class*="backdrop-blur"],
+.command-player-dock [class*="backdrop-blur"],
+control-panel [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+}
+
+.command-play-page [class*="hover:scale"],
+.command-single-player [class*="hover:scale"],
+.command-player-dock [class*="hover:scale"],
+control-panel [class*="hover:scale"] {
+  transform: none !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Responsive composition                                                     */
+/* -------------------------------------------------------------------------- */
+
+@media (min-width: 640px) {
+  .command-home-actions {
+    grid-template-columns: minmax(220px, 1.25fr) minmax(0, 1fr);
+  }
+
+  .command-lobby-stage {
+    grid-template-columns: minmax(0, 1.5fr) minmax(270px, 0.8fr);
+    min-height: min(330px, 38vh);
+  }
+
+  .command-lobby-card {
+    min-height: 142px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .command-home-utility {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.34fr);
+  }
+
+  .command-stream-panel {
+    display: flex;
+  }
+
+  .command-settings-grid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.7fr);
+  }
+
+  .command-settings-grid > section:first-child {
+    grid-column: 1;
+    grid-row: 1 / span 7;
+    position: sticky;
+    top: 0;
+    max-height: calc(100dvh - 152px);
+    overflow-y: auto;
+  }
+
+  .command-settings-grid > section:not(:first-child),
+  .command-settings-grid > details {
+    grid-column: 2;
+  }
+
+  .command-settings-footer {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 400px);
+  }
+}
+
+/* 1024px-class tablets need the desktop navigation but not the two-column
+   configuration stack. Keeping one scroll context makes the action bar visible. */
+@media (min-width: 900px) and (max-width: 1179px) {
+  .command-single-player {
+    height: calc(100dvh - 56px);
+    max-height: calc(100dvh - 56px);
+  }
+
+  .command-settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .command-settings-grid > section:first-child,
+  .command-settings-grid > section:not(:first-child),
+  .command-settings-grid > details {
+    grid-column: 1;
+    grid-row: auto;
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .command-settings-footer {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  }
+}
+
+@media (max-width: 1023px) {
+  .command-play-page {
+    padding: 8px 10px 12px;
+  }
+
+  page-footer footer > div:last-of-type {
+    display: none !important;
+  }
+}
+
+@media (max-width: 639px) {
+  body {
+    font-size: 13px;
+  }
+
+  .command-play-page {
+    gap: 8px;
+    padding: 7px 8px 10px;
+  }
+
+  .command-news-box {
+    min-height: 58px;
+    grid-template-columns: auto minmax(0, 1fr) 32px;
+    gap: 7px;
+    padding: 7px 7px 7px 8px;
+  }
+
+  .command-news-tag {
+    min-width: 52px;
+    padding-inline: 5px;
+    font-size: 8px;
+  }
+
+  .command-news-pagination {
+    display: none;
+  }
+
+  .command-news-description {
+    display: -webkit-box;
+    overflow: hidden;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .command-home-actions {
+    padding: 6px;
+  }
+
+  .command-action-button[data-primary="true"] {
+    min-height: 50px;
+    justify-content: center;
+    border-left-width: 1px;
+    font-size: 14px;
+  }
+
+  .command-secondary-actions .command-action-button {
+    padding-inline: 5px;
+    font-size: 10px;
+    letter-spacing: 0;
+  }
+
+  .command-loading-panel {
+    min-height: 96px;
+  }
+
+  .command-lobby-card__image {
+    width: 50%;
+  }
+
+  .command-lobby-card__meta {
+    left: 48%;
+  }
+
+  .command-settings-scroll {
+    padding: 8px 8px 10px;
+  }
+
+  .command-settings-grid > section,
+  .command-settings-grid > details {
+    padding: 9px;
+  }
+
+  .command-settings-footer {
+    min-height: 66px;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+
+  control-panel .command-control-panel {
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 0;
+    box-shadow: 0 -7px 22px rgba(0, 0, 0, 0.26);
+  }
+
+  .command-player-dock {
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: var(--ui-radius-lg) var(--ui-radius-lg) 0 0;
+  }
+
+  page-footer footer {
+    min-height: 78px;
+    padding: 5px 8px calc(7px + env(safe-area-inset-bottom)) !important;
+  }
+
+  page-footer footer > div:first-child > div:first-child {
+    gap: 16px !important;
+  }
+
+  page-footer footer > div:first-child > div:last-child {
+    width: 100%;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    padding-inline: 0 !important;
+    font-size: 9px !important;
+  }
+
+  page-footer lang-selector {
+    right: 8px !important;
+    top: 8px !important;
+  }
+}
+
+@media (pointer: coarse) {
+  .command-news-dismiss,
+  .command-news-pagination button,
+  .command-action-button,
+  .command-steam-promo,
+  .command-action-control {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .command-loading-panel span {
+    animation: none !important;
+    opacity: 0.72;
+  }
+}
+
+/* Keep routed play page hidden when Navigation activates an inline modal. */
+.command-play-page.hidden {
+  display: none !important;
+}
+
+/* Fit inline setup beneath navigation, page inset and modal header. The
+   settings list scrolls while the start action remains fully visible. */
+@media (min-width: 640px) {
+  .command-single-player {
+    height: calc(100dvh - 130px);
+    max-height: calc(100dvh - 130px);
+  }
+}
+
+/* Show one Steam promotion per viewport: the compact body slot on smaller
+   screens and the persistent footer module on desktop-class layouts. */
+@media (min-width: 1024px) {
+  .command-steam-promo-slot {
+    display: none !important;
+  }
+}

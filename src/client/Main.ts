@@ -81,6 +81,7 @@ import "./styles.css";
 import "./styles/core/typography.css";
 import "./styles/core/variables.css";
 import "./styles/command-ui.css";
+import "./styles/operational-atlas.css";
 import "./styles/layout/container.css";
 import "./styles/layout/header.css";
 import "./styles/modal/chat.css";
@@ -245,12 +246,9 @@ class Client {
     await customElements.whenDefined("mobile-nav-bar");
     await customElements.whenDefined("desktop-nav-bar");
 
-    const openFrontFont = new FontFace(
-      "OpenFront",
-      `url(${assetUrl("fonts/OpenFront.ttf")})`,
-    );
-    document.fonts.add(openFrontFont);
-    openFrontFont.load().catch(() => {});
+    // The public Pages build does not ship the proprietary OpenFront font.
+    // Keep the version label deterministic and avoid a guaranteed same-origin
+    // 404 by using the local system stack used by the rest of the command UI.
 
     const versionElements = document.querySelectorAll(
       "#game-version, .game-version-display",
@@ -261,7 +259,7 @@ class Client {
       const trimmed = version.trim();
       const displayVersion = trimmed.startsWith("v") ? trimmed : `v${trimmed}`;
       versionElements.forEach((el) => {
-        (el as HTMLElement).style.fontFamily = '"OpenFront", Inter, sans-serif';
+        (el as HTMLElement).style.fontFamily = '"Arial Narrow", "Roboto Condensed", ui-sans-serif, system-ui, sans-serif';
         el.textContent = displayVersion;
       });
     }
