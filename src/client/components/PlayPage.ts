@@ -1,6 +1,7 @@
 import { LitElement, html } from "lit";
 import { customElement } from "lit/decorators.js";
 import { crazyGamesSDK } from "../CrazyGamesSDK";
+import "../styles/home-operations-desk.css";
 import "./CosmeticBackground";
 import "./NewsBox";
 import "./SteamWishlistButton";
@@ -94,33 +95,39 @@ export class PlayPage extends LitElement {
 
         <div class="command-mobile-topbar-spacer lg:hidden"></div>
 
-        <section class="command-home-utility" aria-label="Player setup">
-          <div class="command-home-brief">
-            <news-box></news-box>
+        <h1 id="command-home-title" class="sr-only" data-i18n="main.play"></h1>
 
-            <div class="command-identity-bar relative overflow-hidden">
-              <cosmetic-background
-                class="pointer-events-none absolute inset-0 overflow-hidden"
-              ></cosmetic-background>
-              <div class="command-identity-bar__controls">
-                <flag-input
-                  show-select-label
-                  class="h-11 w-11 shrink-0"
-                ></flag-input>
-                <username-input class="h-11 min-w-0 flex-1"></username-input>
-                <cosmetics-input
-                  id="cosmetics-input-mobile"
-                  show-select-label
-                  class="no-crazygames h-11 w-11 shrink-0"
-                ></cosmetics-input>
+        <div class="command-home-shell">
+          <aside class="command-home-utility" aria-label="Player setup">
+            <div class="command-home-brief">
+              <div class="command-identity-bar relative overflow-hidden">
+                <cosmetic-background
+                  class="pointer-events-none absolute inset-0 overflow-hidden"
+                ></cosmetic-background>
+                <div class="command-identity-bar__controls">
+                  <flag-input
+                    show-select-label
+                    class="h-11 w-11 shrink-0"
+                  ></flag-input>
+                  <username-input class="h-11 min-w-0 flex-1"></username-input>
+                  <cosmetics-input
+                    id="cosmetics-input-mobile"
+                    show-select-label
+                    class="no-crazygames h-11 w-11 shrink-0"
+                  ></cosmetics-input>
+                </div>
               </div>
+
+              <news-box></news-box>
             </div>
-          </div>
 
-          <streaming-now class="command-stream-panel"></streaming-now>
-        </section>
+            <streaming-now class="command-stream-panel"></streaming-now>
+          </aside>
 
-        <game-mode-selector></game-mode-selector>
+          <main class="command-home-stage" aria-labelledby="command-home-title">
+            <game-mode-selector></game-mode-selector>
+          </main>
+        </div>
 
         <steam-wishlist-button
           campaign="home_mobile"

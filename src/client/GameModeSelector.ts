@@ -127,55 +127,76 @@ export class GameModeSelector extends LitElement {
 
     return html`
       <div class="command-home">
-        <div class="command-home-actions">
-          ${this.renderSmallActionCard(
-            translateText("main.solo"),
-            this.openSinglePlayerModal,
-            true,
-          )}
-          <div class="command-secondary-actions">
+        <section
+          class="command-operation-deck"
+          aria-labelledby="command-operation-title"
+        >
+          <h2
+            id="command-operation-title"
+            class="sr-only"
+            data-i18n="main.play"
+          ></h2>
+          <div class="command-home-actions">
             ${this.renderSmallActionCard(
-              translateText("main.create"),
-              this.openHostLobby,
+              translateText("main.solo"),
+              this.openSinglePlayerModal,
+              true,
             )}
-            ${this.renderSmallActionCard(
-              translateText("mode_selector.ranked_title"),
-              this.openRankedMenu,
-            )}
-            ${this.renderSmallActionCard(
-              translateText("main.join"),
-              this.openJoinLobby,
-              false,
-              this.hostedLobbyCount(),
-            )}
+            <div class="command-secondary-actions">
+              ${this.renderSmallActionCard(
+                translateText("main.create"),
+                this.openHostLobby,
+              )}
+              ${this.renderSmallActionCard(
+                translateText("mode_selector.ranked_title"),
+                this.openRankedMenu,
+              )}
+              ${this.renderSmallActionCard(
+                translateText("main.join"),
+                this.openJoinLobby,
+                false,
+                this.hostedLobbyCount(),
+              )}
+            </div>
           </div>
-        </div>
+        </section>
 
         <ios-add-to-home-screen-banner
           class="no-crazygames"
         ></ios-add-to-home-screen-banner>
 
-        ${this.lobbies === null
-          ? html`<div class="command-loading-panel" aria-label="Loading games">
-              <span></span><span></span><span></span>
-            </div>`
-          : html`<div class="command-lobby-stage">
-              ${ffa
-                ? html`<div class="min-h-0 sm:row-span-2">
-                    ${this.renderLobbyCard(ffa, this.getLobbyTitle(ffa))}
-                  </div>`
-                : nothing}
-              ${special
-                ? html`<div class="min-h-0">
-                    ${this.renderSpecialLobbyCard(special)}
-                  </div>`
-                : nothing}
-              ${teams
-                ? html`<div class="min-h-0">
-                    ${this.renderLobbyCard(teams, this.getLobbyTitle(teams))}
-                  </div>`
-                : nothing}
-            </div>`}
+        <section
+          class="command-live-games"
+          aria-labelledby="command-live-title"
+          aria-live="polite"
+        >
+          <h2
+            id="command-live-title"
+            class="sr-only"
+            data-i18n="main.join"
+          ></h2>
+          ${this.lobbies === null
+            ? html`<div class="command-loading-panel" aria-label="Loading games">
+                <span></span><span></span><span></span>
+              </div>`
+            : html`<div class="command-lobby-stage">
+                ${ffa
+                  ? html`<div class="min-h-0 sm:row-span-2">
+                      ${this.renderLobbyCard(ffa, this.getLobbyTitle(ffa))}
+                    </div>`
+                  : nothing}
+                ${special
+                  ? html`<div class="min-h-0">
+                      ${this.renderSpecialLobbyCard(special)}
+                    </div>`
+                  : nothing}
+                ${teams
+                  ? html`<div class="min-h-0">
+                      ${this.renderLobbyCard(teams, this.getLobbyTitle(teams))}
+                    </div>`
+                  : nothing}
+              </div>`}
+        </section>
       </div>
     `;
   }
@@ -223,14 +244,21 @@ export class GameModeSelector extends LitElement {
         @click=${onClick}
         ?disabled=${!this.inputValid}
         data-primary=${primary ? "true" : "false"}
+        data-action=${primary ? "solo" : "secondary"}
         class="command-action-button ${!this.inputValid
           ? "pointer-events-none cursor-not-allowed opacity-45"
           : ""}"
       >
-        <span class="min-w-0 truncate">${title}</span>
-        ${badge
-          ? html`<span class="command-action-badge">${badge}</span>`
-          : nothing}
+        <span class="command-action-button__label min-w-0 truncate"
+          >${title}</span
+        >
+        ${primary
+          ? html`<span class="command-action-button__arrow" aria-hidden="true"
+              >→</span
+            >`
+          : badge
+            ? html`<span class="command-action-badge">${badge}</span>`
+            : nothing}
       </button>
     `;
   }

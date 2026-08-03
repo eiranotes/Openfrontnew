@@ -201,16 +201,33 @@ try {
     const primaryAction = document.querySelector(
       '.command-action-button[data-primary="true"]',
     );
-    const steamPromo = document.querySelector("steam-wishlist-button");
     const news = document.querySelector(".command-news-box");
+    const homeShell = document.querySelector(".command-home-shell");
+    const utility = document.querySelector(".command-home-utility");
+    const stage = document.querySelector(".command-home-stage");
+    const navigation = document.querySelector("desktop-nav-bar");
     const primaryStyle = primaryAction ? getComputedStyle(primaryAction) : null;
     const newsRect = news?.getBoundingClientRect();
+    const utilityRect = utility?.getBoundingClientRect();
+    const stageRect = stage?.getBoundingClientRect();
     return {
       steamIframeCount: playPage?.querySelectorAll("iframe").length ?? 0,
-      steamPromoCount: playPage?.querySelectorAll("steam-wishlist-button").length ?? 0,
+      steamPromoCount:
+        playPage?.querySelectorAll("steam-wishlist-button").length ?? 0,
       primaryBackgroundImage: primaryStyle?.backgroundImage ?? null,
       primaryRadius: primaryStyle?.borderRadius ?? null,
       newsHeight: newsRect?.height ?? 0,
+      homeShellCount: playPage?.querySelectorAll(".command-home-shell").length ?? 0,
+      primaryNavItemCount:
+        navigation?.querySelectorAll(
+          ".command-desktop-nav__menu .nav-menu-item",
+        ).length ?? 0,
+      utilityMenuCount:
+        navigation?.querySelectorAll(".command-desktop-nav__more").length ?? 0,
+      desktopTwoColumn:
+        Boolean(utilityRect && stageRect) && stageRect.left > utilityRect.right,
+      mobileStacked:
+        Boolean(utilityRect && stageRect) && stageRect.top >= utilityRect.bottom,
       viewportWidth: innerWidth,
     };
   });
@@ -223,6 +240,21 @@ try {
   }
   if (homeAudit.viewportWidth <= 430 && homeAudit.newsHeight > 96) {
     throw new Error(`Mobile news surface is too tall: ${JSON.stringify(homeAudit)}`);
+  }
+
+  if (homeAudit.homeShellCount !== 1) {
+    throw new Error(`Home operations desk missing: ${JSON.stringify(homeAudit)}`);
+  }
+  if (
+    homeAudit.viewportWidth >= 1024 &&
+    (homeAudit.primaryNavItemCount !== 4 ||
+      homeAudit.utilityMenuCount !== 1 ||
+      !homeAudit.desktopTwoColumn)
+  ) {
+    throw new Error(`Desktop home hierarchy regressed: ${JSON.stringify(homeAudit)}`);
+  }
+  if (homeAudit.viewportWidth <= 430 && !homeAudit.mobileStacked) {
+    throw new Error(`Mobile home hierarchy regressed: ${JSON.stringify(homeAudit)}`);
   }
 
   const uiLayout = await page.evaluate(async () => {
@@ -308,6 +340,7 @@ try {
       difficulty: modal.selectedDifficulty,
       bots: modal.bots,
       compact: modal.compactMap,
+      randomSpawn: modal.randomSpawn,
       disabledUnits: [...modal.disabledUnits],
     };
   });
@@ -317,6 +350,7 @@ try {
     difficulty: "Easy",
     bots: 400,
     compact: false,
+    randomSpawn: false,
   };
   for (const [key, value] of Object.entries(expectedDefaults)) {
     if (defaults[key] !== value) {
@@ -346,6 +380,7 @@ try {
               gameMode: config.gameMode,
               playerTeams: config.playerTeams,
               gameType: config.gameType,
+              randomSpawn: config.randomSpawn,
             }
           : null;
       },
@@ -359,6 +394,7 @@ try {
     modal.compactMap = true;
     modal.gameMode = "Team";
     modal.teamCount = 4;
+    modal.randomSpawn = true;
     modal.nations = 0;
     modal.defaultNationCount = 0;
     modal.disabledUnits = [];
@@ -382,6 +418,7 @@ try {
     gameMode: "Team",
     playerTeams: 4,
     gameType: "Singleplayer",
+    randomSpawn: true,
   };
   for (const [key, value] of Object.entries(expectedConfig)) {
     if (emitted[key] !== value) {
@@ -432,24 +469,45 @@ try {
     throw new Error("No visible game canvas found after entering the game");
   }
 
+  // Use the game's random-spawn path for deterministic CI. A single click at
+  // the canvas centre is not guaranteed to hit land at every viewport and map
+  // scale, which made the tablet build-menu audit intermittently run before a
+  // player spawn existed.
+  await page.waitForFunction(
+    () => {
+      const game = document.querySelector("build-menu")?.game;
+      const player = game?.myPlayer?.();
+      return player?.state?.spawnTile !== undefined;
+    },
+    undefined,
+    { timeout: 120_000 },
+  );
+
   await page.mouse.click(
     canvasBox.x + canvasBox.width / 2,
     canvasBox.y + canvasBox.height / 2,
   );
-  await page.waitForTimeout(8_000);
+  await page.waitForTimeout(2_000);
 
-  const runtime = await page.evaluate(() => ({
-    inGame: document.body.classList.contains("in-game"),
-    path: window.location.pathname,
-    canvasCount: document.querySelectorAll("canvas").length,
-    visibleCanvasCount: [...document.querySelectorAll("canvas")].filter((canvas) => {
-      const rect = canvas.getBoundingClientRect();
-      return rect.width >= 100 && rect.height >= 100;
-    }).length,
-  }));
+  const runtime = await page.evaluate(() => {
+    const game = document.querySelector("build-menu")?.game;
+    return {
+      inGame: document.body.classList.contains("in-game"),
+      path: window.location.pathname,
+      canvasCount: document.querySelectorAll("canvas").length,
+      visibleCanvasCount: [...document.querySelectorAll("canvas")].filter(
+        (canvas) => {
+          const rect = canvas.getBoundingClientRect();
+          return rect.width >= 100 && rect.height >= 100;
+        },
+      ).length,
+      spawnReady: game?.myPlayer?.()?.state?.spawnTile !== undefined,
+    };
+  });
 
   if (
     !runtime.inGame ||
+    !runtime.spawnReady ||
     runtime.visibleCanvasCount < 1 ||
     !/^\/w\d+\/game\/[A-Za-z0-9_-]+$/.test(runtime.path)
   ) {
@@ -604,11 +662,16 @@ try {
     fullPage: true,
   });
   await page.evaluate(() => document.querySelector("player-panel")?.hide());
-  const missingCoreAssets = [...sameOriginFailures, ...sameOriginHttpErrors].filter((entry) =>
-    /OpenFront\.ttf|OpenFrontLogo\.svg/i.test(entry),
+  const missingCoreAssets = [...sameOriginFailures, ...sameOriginHttpErrors].filter(
+    (entry) => /OpenFront\.ttf|OpenFrontLogo\.svg/i.test(entry),
   );
   if (missingCoreAssets.length > 0) {
     throw new Error(`Core UI asset requests failed:\n${missingCoreAssets.join("\n")}`);
+  }
+  if (sameOriginHttpErrors.length > 0) {
+    throw new Error(
+      `Same-origin HTTP errors:\n${sameOriginHttpErrors.join("\n")}`,
+    );
   }
   if (workerErrors.length > 0) {
     throw new Error(`Worker errors:\n${workerErrors.join("\n")}`);
