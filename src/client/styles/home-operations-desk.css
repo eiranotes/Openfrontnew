@@ -463,3 +463,18 @@
     width: 100%;
   }
 }
+
+/* Override the legacy two-column utility grid loaded by Operational Atlas. */
+@media (min-width: 1024px) {
+  .command-home-shell > .command-home-utility {
+    display: flex;
+    grid-template-columns: none;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .command-home-shell > .command-home-utility > .command-home-brief,
+  .command-home-shell > .command-home-utility > .command-stream-panel {
+    width: 100%;
+  }
+}
