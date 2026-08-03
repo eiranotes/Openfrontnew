@@ -2,7 +2,7 @@
 
 - Status: verified
 - URL: https://eiranotes.github.io/Openfrontnew/
-- Verified at: 2026-08-02T08:00:00Z
-- Source commit: a85333a4263cda3928b4ef9fb4450d16c940582e
+- Verified at: 2026-08-03T05:09:04Z
+- Source commit: 174c54147681a686e73229a4a9029a24c4b0a523
 - HTML bytes: 15859
-- JavaScript bundle: /Openfrontnew/assets/index-DAlLzAuq.js (2042786 bytes)
+- JavaScript bundle: /Openfrontnew/assets/index--xEdR-gc.js (2044060 bytes)
