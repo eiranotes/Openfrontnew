@@ -55,6 +55,44 @@ const forbiddenChecks = [
   ["src/client/components/PlayPage.ts", "show-select-label"],
 ];
 
+const fortressHomeV2MarkerChecks = [
+  [
+    "src/client/components/PlayPage.ts",
+    'class="command-play-page fortress-home-v2"',
+  ],
+  ["src/client/components/PlayPage.ts", "OPENFRONT ENGINE"],
+  [
+    "src/client/components/DesktopNavBar.ts",
+    'class="fortress-nav-brand__name">FORTRESS',
+  ],
+  [
+    "src/client/components/DesktopNavBar.ts",
+    'class="command-desktop-nav__more-menu"',
+  ],
+  [
+    "src/client/styles/home-operations-desk.css",
+    "Fortress Home V2",
+  ],
+  [
+    "tests/OperationalAtlasUi.test.ts",
+    "uses a visibly distinct Fortress editorial shell",
+  ],
+  [
+    "src/client/sound/SoundManager.ts",
+    "BACKGROUND_MUSIC_TRACK_PATHS: readonly string[] = []",
+  ],
+  ["scripts/browser-single-player-smoke.mjs", "modal.randomSpawn = true"],
+  ["index.html", "Clean application shell: no legacy logo backdrops"],
+];
+const fortressHomeV2ForbiddenChecks = [
+  ["index.html", "--mobile-logo-image-url"],
+  ["index.html", "--desktop-logo-image-url"],
+  ["vite.config.ts", "mobileLogoImageUrl"],
+  ["vite.config.ts", "desktopLogoImageUrl"],
+  ["src/server/RenderHtml.ts", "mobileLogoImageUrl"],
+  ["src/server/RenderHtml.ts", "desktopLogoImageUrl"],
+];
+
 function absolute(relativePath) {
   return path.join(root, relativePath);
 }
@@ -105,6 +143,20 @@ function isMaterialized() {
       ([relativePath, marker]) => !contains(relativePath, marker),
     )
   );
+}
+
+function isFortressHomeV2Materialized() {
+  return (
+    allPresent(fortressHomeV2MarkerChecks) &&
+    fortressHomeV2ForbiddenChecks.every(
+      ([relativePath, marker]) => !contains(relativePath, marker),
+    )
+  );
+}
+
+if (isFortressHomeV2Materialized()) {
+  console.log("Fortress Home V2 is already materialized.");
+  process.exit(0);
 }
 
 if (isMaterialized()) {
