@@ -14,6 +14,7 @@ const markerChecks = [
     'import "../styles/home-operations-desk.css";',
   ],
   ["src/client/components/PlayPage.ts", 'class="command-home-shell"'],
+  ["src/client/components/PlayPage.ts", "data-compact-control"],
   [
     "src/client/components/DesktopNavBar.ts",
     'class="command-desktop-nav__more-menu"',
@@ -28,6 +29,10 @@ const markerChecks = [
     "Clean Operations Desk homepage",
   ],
   [
+    "src/client/styles/home-operations-desk.css",
+    "Align the compact identity/news rail",
+  ],
+  [
     "tests/OperationalAtlasUi.test.ts",
     "uses a clean operations desk and collapses secondary desktop navigation",
   ],
@@ -40,6 +45,7 @@ const forbiddenChecks = [
   ["vite.config.ts", "desktopLogoImageUrl"],
   ["src/server/RenderHtml.ts", "mobileLogoImageUrl"],
   ["src/server/RenderHtml.ts", "desktopLogoImageUrl"],
+  ["src/client/components/PlayPage.ts", "show-select-label"],
 ];
 
 function absolute(relativePath) {
@@ -70,6 +76,14 @@ function removeOnce(relativePath, before) {
   let content = fs.readFileSync(file, "utf8");
   if (!content.includes(before)) return;
   content = content.replace(before, "");
+  fs.writeFileSync(file, content);
+}
+
+function appendOnce(relativePath, marker, addition) {
+  const file = absolute(relativePath);
+  let content = fs.readFileSync(file, "utf8");
+  if (content.includes(marker)) return;
+  content = `${content.trimEnd()}\n\n${addition.trim()}\n`;
   fs.writeFileSync(file, content);
 }
 
@@ -174,6 +188,56 @@ const injectedLogoFields = `    desktopLogoImageUrl: buildAssetUrl(
 `;
 removeOnce("vite.config.ts", injectedLogoFields);
 removeOnce("src/server/RenderHtml.ts", injectedLogoFields);
+
+replaceOnce(
+  "src/client/components/PlayPage.ts",
+  `                  <flag-input
+                    show-select-label
+                    class="h-11 w-11 shrink-0"
+                  ></flag-input>`,
+  `                  <flag-input
+                    data-compact-control
+                    class="h-11 w-11 shrink-0"
+                  ></flag-input>`,
+  "compact flag control",
+);
+replaceOnce(
+  "src/client/components/PlayPage.ts",
+  `                  <cosmetics-input
+                    id="cosmetics-input-mobile"
+                    show-select-label
+                    class="no-crazygames h-11 w-11 shrink-0"
+                  ></cosmetics-input>`,
+  `                  <cosmetics-input
+                    id="cosmetics-input-mobile"
+                    data-compact-control
+                    class="no-crazygames h-11 w-11 shrink-0"
+                  ></cosmetics-input>`,
+  "compact cosmetics control",
+);
+appendOnce(
+  "src/client/styles/home-operations-desk.css",
+  "Align the compact identity/news rail",
+  `/* Align the compact identity/news rail with the homepage grid. */
+.command-home-utility,
+.command-home-brief,
+.command-identity-bar,
+.command-news-box,
+.command-stream-panel {
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .command-home-utility,
+  .command-home-brief {
+    align-self: stretch;
+  }
+
+  .command-identity-bar__controls {
+    width: 100%;
+  }
+}`,
+);
 
 for (const [relativePath, marker] of markerChecks) {
   if (!contains(relativePath, marker)) {
