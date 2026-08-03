@@ -11,7 +11,7 @@ import {
   TerrainType,
   TerraNullius,
 } from "../game/Game";
-import { militaryQuality } from "../game/FortressBalance";
+import { effectiveMilitaryQuality } from "../game/FortressBalance";
 import { GameMap, TileRef } from "../game/GameMap";
 import { PseudoRandom } from "../PseudoRandom";
 import { assertNever } from "../Util";
@@ -136,8 +136,8 @@ export class AttackExecution implements Execution {
     for (const incoming of this._owner.incomingAttacks()) {
       if (incoming.attacker() === this.target) {
         // Fortress: opposing armies cancel by effective combat power.
-        const myQuality = militaryQuality(this._owner).quality;
-        const enemyQuality = militaryQuality(incoming.attacker()).quality;
+        const myQuality = effectiveMilitaryQuality(this._owner);
+        const enemyQuality = effectiveMilitaryQuality(incoming.attacker());
         const myPower = this.attack.troops() * myQuality;
         const enemyPower = incoming.troops() * enemyQuality;
         if (enemyPower > myPower) {

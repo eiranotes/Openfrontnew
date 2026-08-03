@@ -1,9 +1,14 @@
+import "./ConquerGold.test";
+import "./FortressEconomyBalance.test";
+import "./core/game/TrainStation.test";
 import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 import { UnitType, type Player, type Unit } from "../src/core/game/Game";
 import {
   compactStateProfile,
   developmentEfficiencyScore,
+  effectiveQualityFromDisplayedQuality,
+  militaryCombatModifiers,
   militaryProfile,
 } from "../src/core/game/FortressBalance";
 
@@ -78,6 +83,31 @@ describe("Fortress military quality", () => {
     expect(profile.coverage).toBeCloseTo(0.65, 5);
     expect(profile.quality).toBeCloseTo(1.455, 5);
   });
+
+  it("compresses displayed quality into a bounded combat power curve", () => {
+    expect(effectiveQualityFromDisplayedQuality(1)).toBe(1);
+    expect(effectiveQualityFromDisplayedQuality(2)).toBeCloseTo(1.464086, 5);
+
+    const guard = player({ cityLevels: [9, 7, 5], troops: 1_000_000 });
+    const levy = player({ cityLevels: [1], troops: 1_000_000 });
+    expect(militaryProfile(guard).quality).toBe(2);
+    expect(militaryProfile(levy).quality).toBe(1);
+    const modifiers = militaryCombatModifiers(guard, levy);
+    expect(modifiers.qualityRatio).toBeCloseTo(1.464086, 5);
+    expect(modifiers.exchangeModifier).toBeCloseTo(1.210, 3);
+    expect(modifiers.tempoModifier).toBe(1.06);
+  });
+
+  it("caps extreme exchange and tempo modifiers symmetrically enough for recovery", () => {
+    const elite = player({ cityLevels: [9, 9, 9], troops: 1 });
+    const untrained = player({ troops: 10_000_000 });
+    const advantage = militaryCombatModifiers(elite, untrained);
+    const disadvantage = militaryCombatModifiers(untrained, elite);
+    expect(advantage.exchangeModifier).toBeLessThanOrEqual(1.22);
+    expect(disadvantage.exchangeModifier).toBeGreaterThanOrEqual(0.82);
+    expect(advantage.tempoModifier).toBeLessThanOrEqual(1.06);
+    expect(disadvantage.tempoModifier).toBeGreaterThanOrEqual(0.94);
+  });
 });
 
 describe("investment-backed compact development", () => {
@@ -151,7 +181,11 @@ describe("combat integration", () => {
     expect(config).not.toContain("largeDefenderSpeedDebuff");
     expect(config).not.toContain("largeDefenderAttackDebuff");
     expect(config).not.toContain("combatMultiplier");
+    expect(config).toContain("militaryCombatModifiers(attacker, defender)");
     expect(config).toContain("compactStateProfile(attacker).logisticsMultiplier");
+    expect(source("src/core/execution/AttackExecution.ts")).toContain(
+      "effectiveMilitaryQuality",
+    );
   });
 
   it("integrates the bounded domestic and reinforcement multipliers", () => {

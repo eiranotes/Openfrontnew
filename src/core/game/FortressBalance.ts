@@ -16,6 +16,15 @@ export const MAX_COMMERCIAL_INCOME_BONUS = 0.08;
 export const MAX_REINFORCEMENT_BONUS = 0.15;
 export const MAX_LOGISTICS_BONUS = 0.05;
 
+// The displayed tier quality remains legible to players, but combat uses a
+// compressed power curve so development matters without creating a runaway
+// two-for-one casualty exchange.
+export const MILITARY_QUALITY_POWER_EXPONENT = 0.55;
+export const MIN_MILITARY_EXCHANGE_MODIFIER = 0.82;
+export const MAX_MILITARY_EXCHANGE_MODIFIER = 1.22;
+export const MIN_MILITARY_TEMPO_MODIFIER = 0.94;
+export const MAX_MILITARY_TEMPO_MODIFIER = 1.06;
+
 export interface MilitaryProfile {
   tier: number;
   label: string;
@@ -185,4 +194,53 @@ export function militaryProfile(player: MilitaryPlayerLike): MilitaryProfile {
 
 export function militaryQuality(player: MilitaryPlayerLike): MilitaryProfile {
   return militaryProfile(player);
+}
+
+export function effectiveQualityFromDisplayedQuality(quality: number): number {
+  return Math.pow(
+    Math.max(0.01, quality),
+    MILITARY_QUALITY_POWER_EXPONENT,
+  );
+}
+
+export function effectiveMilitaryQuality(
+  player: MilitaryPlayerLike,
+): number {
+  return effectiveQualityFromDisplayedQuality(militaryProfile(player).quality);
+}
+
+export function militaryQualityRatio(
+  attacker: MilitaryPlayerLike,
+  defender: MilitaryPlayerLike,
+): number {
+  return (
+    effectiveMilitaryQuality(attacker) /
+    Math.max(0.01, effectiveMilitaryQuality(defender))
+  );
+}
+
+export interface MilitaryCombatModifiers {
+  qualityRatio: number;
+  exchangeModifier: number;
+  tempoModifier: number;
+}
+
+export function militaryCombatModifiers(
+  attacker: MilitaryPlayerLike,
+  defender: MilitaryPlayerLike,
+): MilitaryCombatModifiers {
+  const qualityRatio = militaryQualityRatio(attacker, defender);
+  return {
+    qualityRatio,
+    exchangeModifier: within(
+      Math.sqrt(qualityRatio),
+      MIN_MILITARY_EXCHANGE_MODIFIER,
+      MAX_MILITARY_EXCHANGE_MODIFIER,
+    ),
+    tempoModifier: within(
+      Math.pow(qualityRatio, 0.25),
+      MIN_MILITARY_TEMPO_MODIFIER,
+      MAX_MILITARY_TEMPO_MODIFIER,
+    ),
+  };
 }

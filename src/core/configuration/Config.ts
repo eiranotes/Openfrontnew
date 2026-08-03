@@ -19,7 +19,7 @@ import {
 } from "../game/Game";
 import {
   compactStateProfile,
-  militaryQuality,
+  militaryCombatModifiers,
 } from "../game/FortressBalance";
 import { TileRef } from "../game/GameMap";
 import { UserSettings } from "../game/UserSettings";
@@ -294,7 +294,11 @@ export class Config {
     }
     const distPenalty = citiesVisited * 5_000;
     const gold = Math.max(5000, baseGold - distPenalty);
-    return toInt(gold * this.goldMultiplierFor(player));
+    return toInt(
+      gold *
+        this.goldMultiplierFor(player) *
+        compactStateProfile(player).commercialIncomeMultiplier,
+    );
   }
 
   trainStationMinRange(): number {
@@ -312,7 +316,13 @@ export class Config {
     const debuff = this.tradeShipShortRangeDebuff();
     const baseGold =
       75_000 / (1 + Math.exp(-0.03 * (dist - debuff))) + 50 * dist;
-    return BigInt(Math.floor(baseGold * this.goldMultiplierFor(player)));
+    return BigInt(
+      Math.floor(
+        baseGold *
+          this.goldMultiplierFor(player) *
+          compactStateProfile(player).commercialIncomeMultiplier,
+      ),
+    );
   }
 
   // Probability of trade ship spawn = 1 / tradeShipSpawnRate
@@ -371,7 +381,6 @@ export class Config {
             (numUnits: number) =>
               Math.min(1_000_000, Math.pow(2, numUnits) * 125_000),
             UnitType.Port,
-            UnitType.Factory,
           ),
           constructionDuration: this.instantBuild() ? 0 : 5 * 10,
           upgradable: true,
@@ -456,7 +465,6 @@ export class Config {
             (numUnits: number) =>
               Math.min(1_000_000, Math.pow(2, numUnits) * 125_000),
             UnitType.Factory,
-            UnitType.Port,
           ),
           constructionDuration: this.instantBuild() ? 0 : 2 * 10,
           upgradable: true,
@@ -507,14 +515,9 @@ export class Config {
   }
 
   public conquerGoldAmount(captured: Player): Gold {
-    if (
-      captured.type() === PlayerType.Bot ||
-      captured.type() === PlayerType.Nation
-    ) {
-      return captured.gold();
-    } else {
-      return captured.gold() / 4n;
-    }
+    // Capture a bounded share regardless of player class. The AFK-human guard
+    // in GameImpl still prevents starting-gold farming before first action.
+    return (captured.gold() * 7n) / 20n;
   }
 
   private startingGoldFor(playerInfo: PlayerInfo): Gold {
@@ -696,15 +699,8 @@ export class Config {
       // Territory size does not modify combat on its own. Military training
       // determines casualty exchange, while internal investment only improves
       // reinforcement and operational tempo through a small logistics bonus.
-      const attackerQuality = militaryQuality(attacker).quality;
-      const defenderQuality = militaryQuality(defender).quality;
-      const qualityRatio = attackerQuality / Math.max(0.01, defenderQuality);
-      const exchangeModifier = within(Math.sqrt(qualityRatio), 0.72, 1.4);
-      const speedQualityModifier = within(
-        Math.pow(qualityRatio, 0.25),
-        0.9,
-        1.12,
-      );
+      const { exchangeModifier, tempoModifier: speedQualityModifier } =
+        militaryCombatModifiers(attacker, defender);
       const logisticsMultiplier =
         compactStateProfile(attacker).logisticsMultiplier;
 

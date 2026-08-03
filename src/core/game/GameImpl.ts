@@ -1304,7 +1304,7 @@ export class GameImpl implements Game {
         "events_display.received_gold_from_conquest",
         MessageType.CONQUERED_PLAYER,
         conqueror.id(),
-        gold,
+        goldCaptured,
         {
           gold: renderNumber(goldCaptured),
           name: conquered.displayName(),

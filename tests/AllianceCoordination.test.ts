@@ -12,9 +12,11 @@ describe("alliance coordination", () => {
     expect(coordinatedAttackTick(120)).toBe(170);
   });
 
-  it("keeps a gold reserve and sends one fifth of the surplus", () => {
+  it("keeps one starter structure or twenty percent in reserve", () => {
     expect(allianceGoldSupportAmount(15_000n)).toBe(0n);
-    expect(allianceGoldSupportAmount(120_000n)).toBe(20_000n);
+    expect(allianceGoldSupportAmount(120_000n)).toBe(0n);
+    expect(allianceGoldSupportAmount(250_000n)).toBe(25_000n);
+    expect(allianceGoldSupportAmount(1_000_000n)).toBe(160_000n);
   });
 
   it("only donates troops above the reserve and caps support at twelve percent", () => {
