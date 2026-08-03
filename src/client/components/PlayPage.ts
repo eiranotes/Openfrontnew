@@ -131,16 +131,16 @@ export class PlayPage extends LitElement {
                 </div>
                 <div class="fortress-profile__controls">
                   <flag-input
-                    show-select-label
-                    class="fortress-profile__flag"
+                    data-compact-control
+                    class="fortress-profile__flag h-11 w-11"
                   ></flag-input>
                   <username-input
-                    class="fortress-profile__name"
+                    class="fortress-profile__name h-11 min-w-0"
                   ></username-input>
                   <cosmetics-input
                     id="cosmetics-input-mobile"
-                    show-select-label
-                    class="no-crazygames fortress-profile__cosmetics"
+                    data-compact-control
+                    class="no-crazygames fortress-profile__cosmetics h-11 w-11"
                   ></cosmetics-input>
                 </div>
               </section>
