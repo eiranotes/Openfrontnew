@@ -8,13 +8,12 @@ import { spawnSync } from "node:child_process";
 const root = path.resolve(process.argv[2] ?? ".");
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const encodedPatchPath = path.join(scriptDir, "release-home-ui.patch.gz.b64");
-const markerChecks = [
+const corePatchMarkerChecks = [
   [
     "src/client/components/PlayPage.ts",
     'import "../styles/home-operations-desk.css";',
   ],
   ["src/client/components/PlayPage.ts", 'class="command-home-shell"'],
-  ["src/client/components/PlayPage.ts", "data-compact-control"],
   [
     "src/client/components/DesktopNavBar.ts",
     'class="command-desktop-nav__more-menu"',
@@ -29,16 +28,20 @@ const markerChecks = [
     "Clean Operations Desk homepage",
   ],
   [
+    "tests/OperationalAtlasUi.test.ts",
+    "uses a clean operations desk and collapses secondary desktop navigation",
+  ],
+];
+const finalMarkerChecks = [
+  ...corePatchMarkerChecks,
+  ["src/client/components/PlayPage.ts", "data-compact-control"],
+  [
     "src/client/styles/home-operations-desk.css",
     "Align the compact identity/news rail",
   ],
   [
     "src/client/styles/home-operations-desk.css",
     "Override the legacy two-column utility grid",
-  ],
-  [
-    "tests/OperationalAtlasUi.test.ts",
-    "uses a clean operations desk and collapses secondary desktop navigation",
   ],
   ["index.html", "Clean application shell: no legacy logo backdrops"],
 ];
@@ -62,6 +65,10 @@ function contains(relativePath, marker) {
     fs.existsSync(absolutePath) &&
     fs.readFileSync(absolutePath, "utf8").includes(marker)
   );
+}
+
+function allPresent(checks) {
+  return checks.every(([relativePath, marker]) => contains(relativePath, marker));
 }
 
 function replaceOnce(relativePath, before, after, label) {
@@ -93,9 +100,7 @@ function appendOnce(relativePath, marker, addition) {
 
 function isMaterialized() {
   return (
-    markerChecks.every(([relativePath, marker]) =>
-      contains(relativePath, marker),
-    ) &&
+    allPresent(finalMarkerChecks) &&
     forbiddenChecks.every(
       ([relativePath, marker]) => !contains(relativePath, marker),
     )
@@ -107,52 +112,54 @@ if (isMaterialized()) {
   process.exit(0);
 }
 
-if (!fs.existsSync(encodedPatchPath)) {
-  throw new Error(`Missing release/home patch archive: ${encodedPatchPath}`);
-}
+if (!allPresent(corePatchMarkerChecks)) {
+  if (!fs.existsSync(encodedPatchPath)) {
+    throw new Error(`Missing release/home patch archive: ${encodedPatchPath}`);
+  }
 
-const encoded = fs.readFileSync(encodedPatchPath, "utf8").replace(/\s/g, "");
-const encodedDigest = createHash("sha256").update(encoded).digest("hex");
-const expectedEncodedDigest =
-  "5cede833e460e30a03252d30bd2dd6e85cf19ed94c69bce653a18cf476fda935";
-if (encodedDigest !== expectedEncodedDigest) {
-  throw new Error(
-    `Release/home encoded patch checksum mismatch: ${encodedDigest}`,
-  );
-}
-
-const patch = gunzipSync(Buffer.from(encoded, "base64"));
-const patchDigest = createHash("sha256").update(patch).digest("hex");
-const expectedPatchDigest =
-  "e7096cc79a95e035a06fb577292843a3edb8eb7512c4886793a5c36af9db50ca";
-if (patchDigest !== expectedPatchDigest) {
-  throw new Error(`Release/home patch checksum mismatch: ${patchDigest}`);
-}
-
-function gitApply(args) {
-  return spawnSync("git", ["apply", ...args, "-"], {
-    cwd: root,
-    encoding: "utf8",
-    input: patch,
-  });
-}
-
-const forwardCheck = gitApply(["--check"]);
-if (forwardCheck.status === 0) {
-  const applied = gitApply([]);
-  if (applied.status !== 0) {
+  const encoded = fs.readFileSync(encodedPatchPath, "utf8").replace(/\s/g, "");
+  const encodedDigest = createHash("sha256").update(encoded).digest("hex");
+  const expectedEncodedDigest =
+    "5cede833e460e30a03252d30bd2dd6e85cf19ed94c69bce653a18cf476fda935";
+  if (encodedDigest !== expectedEncodedDigest) {
     throw new Error(
-      `Release/home patch failed:\n${applied.stdout}\n${applied.stderr}`,
+      `Release/home encoded patch checksum mismatch: ${encodedDigest}`,
     );
   }
-} else {
-  const reverseCheck = gitApply(["--reverse", "--check"]);
-  if (reverseCheck.status !== 0) {
-    throw new Error(
-      "Release/home patch anchors do not match the source tree.\n" +
-        `Forward check:\n${forwardCheck.stdout}\n${forwardCheck.stderr}\n` +
-        `Reverse check:\n${reverseCheck.stdout}\n${reverseCheck.stderr}`,
-    );
+
+  const patch = gunzipSync(Buffer.from(encoded, "base64"));
+  const patchDigest = createHash("sha256").update(patch).digest("hex");
+  const expectedPatchDigest =
+    "e7096cc79a95e035a06fb577292843a3edb8eb7512c4886793a5c36af9db50ca";
+  if (patchDigest !== expectedPatchDigest) {
+    throw new Error(`Release/home patch checksum mismatch: ${patchDigest}`);
+  }
+
+  function gitApply(args) {
+    return spawnSync("git", ["apply", ...args, "-"], {
+      cwd: root,
+      encoding: "utf8",
+      input: patch,
+    });
+  }
+
+  const forwardCheck = gitApply(["--check"]);
+  if (forwardCheck.status === 0) {
+    const applied = gitApply([]);
+    if (applied.status !== 0) {
+      throw new Error(
+        `Release/home patch failed:\n${applied.stdout}\n${applied.stderr}`,
+      );
+    }
+  } else {
+    const reverseCheck = gitApply(["--reverse", "--check"]);
+    if (reverseCheck.status !== 0) {
+      throw new Error(
+        "Release/home patch anchors do not match the source tree.\n" +
+          `Forward check:\n${forwardCheck.stdout}\n${forwardCheck.stderr}\n` +
+          `Reverse check:\n${reverseCheck.stdout}\n${reverseCheck.stderr}`,
+      );
+    }
   }
 }
 
@@ -261,7 +268,7 @@ appendOnce(
 }`,
 );
 
-for (const [relativePath, marker] of markerChecks) {
+for (const [relativePath, marker] of finalMarkerChecks) {
   if (!contains(relativePath, marker)) {
     throw new Error(`Release/home marker missing after apply: ${relativePath}`);
   }
