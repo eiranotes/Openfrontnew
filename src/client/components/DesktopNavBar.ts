@@ -74,15 +74,17 @@ export class DesktopNavBar extends LitElement {
       this._notifications.showStoreDot() || this._notifications.showHelpDot();
 
     return html`
-      <nav class="command-desktop-nav relative z-50">
+      <nav class="command-desktop-nav fortress-desktop-nav relative z-50">
         <div class="command-desktop-nav__inner">
-          <div class="command-desktop-nav__brand">
-            <span class="command-wordmark" aria-label="OpenFront">
-              <span>OPEN</span><span class="command-wordmark__accent">FRONT</span>
+          <div class="command-desktop-nav__brand fortress-nav-brand">
+            <span class="fortress-nav-brand__mark" aria-hidden="true">F</span>
+            <span class="fortress-nav-brand__copy" aria-label="Fortress">
+              <span class="fortress-nav-brand__name">FORTRESS</span>
+              <span class="fortress-nav-brand__engine">OPENFRONT</span>
             </span>
             <span
               id="game-version"
-              class="game-version-display text-[10px] tabular-nums text-white/35"
+              class="game-version-display fortress-nav-brand__version tabular-nums"
             ></span>
           </div>
 

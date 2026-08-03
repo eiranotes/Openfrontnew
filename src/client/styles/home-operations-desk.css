@@ -1,47 +1,620 @@
 /* -------------------------------------------------------------------------- */
-/* Clean Operations Desk homepage                                             */
+/* Clean Operations Desk homepage — Fortress Home V2                          */
 /* -------------------------------------------------------------------------- */
 
-.command-home-shell,
-.command-home-stage,
-.command-operation-deck,
-.command-live-games {
+.command-play-page.fortress-home-v2 {
+  --fortress-ink: #10191f;
+  --fortress-ink-soft: #34434a;
+  --fortress-paper: #e9ece8;
+  --fortress-paper-raised: #f2f4f0;
+  --fortress-line: #9da8a3;
+  --fortress-line-strong: #55636a;
+  --fortress-accent: #087f8c;
+  --fortress-accent-dark: #075c66;
+  --fortress-alert: #a94d43;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: calc(100dvh - 52px);
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow: visible;
+  isolation: isolate;
+  background: var(--fortress-paper) !important;
+  color: var(--fortress-ink);
+  font-family:
+    Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+.command-play-page.fortress-home-v2.hidden {
+  display: none !important;
+}
+
+.fortress-home-frame {
+  width: min(100%, 1440px);
+  margin-inline: auto;
+  padding: 0 clamp(20px, 4.2vw, 72px) 56px;
+}
+
+.fortress-home-intro {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 24px;
+  min-height: 196px;
+  padding: 38px 0 28px;
+  border-bottom: 2px solid var(--fortress-ink);
+}
+
+.fortress-home-intro__folio {
+  display: grid;
+  align-self: stretch;
+  align-content: space-between;
+  padding: 4px 0 8px;
+  border-top: 1px solid var(--fortress-line-strong);
+  color: var(--fortress-ink-soft);
+  font-size: 10px;
+  font-weight: 720;
+  letter-spacing: 0.13em;
+}
+
+.fortress-home-intro__folio span:first-child {
+  color: var(--fortress-accent-dark);
+  font-size: 26px;
+  font-weight: 820;
+  letter-spacing: -0.04em;
+}
+
+.fortress-home-intro__lockup {
   min-width: 0;
 }
 
-.command-home-shell {
+.fortress-home-intro__title {
+  margin: 0;
+  color: var(--fortress-ink);
+  font-size: clamp(64px, 8.6vw, 126px);
+  font-weight: 880;
+  letter-spacing: -0.075em;
+  line-height: 0.78;
+}
+
+.fortress-home-intro__subtitle {
+  margin: 20px 0 0 4px;
+  color: var(--fortress-ink-soft);
+  font-size: 10px;
+  font-weight: 720;
+  letter-spacing: 0.15em;
+}
+
+.fortress-home-intro__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  color: var(--fortress-ink-soft);
+  font-size: 9px;
+  font-weight: 760;
+  letter-spacing: 0.16em;
+}
+
+.fortress-home-intro__status-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--fortress-accent);
+}
+
+.command-home-shell.fortress-home-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 318px;
+  gap: clamp(28px, 4vw, 58px);
+  align-items: start;
+  padding-top: 30px;
 }
 
-.command-home-stage {
-  display: block;
-}
-
+.fortress-home-stage,
+.fortress-home-utility,
 .command-operation-deck,
-.command-live-games {
-  width: 100%;
+.command-live-games,
+.command-home-actions,
+.command-secondary-actions {
+  min-width: 0;
 }
 
-.command-action-button {
+.fortress-home-stage {
+  order: 1;
+}
+
+.command-home-utility.fortress-home-utility {
+  order: 2;
+  display: flex !important;
+  width: 100%;
+  flex-direction: column;
+  gap: 26px;
+  position: sticky;
+  top: 76px;
+  padding-left: 24px;
+  border-left: 1px solid var(--fortress-line);
+}
+
+.fortress-rail-section,
+.fortress-stream-panel {
+  width: 100%;
+  min-width: 0;
+}
+
+.fortress-rail-heading {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-top: 9px;
+  border-top: 2px solid var(--fortress-ink);
+}
+
+.fortress-rail-heading > span {
+  color: var(--fortress-accent-dark);
+  font-size: 10px;
+  font-weight: 820;
+  letter-spacing: 0.08em;
+}
+
+.fortress-rail-heading h2 {
+  margin: 0;
+  color: var(--fortress-ink);
+  font-size: 10px;
+  font-weight: 780;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.fortress-profile__controls {
+  display: grid;
+  gap: 7px;
+}
+
+.fortress-profile__flag,
+.fortress-profile__name,
+.fortress-profile__cosmetics {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 44px;
+  overflow: hidden;
+}
+
+.fortress-home-v2 .command-home {
+  display: grid;
+  gap: 34px;
+}
+
+.fortress-home-v2 .command-operation-deck {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.fortress-home-v2 .command-home-actions {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.55fr) minmax(232px, 0.72fr) !important;
+  gap: 10px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.fortress-home-v2 .command-action-button {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-width: 0;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
 }
 
-.command-action-button__arrow {
-  color: var(--ui-accent);
-  font-size: 20px;
-  font-weight: 500;
-  line-height: 1;
-  transition: transform var(--ui-transition-fast);
+.fortress-home-v2 .command-action-button[data-primary="true"] {
+  min-height: 188px !important;
+  align-items: flex-end;
+  padding: 24px 26px !important;
+  border: 1px solid var(--fortress-ink) !important;
+  border-top: 7px solid var(--fortress-accent) !important;
+  background: var(--fortress-ink) !important;
+  color: var(--fortress-paper-raised) !important;
+  font-size: clamp(28px, 3vw, 44px) !important;
+  font-weight: 820 !important;
+  letter-spacing: -0.04em;
 }
 
-.command-action-button[data-primary="true"]:hover .command-action-button__arrow,
-.command-action-button[data-primary="true"]:focus-visible
+.fortress-home-v2
+  .command-action-button[data-primary="true"]:hover:not(:disabled),
+.fortress-home-v2
+  .command-action-button[data-primary="true"]:focus-visible:not(:disabled) {
+  border-top-color: #18a5b2 !important;
+  background: #17242a !important;
+}
+
+.fortress-home-v2 .command-action-button__arrow {
+  color: #62cad2;
+  font-size: 42px;
+  font-weight: 420;
+  line-height: 0.8;
+  transition: transform 120ms ease;
+}
+
+.fortress-home-v2
+  .command-action-button[data-primary="true"]:hover
+  .command-action-button__arrow,
+.fortress-home-v2
+  .command-action-button[data-primary="true"]:focus-visible
   .command-action-button__arrow {
-  transform: translateX(2px);
+  transform: translateX(3px);
+}
+
+.fortress-home-v2 .command-secondary-actions {
+  display: grid !important;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 1px !important;
+  border: 1px solid var(--fortress-ink) !important;
+  border-radius: 0 !important;
+  background: var(--fortress-ink) !important;
+  overflow: hidden;
+}
+
+.fortress-home-v2 .command-secondary-actions .command-action-button {
+  min-height: 58px !important;
+  padding: 12px 16px !important;
+  border: 0 !important;
+  background: var(--fortress-paper-raised) !important;
+  color: var(--fortress-ink) !important;
+  font-size: 12px !important;
+  font-weight: 760 !important;
+  letter-spacing: 0.02em;
+}
+
+.fortress-home-v2
+  .command-secondary-actions
+  .command-action-button:hover:not(:disabled),
+.fortress-home-v2
+  .command-secondary-actions
+  .command-action-button:focus-visible:not(:disabled) {
+  background: #d9ded9 !important;
+  color: var(--fortress-accent-dark) !important;
+}
+
+.fortress-home-v2 .command-action-badge {
+  min-width: 24px;
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--fortress-line-strong);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.fortress-home-v2 .command-live-games {
+  width: 100%;
+  padding-top: 15px !important;
+  border-top: 2px solid var(--fortress-ink) !important;
+}
+
+.fortress-home-v2 .command-live-games::before {
+  content: "02 / ACTIVE FRONTS";
+  display: block;
+  margin-bottom: 14px;
+  color: var(--fortress-ink-soft);
+  font-size: 9px;
+  font-weight: 790;
+  letter-spacing: 0.13em;
+}
+
+.fortress-home-v2 .command-loading-panel {
+  min-height: 126px !important;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 20px !important;
+  border: 1px solid var(--fortress-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+.fortress-home-v2 .command-loading-panel span {
+  height: 7px;
+  max-width: 72%;
+  background: #c7cfca !important;
+  animation: none !important;
+}
+
+.fortress-home-v2 .command-loading-panel span:nth-child(2) {
+  max-width: 91%;
+}
+
+.fortress-home-v2 .command-loading-panel span:nth-child(3) {
+  max-width: 58%;
+}
+
+.fortress-home-v2 .command-lobby-stage {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  min-height: 0 !important;
+  gap: 0 !important;
+  border-top: 1px solid var(--fortress-line);
+}
+
+.fortress-home-v2 .command-lobby-stage > div {
+  min-height: 0 !important;
+}
+
+.fortress-home-v2 .command-lobby-card {
+  width: 100%;
+  min-height: 96px !important;
+  display: grid !important;
+  grid-template-columns: 176px minmax(0, 1fr);
+  position: relative !important;
+  overflow: hidden;
+  border: 0 !important;
+  border-bottom: 1px solid var(--fortress-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--fortress-ink) !important;
+  text-align: left;
+  box-shadow: none !important;
+}
+
+.fortress-home-v2 .command-lobby-card:hover:not(:disabled),
+.fortress-home-v2 .command-lobby-card:focus-visible:not(:disabled) {
+  background: var(--fortress-paper-raised) !important;
+}
+
+.fortress-home-v2 .command-lobby-card__image {
+  width: auto !important;
+  height: 96px !important;
+  position: relative !important;
+  inset: auto !important;
+  overflow: hidden;
+  border-right: 1px solid var(--fortress-line);
+  background: #c9d0cb;
+}
+
+.fortress-home-v2 .command-lobby-card__image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 6px solid rgba(233, 236, 232, 0.18);
+  pointer-events: none;
+}
+
+.fortress-home-v2 .command-lobby-card__meta {
+  min-height: 96px;
+  position: relative !important;
+  inset: auto !important;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 9px;
+  padding: 13px 16px !important;
+  background: transparent !important;
+  color: var(--fortress-ink) !important;
+}
+
+.fortress-home-v2 .command-lobby-card__title,
+.fortress-home-v2 .command-lobby-card__title div,
+.fortress-home-v2 .command-lobby-card__meta .text-white\/60,
+.fortress-home-v2 .command-lobby-card__meta .text-white\/80 {
+  color: var(--fortress-ink) !important;
+}
+
+.fortress-home-v2 .command-lobby-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.fortress-home-v2 .command-status-tag {
+  min-height: 19px;
+  display: inline-flex;
+  align-items: center;
+  padding-inline: 6px;
+  border: 1px solid var(--fortress-line);
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--fortress-ink-soft) !important;
+  font-size: 8px !important;
+  font-weight: 730;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.fortress-home-v2 .command-news-box {
+  width: 100%;
+  min-height: 0 !important;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30px;
+  grid-template-areas:
+    "tag close"
+    "copy close"
+    "pages pages";
+  gap: 6px 8px;
+  padding: 13px 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--fortress-line) !important;
+  border-bottom: 1px solid var(--fortress-line) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--fortress-ink) !important;
+  box-shadow: none !important;
+}
+
+.fortress-home-v2 .command-news-tag {
+  grid-area: tag;
+  width: max-content;
+  min-height: 18px;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--fortress-alert) !important;
+  font-size: 8px !important;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.fortress-home-v2 .command-news-copy {
+  grid-area: copy;
+  color: var(--fortress-ink) !important;
+}
+
+.fortress-home-v2 .command-news-title,
+.fortress-home-v2 .command-news-description {
+  color: var(--fortress-ink) !important;
+}
+
+.fortress-home-v2 .command-news-description {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.fortress-home-v2 .command-news-pagination {
+  grid-area: pages;
+}
+
+.fortress-home-v2 .command-news-pagination button {
+  border-radius: 0 !important;
+}
+
+.fortress-home-v2 .command-news-dismiss {
+  grid-area: close;
+  align-self: start;
+  color: var(--fortress-ink-soft) !important;
+}
+
+.fortress-home-v2 .fortress-stream-panel {
+  max-height: 210px;
+  overflow: hidden;
+  border-radius: 0 !important;
+}
+
+.fortress-home-v2 .command-home-steam,
+.fortress-home-v2 .command-steam-promo {
+  border-radius: 0 !important;
+}
+
+/* Distinct application masthead. */
+.fortress-desktop-nav.command-desktop-nav {
+  min-height: 58px;
+  border-bottom: 1px solid #25353d;
+  background: #0c151a !important;
+  color: #edf1ee;
+}
+
+.fortress-desktop-nav .command-desktop-nav__inner {
+  width: min(100%, 1440px);
+  min-height: 58px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 30px;
+  margin-inline: auto;
+  padding-inline: clamp(20px, 4.2vw, 72px);
+}
+
+.fortress-nav-brand {
+  display: grid !important;
+  grid-template-columns: 30px auto auto;
+  align-items: center;
+  gap: 9px !important;
+  min-width: 196px;
+}
+
+.fortress-nav-brand__mark {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #537079;
+  background: #17252b;
+  color: #67cbd2;
+  font-size: 17px;
+  font-weight: 860;
+  line-height: 1;
+}
+
+.fortress-nav-brand__copy {
+  display: grid;
+  gap: 1px;
+}
+
+.fortress-nav-brand__name {
+  color: #f5f7f3;
+  font-size: 13px;
+  font-weight: 820;
+  letter-spacing: 0.13em;
+  line-height: 1;
+}
+
+.fortress-nav-brand__engine {
+  color: #799099;
+  font-size: 7px;
+  font-weight: 760;
+  letter-spacing: 0.18em;
+  line-height: 1;
+}
+
+.fortress-nav-brand__version {
+  color: #587079;
+  font-size: 8px;
+}
+
+.fortress-desktop-nav .command-desktop-nav__menu {
+  justify-content: flex-start;
+  gap: 2px;
+}
+
+.fortress-desktop-nav .command-desktop-nav__item {
+  min-height: 40px;
+  position: relative;
+  padding-inline: 12px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: #90a1a8;
+  font-size: 10px;
+  font-weight: 720;
+  letter-spacing: 0.04em;
+}
+
+.fortress-desktop-nav .command-desktop-nav__item:hover,
+.fortress-desktop-nav .command-desktop-nav__item:focus-visible,
+.fortress-desktop-nav .command-desktop-nav__item.active {
+  color: #f5f7f3;
+}
+
+.fortress-desktop-nav
+  .command-desktop-nav__menu
+  > .command-desktop-nav__item.active::after,
+.fortress-desktop-nav
+  .command-desktop-nav__menu
+  > div
+  > .command-desktop-nav__item.active::after {
+  content: "";
+  height: 2px;
+  position: absolute;
+  right: 11px;
+  bottom: 0;
+  left: 11px;
+  background: #43b8c1;
 }
 
 .command-desktop-nav__utility {
@@ -49,7 +622,7 @@
   min-width: 0;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 7px;
 }
 
 .command-desktop-nav__more {
@@ -72,16 +645,16 @@
   justify-content: center;
   gap: 7px;
   border: 1px solid transparent;
-  border-radius: 3px;
+  border-radius: 0 !important;
   background: transparent;
-  color: var(--ui-text-muted);
-  font-size: 11px;
-  font-weight: 660;
+  color: #8fa0a7;
+  font-size: 10px;
+  font-weight: 690;
   cursor: pointer;
   transition:
-    background-color var(--ui-transition-fast),
-    border-color var(--ui-transition-fast),
-    color var(--ui-transition-fast);
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
 }
 
 .command-desktop-nav__more-trigger {
@@ -90,8 +663,8 @@
 }
 
 .command-desktop-nav__more-trigger svg {
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
 }
 
 .command-desktop-nav__more-trigger:hover,
@@ -101,9 +674,9 @@
 .command-desktop-nav__account:hover,
 .command-desktop-nav__account:focus-visible,
 .command-desktop-nav__account.active {
-  border-color: var(--ui-border);
-  background: var(--ui-surface);
-  color: var(--ui-text);
+  border-color: #344950;
+  background: #142228;
+  color: #f5f7f3;
 }
 
 .command-desktop-nav__more-menu {
@@ -113,368 +686,264 @@
   top: calc(100% + 8px);
   right: 0;
   display: grid;
-  gap: 2px;
-  padding: 6px;
-  border: 1px solid var(--ui-border-strong);
-  border-radius: 4px;
-  background: #0a1014;
+  gap: 1px;
+  padding: 5px;
+  border: 1px solid #3c5058;
+  border-radius: 0 !important;
+  background: #0c151a;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
 }
 
 .command-desktop-nav__more-item {
   width: 100%;
   min-height: 38px;
-  justify-content: flex-start;
-  border-radius: 2px;
-  padding-inline: 10px;
+  justify-content: flex-start !important;
+  padding-inline: 10px !important;
 }
 
-@media (min-width: 1024px) {
-  .command-desktop-nav {
-    min-height: 52px;
-    background: #070b0e;
-  }
+.fortress-mobile-topbar {
+  min-height: 62px;
+  border-bottom: 1px solid #2b3b42;
+  background: #0c151a !important;
+}
 
-  .command-desktop-nav__inner {
-    width: min(100%, 1260px);
-    min-height: 52px;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 24px;
+.fortress-mobile-topbar .command-mobile-topbar__inner {
+  min-height: 62px;
+}
+
+.fortress-mobile-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #f5f7f3;
+}
+
+.fortress-mobile-brand__mark {
+  width: 27px;
+  height: 27px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #547079;
+  color: #67cbd2;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.fortress-mobile-brand__name {
+  font-size: 13px;
+  font-weight: 820;
+  letter-spacing: 0.13em;
+}
+
+page-footer footer {
+  min-height: 66px;
+  border-top: 1px solid #27363d !important;
+  background: #0c151a !important;
+}
+
+@media (max-width: 1179px) {
+  .fortress-home-frame {
     padding-inline: 24px;
   }
 
-  .command-desktop-nav__brand {
-    gap: 7px;
-  }
-
-  .command-desktop-nav__menu {
-    justify-content: flex-start;
-    gap: 0;
-  }
-
-  .command-desktop-nav__item {
-    min-height: 38px;
-    position: relative;
-    padding-inline: 12px;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    font-size: 11px;
-    letter-spacing: 0.015em;
-  }
-
-  .command-desktop-nav__item:hover,
-  .command-desktop-nav__item:focus-visible {
-    background: transparent;
-    color: var(--ui-text);
-  }
-
-  .command-desktop-nav__item.active {
-    border: 0;
-    background: transparent;
-    color: white;
-  }
-
-  .command-desktop-nav__menu > .command-desktop-nav__item.active::after,
-  .command-desktop-nav__menu > div > .command-desktop-nav__item.active::after {
-    content: "";
-    height: 2px;
-    position: absolute;
-    right: 11px;
-    bottom: 0;
-    left: 11px;
-    background: var(--ui-accent);
-  }
-
-  .command-play-page {
-    width: min(100%, 1260px);
-    gap: 0;
-    padding: 26px 24px 30px;
-  }
-
-  .command-home-shell {
-    grid-template-columns: minmax(250px, 292px) minmax(0, 1fr);
+  .command-home-shell.fortress-home-layout {
+    grid-template-columns: minmax(0, 1fr) 282px;
     gap: 30px;
-    align-items: start;
   }
 
-  .command-home-utility {
-    display: flex;
-    grid-template-columns: none;
-    flex-direction: column;
-    gap: 12px;
-    position: sticky;
-    top: 76px;
-  }
-
-  .command-home-brief {
-    gap: 14px;
-  }
-
-  .command-identity-bar {
-    min-height: 58px;
-    border: 0;
-    border-top: 1px solid var(--ui-border-strong);
-    border-bottom: 1px solid var(--ui-border);
-    border-radius: 0;
-    background: transparent;
-  }
-
-  .command-identity-bar cosmetic-background {
-    display: none;
-  }
-
-  .command-identity-bar__controls {
-    min-height: 58px;
-    padding: 6px 0;
-    background: transparent;
-  }
-
-  .command-news-box {
-    min-height: 0;
-    grid-template-columns: minmax(0, 1fr) 32px;
-    grid-template-areas:
-      "tag close"
-      "copy close"
-      "pages pages";
-    gap: 5px 8px;
-    padding: 13px 0;
-    border: 0;
-    border-top: 1px solid var(--ui-border);
-    border-bottom: 1px solid var(--ui-border);
-    border-radius: 0;
-    background: transparent;
-  }
-
-  .command-news-tag {
-    grid-area: tag;
-    min-width: 0;
-    width: max-content;
-    min-height: 18px;
-    justify-content: flex-start;
-    padding-inline: 0;
-    border: 0;
-    background: transparent;
-    font-size: 8px;
-    letter-spacing: 0.08em;
-  }
-
-  .command-news-copy {
-    grid-area: copy;
-    gap: 4px;
-  }
-
-  .command-news-description {
-    display: -webkit-box;
-    overflow: hidden;
-    white-space: normal;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-  }
-
-  .command-news-pagination {
-    grid-area: pages;
-  }
-
-  .command-news-dismiss {
-    grid-area: close;
-    align-self: start;
-  }
-
-  .command-stream-panel {
-    display: flex;
-    max-height: 220px;
-    overflow: hidden;
-    border-radius: 3px;
-  }
-
-  .command-home {
+  .fortress-desktop-nav .command-desktop-nav__inner {
     gap: 16px;
+    padding-inline: 24px;
   }
 
-  .command-home-actions {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
+  .fortress-nav-brand {
+    min-width: 176px;
   }
 
-  .command-action-button {
-    border-radius: 3px;
-  }
-
-  .command-action-button[data-primary="true"] {
-    min-height: 68px;
-    padding-inline: 18px;
-    border: 1px solid rgba(65, 154, 176, 0.42);
-    border-left: 3px solid #64c5d9;
-    border-radius: 3px;
-    background: #0c171c;
-    font-size: 17px;
-    font-weight: 760;
-  }
-
-  .command-action-button[data-primary="true"]:hover:not(:disabled),
-  .command-action-button[data-primary="true"]:focus-visible:not(:disabled) {
-    border-color: rgba(100, 197, 217, 0.72);
-    background: #102229;
-  }
-
-  .command-secondary-actions {
-    gap: 1px;
-    border: 1px solid var(--ui-border);
-    background: var(--ui-border);
-  }
-
-  .command-secondary-actions .command-action-button {
-    min-height: 46px;
-    justify-content: center;
-    border: 0;
-    border-radius: 0;
-    background: #0b1115;
-  }
-
-  .command-secondary-actions .command-action-button:hover:not(:disabled),
-  .command-secondary-actions .command-action-button:focus-visible:not(:disabled) {
-    background: var(--ui-surface-hover);
-  }
-
-  .command-live-games {
-    padding-top: 16px;
-    border-top: 1px solid var(--ui-border);
-  }
-
-  .command-loading-panel {
-    min-height: 112px;
-    padding: 18px 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-  }
-
-  .command-loading-panel span {
-    max-width: 78%;
-  }
-
-  .command-loading-panel span:nth-child(2) {
-    max-width: 92%;
-  }
-
-  .command-loading-panel span:nth-child(3) {
-    max-width: 64%;
-  }
-
-  .command-lobby-stage {
-    grid-template-columns: minmax(0, 1fr);
-    min-height: 0;
-    gap: 6px;
-  }
-
-  .command-lobby-card {
-    min-height: 126px;
-    border-radius: 3px;
-  }
-
-  .command-lobby-card__image {
-    width: 42%;
-  }
-
-  .command-lobby-card__meta {
-    left: 42%;
-    padding: 12px 14px;
-  }
-
-  page-footer footer {
-    min-height: 64px;
-    background: #070b0e !important;
-  }
-}
-
-@media (min-width: 1024px) and (max-width: 1120px) {
-  .command-desktop-nav__inner {
-    gap: 14px;
-    padding-inline: 14px;
-  }
-
-  .command-desktop-nav__item {
+  .fortress-desktop-nav .command-desktop-nav__item {
     padding-inline: 9px;
-  }
-
-  .command-play-page {
-    padding-inline: 16px;
-  }
-
-  .command-home-shell {
-    grid-template-columns: 250px minmax(0, 1fr);
-    gap: 20px;
   }
 }
 
 @media (max-width: 1023px) {
-  .command-home-shell {
-    gap: 8px;
+  .command-play-page.fortress-home-v2 {
+    min-height: calc(100dvh - 62px);
   }
 
-  .command-home-stage {
-    order: 2;
+  .fortress-home-frame {
+    padding: 0 20px 40px;
   }
 
-  .command-home-utility {
+  .fortress-home-intro {
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 14px;
+    min-height: 144px;
+    padding: 28px 0 22px;
+  }
+
+  .fortress-home-intro__folio {
+    padding-bottom: 4px;
+  }
+
+  .fortress-home-intro__folio span:first-child {
+    font-size: 20px;
+  }
+
+  .fortress-home-intro__title {
+    font-size: clamp(48px, 13vw, 78px);
+  }
+
+  .fortress-home-intro__subtitle {
+    margin-top: 14px;
+    margin-left: 2px;
+    font-size: 8px;
+    letter-spacing: 0.1em;
+  }
+
+  .fortress-home-intro__status {
+    display: none;
+  }
+
+  .command-home-shell.fortress-home-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 30px;
+    padding-top: 20px;
+  }
+
+  .fortress-home-stage {
     order: 1;
   }
 
-  .command-home-actions {
-    grid-template-columns: minmax(0, 1fr);
+  .command-home-utility.fortress-home-utility {
+    order: 2;
+    position: static;
+    padding-left: 0;
+    border-left: 0;
+    gap: 22px;
   }
 
-  .command-action-button[data-primary="true"] {
-    justify-content: space-between;
+  .fortress-home-v2 .command-home-actions {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .fortress-home-v2 .command-action-button[data-primary="true"] {
+    min-height: 126px !important;
+    padding: 20px !important;
+  }
+
+  .fortress-home-v2 .command-secondary-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: minmax(54px, auto);
+  }
+
+  .fortress-home-v2 .command-secondary-actions .command-action-button {
+    min-height: 54px !important;
+    justify-content: center;
+    padding-inline: 9px !important;
+    text-align: center;
+  }
+
+  .fortress-profile__controls {
+    grid-template-columns: minmax(130px, 0.8fr) minmax(0, 1.4fr);
+  }
+
+  .fortress-profile__cosmetics {
+    grid-column: 1 / -1;
   }
 }
 
 @media (max-width: 639px) {
-  .command-action-button[data-primary="true"] {
-    padding-inline: 14px;
+  .fortress-home-frame {
+    padding-inline: 16px;
   }
 
-  .command-action-button__arrow {
-    font-size: 18px;
+  .fortress-home-intro {
+    grid-template-columns: 42px minmax(0, 1fr);
+    min-height: 122px;
+    padding-top: 22px;
+  }
+
+  .fortress-home-intro__folio {
+    font-size: 7px;
+  }
+
+  .fortress-home-intro__folio span:first-child {
+    font-size: 17px;
+  }
+
+  .fortress-home-intro__title {
+    font-size: clamp(43px, 14vw, 64px);
+  }
+
+  .fortress-home-intro__subtitle {
+    max-width: 260px;
+    line-height: 1.45;
+  }
+
+  .fortress-home-v2 .command-action-button[data-primary="true"] {
+    min-height: 116px !important;
+    font-size: 30px !important;
+  }
+
+  .fortress-home-v2 .command-action-button__arrow {
+    font-size: 34px;
+  }
+
+  .fortress-home-v2 .command-secondary-actions {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(3, minmax(48px, auto));
+  }
+
+  .fortress-home-v2 .command-secondary-actions .command-action-button {
+    min-height: 48px !important;
+    justify-content: space-between;
+    padding-inline: 14px !important;
+    text-align: left;
+  }
+
+  .fortress-home-v2 .command-lobby-card {
+    grid-template-columns: 112px minmax(0, 1fr);
+    min-height: 90px !important;
+  }
+
+  .fortress-home-v2 .command-lobby-card__image,
+  .fortress-home-v2 .command-lobby-card__meta {
+    height: 90px !important;
+    min-height: 90px;
+  }
+
+  .fortress-home-v2 .command-lobby-card__meta {
+    padding: 10px 11px !important;
+  }
+
+  .fortress-profile__controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fortress-profile__cosmetics {
+    grid-column: auto;
+  }
+
+  .fortress-home-steam {
+    margin: 0 16px 26px;
   }
 }
 
-/* Align the compact identity/news rail with the homepage grid. */
-.command-home-utility,
-.command-home-brief,
-.command-identity-bar,
-.command-news-box,
-.command-stream-panel {
-  width: 100%;
-}
-
-@media (min-width: 1024px) {
-  .command-home-utility,
-  .command-home-brief {
-    align-self: stretch;
-  }
-
-  .command-identity-bar__controls {
-    width: 100%;
+@media (pointer: coarse) {
+  .fortress-home-v2 .command-action-button,
+  .fortress-home-v2 .command-lobby-card,
+  .command-desktop-nav__more-trigger,
+  .command-desktop-nav__account {
+    min-height: 44px;
   }
 }
 
-/* Override the legacy two-column utility grid loaded by Operational Atlas. */
-@media (min-width: 1024px) {
-  .command-home-shell > .command-home-utility {
-    display: flex;
-    grid-template-columns: none;
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .command-home-shell > .command-home-utility > .command-home-brief,
-  .command-home-shell > .command-home-utility > .command-stream-panel {
-    width: 100%;
+@media (prefers-reduced-motion: reduce) {
+  .fortress-home-v2 .command-action-button,
+  .fortress-home-v2 .command-action-button__arrow,
+  .fortress-desktop-nav .command-desktop-nav__item {
+    transition: none !important;
   }
 }

@@ -1,0 +1,129 @@
+/* Fortress Home V2 geometry contract. Loaded after the visual layer. */
+
+.fortress-profile__controls {
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+}
+
+.fortress-profile__flag,
+.fortress-profile__cosmetics {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+}
+
+.fortress-profile__name {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 44px !important;
+  min-height: 44px !important;
+}
+
+@media (min-width: 640px) {
+  .command-single-player {
+    height: calc(100dvh - 140px) !important;
+    max-height: calc(100dvh - 140px) !important;
+  }
+}
+
+@media (min-width: 1180px) {
+  .command-home-shell.fortress-home-layout {
+    grid-template-columns: 318px minmax(0, 1fr);
+  }
+
+  .fortress-home-stage {
+    order: 2;
+  }
+
+  .command-home-utility.fortress-home-utility {
+    order: 1;
+    padding-right: 24px;
+    padding-left: 0;
+    border-right: 1px solid var(--fortress-line);
+    border-left: 0;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1179px) {
+  .command-home-shell.fortress-home-layout {
+    grid-template-columns: 282px minmax(0, 1fr);
+  }
+
+  .fortress-home-stage {
+    order: 2;
+  }
+
+  .command-home-utility.fortress-home-utility {
+    order: 1;
+    padding-right: 20px;
+    padding-left: 0;
+    border-right: 1px solid var(--fortress-line);
+    border-left: 0;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .fortress-home-stage {
+    order: 2;
+  }
+
+  .command-home-utility.fortress-home-utility {
+    order: 1;
+    display: grid !important;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: start;
+    gap: 20px;
+  }
+
+  .fortress-stream-panel {
+    display: none !important;
+  }
+}
+
+@media (max-width: 639px) {
+  .fortress-home-stage {
+    order: 2;
+  }
+
+  .command-home-utility.fortress-home-utility {
+    order: 1;
+    gap: 14px;
+  }
+
+  .fortress-rail-heading {
+    margin-bottom: 6px;
+    padding-top: 6px;
+  }
+
+  .fortress-profile__controls {
+    grid-template-columns: 44px minmax(0, 1fr) 44px !important;
+  }
+
+  .fortress-profile__cosmetics {
+    grid-column: auto !important;
+  }
+
+  .fortress-briefing .command-news-box {
+    max-height: 92px;
+    overflow: hidden;
+    grid-template-areas:
+      "tag close"
+      "copy close";
+    gap: 3px 6px;
+    padding-block: 8px !important;
+  }
+
+  .fortress-briefing .command-news-description {
+    -webkit-line-clamp: 1 !important;
+  }
+
+  .fortress-briefing .command-news-pagination {
+    display: none !important;
+  }
+
+  .fortress-stream-panel {
+    display: none !important;
+  }
+}
