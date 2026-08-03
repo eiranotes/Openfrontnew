@@ -47,6 +47,7 @@ import { EmojiTable } from "./EmojiTable";
 import "./PlayerModerationModal";
 import "./SendResourceModal";
 const allianceIcon = assetUrl("images/AllianceIconWhite.svg");
+const boatIcon = assetUrl("images/BoatIconWhite.svg");
 const chatIcon = assetUrl("images/ChatIconWhite.svg");
 const donateGoldIcon = assetUrl("images/DonateGoldIconWhite.svg");
 const donateTroopIcon = assetUrl("images/DonateTroopIconWhite.svg");
@@ -60,6 +61,8 @@ const breakAllianceIcon = assetUrl("images/TraitorIconWhite.svg");
 const goldIcon = assetUrl("images/GoldCoinIcon.svg");
 const troopIcon = assetUrl("images/TroopIconWhite.svg");
 
+const COMMAND_ACTION_REFRESH_INTERVAL_TICKS = 5;
+
 @customElement("player-panel")
 export class PlayerPanel extends LitElement implements Controller {
   public g: GameView;
@@ -71,6 +74,9 @@ export class PlayerPanel extends LitElement implements Controller {
   private tile: TileRef | null = null;
   private _profileForPlayerId: number | null = null;
   private kickedPlayerIDs = new Set<string>();
+  private selectionRevision = 0;
+  private actionsRefreshInFlight = false;
+  private nextActionsRefreshTick = 0;
 
   @state() private selectedPlayer: PlayerView | null = null;
   @state() private sendTarget: PlayerView | null = null;
@@ -136,45 +142,97 @@ export class PlayerPanel extends LitElement implements Controller {
     }
   }
 
+  private updateAllianceExpiry() {
+    const expiresAt = this.actions?.interaction?.allianceInfo?.expiresAt;
+    if (expiresAt === undefined) {
+      this.allianceExpirySeconds = null;
+      this.allianceExpiryText = null;
+      return;
+    }
+
+    const remainingTicks = expiresAt - this.g.ticks();
+    if (remainingTicks <= 0) {
+      this.allianceExpirySeconds = null;
+      this.allianceExpiryText = null;
+      return;
+    }
+
+    const remainingSeconds = Math.max(0, Math.floor(remainingTicks / 10));
+    this.allianceExpirySeconds = remainingSeconds;
+    this.allianceExpiryText = renderDuration(remainingSeconds);
+  }
+
   async tick() {
-    if (this.isVisible && this.tile) {
-      const owner = this.g.owner(this.tile);
-      if (owner && owner.isPlayer()) {
-        const pv = owner as PlayerView;
-        const id = pv.id();
-        // fetch only if we don't have it or the player changed
-        if (this._profileForPlayerId !== Number(id)) {
-          this.otherProfile = await pv.profile();
-          this._profileForPlayerId = Number(id);
-        }
+    if (!this.isVisible || this.tile === null) return;
+
+    this.updateAllianceExpiry();
+    const currentTick = this.g.ticks();
+    if (
+      this.actionsRefreshInFlight ||
+      currentTick < this.nextActionsRefreshTick
+    ) {
+      return;
+    }
+
+    const myPlayer = this.g.myPlayer();
+    if (myPlayer === null || !myPlayer.isAlive()) return;
+
+    const tile = this.tile;
+    const owner = this.g.owner(tile);
+    if (!owner.isPlayer()) return;
+
+    const selectedPlayer = owner as PlayerView;
+    const playerID = Number(selectedPlayer.id());
+    const revision = this.selectionRevision;
+    const shouldFetchProfile = this._profileForPlayerId !== playerID;
+
+    this.actionsRefreshInFlight = true;
+    this.nextActionsRefreshTick =
+      currentTick + COMMAND_ACTION_REFRESH_INTERVAL_TICKS;
+
+    try {
+      const [actions, profile] = await Promise.all([
+        // The command sheet only consumes transport availability. Passing null
+        // empties buildableUnits and silently removes the landing command.
+        myPlayer.actions(tile, [UnitType.TransportShip]),
+        shouldFetchProfile
+          ? selectedPlayer.profile()
+          : Promise.resolve<PlayerProfile | null>(null),
+      ]);
+
+      if (
+        revision !== this.selectionRevision ||
+        !this.isVisible ||
+        this.tile !== tile
+      ) {
+        return;
       }
 
-      // Refresh actions & alliance expiry
-      const myPlayer = this.g.myPlayer();
-      if (myPlayer !== null && myPlayer.isAlive()) {
-        this.actions = await myPlayer.actions(this.tile, null);
-        if (this.actions?.interaction?.allianceInfo?.expiresAt !== undefined) {
-          const expiresAt = this.actions.interaction.allianceInfo.expiresAt;
-          const remainingTicks = expiresAt - this.g.ticks();
-          const remainingSeconds = Math.max(0, Math.floor(remainingTicks / 10)); // 10 ticks per second
-
-          if (remainingTicks > 0) {
-            this.allianceExpirySeconds = remainingSeconds;
-            this.allianceExpiryText = renderDuration(remainingSeconds);
-          } else {
-            this.allianceExpirySeconds = null;
-            this.allianceExpiryText = null;
-          }
-        } else {
-          this.allianceExpirySeconds = null;
-          this.allianceExpiryText = null;
-        }
-        this.requestUpdate();
+      const currentOwner = this.g.owner(tile);
+      if (!currentOwner.isPlayer() || currentOwner.id() !== selectedPlayer.id()) {
+        return;
       }
+
+      this.actions = actions;
+      this.selectedPlayer = selectedPlayer;
+      this.selectionLoading = false;
+      if (profile !== null) {
+        this.otherProfile = profile;
+        this._profileForPlayerId = playerID;
+      }
+      this.updateAllianceExpiry();
+      this.requestUpdate();
+    } catch (error) {
+      console.warn("Unable to refresh country command actions", error);
+    } finally {
+      this.actionsRefreshInFlight = false;
     }
   }
 
   public beginSelection(tile: TileRef) {
+    this.selectionRevision++;
+    this.nextActionsRefreshTick =
+      this.g.ticks() + COMMAND_ACTION_REFRESH_INTERVAL_TICKS;
     const owner = this.g.owner(tile);
     const nextPlayer = owner.isPlayer() ? (owner as PlayerView) : null;
     if (nextPlayer === null) return;
@@ -194,6 +252,9 @@ export class PlayerPanel extends LitElement implements Controller {
   }
 
   public show(actions: PlayerActions, tile: TileRef) {
+    this.selectionRevision++;
+    this.nextActionsRefreshTick =
+      this.g.ticks() + COMMAND_ACTION_REFRESH_INTERVAL_TICKS;
     const owner = this.g.owner(tile);
     const nextPlayer = owner.isPlayer() ? (owner as PlayerView) : null;
     const changedPlayer = this.selectedPlayer?.id() !== nextPlayer?.id();
@@ -211,6 +272,7 @@ export class PlayerPanel extends LitElement implements Controller {
     target: PlayerView,
     mode: "troops" | "gold",
   ) {
+    this.selectionRevision++;
     this.suppressNextHide = true;
     this.selectedPlayer = target;
     this.tile = null;
@@ -227,6 +289,7 @@ export class PlayerPanel extends LitElement implements Controller {
     tile: TileRef,
     target: PlayerView,
   ) {
+    this.selectionRevision++;
     this.suppressNextHide = true;
     this.actions = actions;
     this.tile = tile;
@@ -239,6 +302,7 @@ export class PlayerPanel extends LitElement implements Controller {
   }
 
   public hide() {
+    this.selectionRevision++;
     this.isVisible = false;
     this.sendMode = "none";
     this.sendTarget = null;
@@ -704,6 +768,9 @@ export class PlayerPanel extends LitElement implements Controller {
         (unit) => unit.type === UnitType.TransportShip && unit.canBuild !== false,
       ) ?? false);
     const isAllied = other.isAlliedWith(my);
+    const operationShare = Math.round(this.uiState.attackRatio * 100);
+    const operationTroops = renderTroops(this.uiState.attackRatio * my.troops());
+    const operationDetail = `${operationShare}% · ${operationTroops}`;
 
     if (this.selectionLoading || this.actions === null) {
       return html`<div class="command-player-loading" aria-live="polite">
@@ -723,6 +790,7 @@ export class PlayerPanel extends LitElement implements Controller {
                     iconAlt: "Attack",
                     title: translateText("alliance_commands.attack_now"),
                     label: translateText("alliance_commands.attack_now"),
+                    detail: operationDetail,
                     type: "red",
                     priority: "primary",
                   })
@@ -730,11 +798,12 @@ export class PlayerPanel extends LitElement implements Controller {
               ${canLand
                 ? actionButton({
                     onClick: (e: MouseEvent) => this.handleBoatAttack(e, my),
-                    icon: targetIcon,
+                    icon: boatIcon,
                     iconAlt: "Landing",
                     title: translateText("alliance_commands.land_now"),
                     label: translateText("alliance_commands.land_now"),
-                    type: "red",
+                    detail: operationDetail,
+                    type: "sky",
                     priority: canAttack ? "secondary" : "primary",
                   })
                 : ""}

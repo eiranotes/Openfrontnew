@@ -1,3 +1,4 @@
+import "./LandingOperations.test";
 import "./TouchSelectionUi.test";
 import { describe, expect, it } from "vitest";
 import {
