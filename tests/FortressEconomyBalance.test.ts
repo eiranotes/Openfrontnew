@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { Config } from "../src/core/configuration/Config";
 import {
@@ -139,7 +140,7 @@ describe("Fortress commercial income", () => {
 describe("Fortress conquest economy", () => {
   it("reports the transferred amount instead of the defeated treasury", () => {
     const gameImpl = fs.readFileSync(
-      new URL("../src/core/game/GameImpl.ts", import.meta.url),
+      path.resolve(process.cwd(), "src/core/game/GameImpl.ts"),
       "utf8",
     );
     expect(gameImpl).toContain(

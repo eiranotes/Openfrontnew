@@ -27,16 +27,32 @@ const markerChecks = [
     "MIN_ALLIANCE_GOLD_RESERVE = 125_000n",
   ],
   ["tests/FortressEconomyBalance.test.ts", "Fortress commercial income"],
+  [
+    "tests/FortressEconomyBalance.test.ts",
+    'path.resolve(process.cwd(), "src/core/game/GameImpl.ts")',
+  ],
   ["tests/FortressBalance.test.ts", 'import "./ConquerGold.test";'],
   ["docs/FORTRESS_BALANCE_ROADMAP.md", "Fortress balance roadmap"],
 ];
 
+function absolute(relativePath) {
+  return path.join(root, relativePath);
+}
+
 function contains(relativePath, marker) {
-  const absolutePath = path.join(root, relativePath);
-  return (
-    fs.existsSync(absolutePath) &&
-    fs.readFileSync(absolutePath, "utf8").includes(marker)
-  );
+  const file = absolute(relativePath);
+  return fs.existsSync(file) && fs.readFileSync(file, "utf8").includes(marker);
+}
+
+function replaceOnce(relativePath, before, after, label) {
+  const file = absolute(relativePath);
+  let content = fs.readFileSync(file, "utf8");
+  if (content.includes(after)) return;
+  if (!content.includes(before)) {
+    throw new Error(`Fortress P1/P2 replacement anchor missing: ${label}`);
+  }
+  content = content.replace(before, after);
+  fs.writeFileSync(file, content);
 }
 
 if (markerChecks.every(([relativePath, marker]) => contains(relativePath, marker))) {
@@ -97,6 +113,25 @@ if (forwardCheck.status === 0) {
     );
   }
 }
+
+replaceOnce(
+  "tests/FortressEconomyBalance.test.ts",
+  'import fs from "node:fs";',
+  'import fs from "node:fs";\nimport path from "node:path";',
+  "node:path import",
+);
+replaceOnce(
+  "tests/FortressEconomyBalance.test.ts",
+  `    const gameImpl = fs.readFileSync(
+      new URL("../src/core/game/GameImpl.ts", import.meta.url),
+      "utf8",
+    );`,
+  `    const gameImpl = fs.readFileSync(
+      path.resolve(process.cwd(), "src/core/game/GameImpl.ts"),
+      "utf8",
+    );`,
+  "conquest event source path",
+);
 
 for (const [relativePath, marker] of markerChecks) {
   if (!contains(relativePath, marker)) {
