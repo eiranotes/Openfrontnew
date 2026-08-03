@@ -2,6 +2,7 @@ import { LitElement, html } from "lit";
 import { customElement } from "lit/decorators.js";
 import { crazyGamesSDK } from "../CrazyGamesSDK";
 import "../styles/home-operations-desk.css";
+import "../styles/fortress-home-v2-layout.css";
 import "./NewsBox";
 import "./SteamWishlistButton";
 import "./StreamingNow";
