@@ -30,5 +30,9 @@ run(
   "scripts/apply-fortress-balance-p0.mjs",
   "Fortress P0 investment and territory balance patch",
 );
+run(
+  "scripts/apply-fortress-balance-p1-p2.mjs",
+  "Fortress P1/P2 combat and economy balance patch",
+);
 
 console.log("Applied the complete Fortress UI and balance patch chain.");
