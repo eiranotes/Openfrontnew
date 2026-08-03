@@ -75,6 +75,12 @@ export class ControlPanel extends LitElement implements Controller {
   private _developmentEfficiencyBonus = 0;
 
   @state()
+  private _developmentInvestment = 0;
+
+  @state()
+  private _developmentRequirement = 0;
+
+  @state()
   private _goldGain: bigint | null = null;
   @state()
   private _goldGainPulseId: number = 0;
@@ -143,9 +149,12 @@ export class ControlPanel extends LitElement implements Controller {
     this._militaryQuality = military.quality;
     this._trainingCoverage = military.coverage;
     this._trainingCapacity = military.trainingCapacity;
+    const development = compactStateProfile(player);
     this._developmentEfficiencyBonus = Math.round(
-      (compactStateProfile(player).reinforcementMultiplier - 1) * 100,
+      (development.reinforcementMultiplier - 1) * 100,
     );
+    this._developmentInvestment = development.developmentInvestment;
+    this._developmentRequirement = development.developmentRequirement;
     this.troopRate = config.troopIncreaseRate(player) * 10;
 
     const helpEnabled = new UserSettings().helpMessages();
@@ -541,7 +550,7 @@ export class ControlPanel extends LitElement implements Controller {
         <div
           class="command-military flex min-w-[10rem] shrink-0 items-center justify-between gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold"
           style="--training-coverage: ${Math.round(this._trainingCoverage * 100)}%;"
-          title="훈련 수용량 ${renderTroops(this._trainingCapacity)}"
+          title="훈련 수용량 ${renderTroops(this._trainingCapacity)} · 개발 ${renderNumber(this._developmentInvestment)} / ${renderNumber(this._developmentRequirement)}"
         >
           <span>◆ ${this._militaryLabel}</span>
           <span class="tabular-nums">×${this._militaryQuality.toFixed(2)}</span>
@@ -549,7 +558,7 @@ export class ControlPanel extends LitElement implements Controller {
             this._trainingCoverage * 100,
           )}%</span>
           <span class="text-emerald-300/80 tabular-nums"
-            >효율 +${this._developmentEfficiencyBonus}%</span
+            >개발 +${this._developmentEfficiencyBonus}%</span
           >
         </div>
         <div
@@ -639,7 +648,7 @@ export class ControlPanel extends LitElement implements Controller {
         class="command-military mt-2 flex min-h-9 items-center justify-between gap-2 rounded-md border px-2 text-[10px] font-semibold"
         style="--training-coverage: ${Math.round(this._trainingCoverage * 100)}%;"
         translate="no"
-        title="훈련 수용량 ${renderTroops(this._trainingCapacity)}"
+        title="훈련 수용량 ${renderTroops(this._trainingCapacity)} · 개발 ${renderNumber(this._developmentInvestment)} / ${renderNumber(this._developmentRequirement)}"
       >
         <span class="truncate">◆ ${this._militaryLabel}</span>
         <span class="shrink-0 tabular-nums"
@@ -649,7 +658,7 @@ export class ControlPanel extends LitElement implements Controller {
           >훈련 ${Math.round(this._trainingCoverage * 100)}%</span
         >
         <span class="shrink-0 tabular-nums text-emerald-300/80"
-          >효율 +${this._developmentEfficiencyBonus}%</span
+          >개발 +${this._developmentEfficiencyBonus}%</span
         >
       </div>
     `;

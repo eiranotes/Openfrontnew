@@ -69,8 +69,6 @@ export interface NukeMagnitude {
   outer: number;
 }
 
-const DEFENSE_DEBUFF_MIDPOINT = 150_000;
-const DEFENSE_DEBUFF_DECAY_RATE = Math.LN2 / 50000;
 const DEFAULT_SPAWN_IMMUNITY_TICKS = 5 * 10;
 
 export const JwksSchema = z.object({
@@ -695,25 +693,11 @@ export class Config {
     }
 
     if (defender.isPlayer()) {
-      const defenseSig =
-        1 -
-        sigmoid(
-          defender.numTilesOwned(),
-          DEFENSE_DEBUFF_DECAY_RATE,
-          DEFENSE_DEBUFF_MIDPOINT,
-        );
-
-      const largeDefenderSpeedDebuff = 0.7 + 0.3 * defenseSig;
-      const largeDefenderAttackDebuff = 0.7 + 0.3 * defenseSig;
-
-      // Territory is never penalized. Developed states gain a positive
-      // logistics bonus from city and factory density.
-      const attackerQuality =
-        militaryQuality(attacker).quality *
-        compactStateProfile(attacker).combatMultiplier;
-      const defenderQuality =
-        militaryQuality(defender).quality *
-        compactStateProfile(defender).combatMultiplier;
+      // Territory size does not modify combat on its own. Military training
+      // determines casualty exchange, while internal investment only improves
+      // reinforcement and operational tempo through a small logistics bonus.
+      const attackerQuality = militaryQuality(attacker).quality;
+      const defenderQuality = militaryQuality(defender).quality;
       const qualityRatio = attackerQuality / Math.max(0.01, defenderQuality);
       const exchangeModifier = within(Math.sqrt(qualityRatio), 0.72, 1.4);
       const speedQualityModifier = within(
@@ -721,6 +705,8 @@ export class Config {
         0.9,
         1.12,
       );
+      const logisticsMultiplier =
+        compactStateProfile(attacker).logisticsMultiplier;
 
       const baseDefenderTroopLoss =
         defender.troops() / defender.numTilesOwned();
@@ -731,7 +717,6 @@ export class Config {
         within(defender.troops() / attackTroops, 0.6, 2) *
         mag *
         0.8 *
-        largeDefenderAttackDebuff *
         traitorMod;
       const altAttackerLoss =
         1.3 * baseDefenderTroopLoss * (mag / 100) * traitorMod;
@@ -743,11 +728,10 @@ export class Config {
         attackerTroopLoss,
         defenderTroopLoss,
         tilesPerTickUsed:
-          within(defender.troops() / (5 * attackTroops), 0.2, 1.5) *
-          speed *
-          largeDefenderSpeedDebuff *
-          (defender.isTraitor() ? this.traitorSpeedDebuff() : 1) /
-          speedQualityModifier,
+          (within(defender.troops() / (5 * attackTroops), 0.2, 1.5) *
+            speed *
+            (defender.isTraitor() ? this.traitorSpeedDebuff() : 1)) /
+          (speedQualityModifier * logisticsMultiplier),
       };
     } else {
       return {
@@ -907,7 +891,7 @@ export class Config {
     } else {
       baseRate = 100n;
     }
-    const efficiency = compactStateProfile(player).economyMultiplier;
+    const efficiency = compactStateProfile(player).domesticIncomeMultiplier;
     return BigInt(Math.floor(Number(baseRate) * multiplier * efficiency));
   }
 
