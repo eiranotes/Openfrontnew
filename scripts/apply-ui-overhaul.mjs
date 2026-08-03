@@ -22,5 +22,9 @@ run(
   "Fortress, landing and command patch chain",
 );
 run("scripts/apply-operational-atlas-ui.mjs", "Operational Atlas UI patch");
+run(
+  "scripts/apply-release-home-ui.mjs",
+  "Release stabilization and clean homepage patch",
+);
 
 console.log("Applied the complete Fortress UI overhaul chain.");
