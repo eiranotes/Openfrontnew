@@ -40,11 +40,15 @@ describe("Operational Atlas UI system", () => {
     const selector = read("src/client/GameModeSelector.ts");
     const navigation = read("src/client/components/DesktopNavBar.ts");
     const homeCss = read("src/client/styles/home-operations-desk.css");
+    const layoutCss = read("src/client/styles/fortress-home-v2-layout.css");
 
     expect(playPage).toContain('class="command-play-page fortress-home-v2"');
     expect(playPage).toContain('class="fortress-home-intro__title"');
     expect(playPage).toContain("FORTRESS");
     expect(playPage).toContain("OPENFRONT ENGINE");
+    expect(playPage).toContain(
+      'import "../styles/fortress-home-v2-layout.css";',
+    );
     expect(playPage).toContain('class="command-home-shell fortress-home-layout"');
     expect(playPage).toContain('class="command-home-stage fortress-home-stage"');
     expect(selector).toContain('class="command-operation-deck"');
@@ -53,10 +57,11 @@ describe("Operational Atlas UI system", () => {
     expect(navigation).toContain('class="command-desktop-nav__more-menu"');
     expect(navigation).not.toContain('class="command-wordmark"');
     expect(homeCss).toContain("Fortress Home V2");
-    expect(homeCss).toContain(
-      "grid-template-columns: minmax(0, 1fr) 318px",
-    );
     expect(homeCss).toContain("min-height: 188px !important");
+    expect(layoutCss).toContain(
+      "grid-template-columns: 318px minmax(0, 1fr)",
+    );
+    expect(layoutCss).toContain(".fortress-home-stage");
     expect(homeCss).not.toMatch(/linear-gradient\s*\(/i);
     expect(homeCss).not.toMatch(/backdrop-filter:\s*blur/i);
   });
