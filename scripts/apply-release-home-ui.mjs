@@ -33,6 +33,10 @@ const markerChecks = [
     "Align the compact identity/news rail",
   ],
   [
+    "src/client/styles/home-operations-desk.css",
+    "Override the legacy two-column utility grid",
+  ],
+  [
     "tests/OperationalAtlasUi.test.ts",
     "uses a clean operations desk and collapses secondary desktop navigation",
   ],
@@ -234,6 +238,24 @@ appendOnce(
   }
 
   .command-identity-bar__controls {
+    width: 100%;
+  }
+}`,
+);
+appendOnce(
+  "src/client/styles/home-operations-desk.css",
+  "Override the legacy two-column utility grid",
+  `/* Override the legacy two-column utility grid loaded by Operational Atlas. */
+@media (min-width: 1024px) {
+  .command-home-shell > .command-home-utility {
+    display: flex;
+    grid-template-columns: none;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .command-home-shell > .command-home-utility > .command-home-brief,
+  .command-home-shell > .command-home-utility > .command-stream-panel {
     width: 100%;
   }
 }`,
