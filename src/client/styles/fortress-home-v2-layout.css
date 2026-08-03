@@ -21,6 +21,13 @@
   min-height: 44px !important;
 }
 
+@media (min-width: 640px) {
+  .command-single-player {
+    height: calc(100dvh - 140px) !important;
+    max-height: calc(100dvh - 140px) !important;
+  }
+}
+
 @media (min-width: 1180px) {
   .command-home-shell.fortress-home-layout {
     grid-template-columns: 318px minmax(0, 1fr);
