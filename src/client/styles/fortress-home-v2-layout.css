@@ -1,0 +1,47 @@
+/* Fortress Home V2 geometry contract. Loaded after the visual layer. */
+
+@media (min-width: 1180px) {
+  .command-home-shell.fortress-home-layout {
+    grid-template-columns: 318px minmax(0, 1fr);
+  }
+
+  .fortress-home-stage {
+    order: 2;
+  }
+
+  .command-home-utility.fortress-home-utility {
+    order: 1;
+    padding-right: 24px;
+    padding-left: 0;
+    border-right: 1px solid var(--fortress-line);
+    border-left: 0;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1179px) {
+  .command-home-shell.fortress-home-layout {
+    grid-template-columns: 282px minmax(0, 1fr);
+  }
+
+  .fortress-home-stage {
+    order: 2;
+  }
+
+  .command-home-utility.fortress-home-utility {
+    order: 1;
+    padding-right: 20px;
+    padding-left: 0;
+    border-right: 1px solid var(--fortress-line);
+    border-left: 0;
+  }
+}
+
+@media (max-width: 1023px) {
+  .fortress-home-stage {
+    order: 2;
+  }
+
+  .command-home-utility.fortress-home-utility {
+    order: 1;
+  }
+}
