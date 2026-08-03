@@ -106,13 +106,13 @@ export class PlayPage extends LitElement {
                 ></cosmetic-background>
                 <div class="command-identity-bar__controls">
                   <flag-input
-                    show-select-label
+                    data-compact-control
                     class="h-11 w-11 shrink-0"
                   ></flag-input>
                   <username-input class="h-11 min-w-0 flex-1"></username-input>
                   <cosmetics-input
                     id="cosmetics-input-mobile"
-                    show-select-label
+                    data-compact-control
                     class="no-crazygames h-11 w-11 shrink-0"
                   ></cosmetics-input>
                 </div>

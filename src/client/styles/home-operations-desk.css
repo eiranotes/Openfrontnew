@@ -443,3 +443,23 @@
     font-size: 18px;
   }
 }
+
+/* Align the compact identity/news rail with the homepage grid. */
+.command-home-utility,
+.command-home-brief,
+.command-identity-bar,
+.command-news-box,
+.command-stream-panel {
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .command-home-utility,
+  .command-home-brief {
+    align-self: stretch;
+  }
+
+  .command-identity-bar__controls {
+    width: 100%;
+  }
+}
