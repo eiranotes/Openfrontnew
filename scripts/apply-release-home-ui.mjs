@@ -31,17 +31,60 @@ const markerChecks = [
     "tests/OperationalAtlasUi.test.ts",
     "uses a clean operations desk and collapses secondary desktop navigation",
   ],
+  ["index.html", "Clean application shell: no legacy logo backdrops"],
+];
+const forbiddenChecks = [
+  ["index.html", "--mobile-logo-image-url"],
+  ["index.html", "--desktop-logo-image-url"],
+  ["vite.config.ts", "mobileLogoImageUrl"],
+  ["vite.config.ts", "desktopLogoImageUrl"],
+  ["src/server/RenderHtml.ts", "mobileLogoImageUrl"],
+  ["src/server/RenderHtml.ts", "desktopLogoImageUrl"],
 ];
 
+function absolute(relativePath) {
+  return path.join(root, relativePath);
+}
+
 function contains(relativePath, marker) {
-  const absolutePath = path.join(root, relativePath);
+  const absolutePath = absolute(relativePath);
   return (
     fs.existsSync(absolutePath) &&
     fs.readFileSync(absolutePath, "utf8").includes(marker)
   );
 }
 
-if (markerChecks.every(([relativePath, marker]) => contains(relativePath, marker))) {
+function replaceOnce(relativePath, before, after, label) {
+  const file = absolute(relativePath);
+  let content = fs.readFileSync(file, "utf8");
+  if (content.includes(after)) return;
+  if (!content.includes(before)) {
+    throw new Error(`Release/home cleanup anchor missing: ${label}`);
+  }
+  content = content.replace(before, after);
+  fs.writeFileSync(file, content);
+}
+
+function removeOnce(relativePath, before) {
+  const file = absolute(relativePath);
+  let content = fs.readFileSync(file, "utf8");
+  if (!content.includes(before)) return;
+  content = content.replace(before, "");
+  fs.writeFileSync(file, content);
+}
+
+function isMaterialized() {
+  return (
+    markerChecks.every(([relativePath, marker]) =>
+      contains(relativePath, marker),
+    ) &&
+    forbiddenChecks.every(
+      ([relativePath, marker]) => !contains(relativePath, marker),
+    )
+  );
+}
+
+if (isMaterialized()) {
   console.log("Release stabilization and clean homepage UI are already materialized.");
   process.exit(0);
 }
@@ -95,9 +138,53 @@ if (forwardCheck.status === 0) {
   }
 }
 
+replaceOnce(
+  "index.html",
+  `      // document.documentElement.style.setProperty(
+      //   "--desktop-logo-image-url",
+      //   \`url("<%- desktopLogoImageUrl %>")\`,
+      // );
+      document.documentElement.style.setProperty(
+        "--mobile-logo-image-url",
+        \`url("<%- mobileLogoImageUrl %>")\`,
+      );`,
+  `      // Clean application shell: no legacy logo backdrops are injected.`,
+  "legacy logo CSS variables",
+);
+replaceOnce(
+  "index.html",
+  `      <div
+        class="absolute inset-0 bg-center bg-no-repeat bg-contain hidden lg:block"
+        style="background-image: var(--desktop-logo-image-url); opacity: 0.5"
+      ></div>
+      <div
+        class="absolute inset-0 bg-center bg-no-repeat bg-contain lg:hidden"
+        style="background-image: var(--mobile-logo-image-url); opacity: 0.5"
+      ></div>`,
+  `      <!-- Clean application shell: no legacy logo backdrops. -->`,
+  "legacy logo backdrop layers",
+);
+
+const injectedLogoFields = `    desktopLogoImageUrl: buildAssetUrl(
+      "images/OpenFront.png",
+      assetManifest,
+      cdnBase,
+    ),
+    mobileLogoImageUrl: buildAssetUrl("images/OF.png", assetManifest, cdnBase),
+`;
+removeOnce("vite.config.ts", injectedLogoFields);
+removeOnce("src/server/RenderHtml.ts", injectedLogoFields);
+
 for (const [relativePath, marker] of markerChecks) {
   if (!contains(relativePath, marker)) {
     throw new Error(`Release/home marker missing after apply: ${relativePath}`);
+  }
+}
+for (const [relativePath, marker] of forbiddenChecks) {
+  if (contains(relativePath, marker)) {
+    throw new Error(
+      `Legacy application-shell reference remains: ${relativePath} (${marker})`,
+    );
   }
 }
 
