@@ -1,8 +1,14 @@
+import "./ConquerGold.test";
+import "./FortressEconomyBalance.test";
+import "./core/game/TrainStation.test";
 import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 import { UnitType, type Player, type Unit } from "../src/core/game/Game";
 import {
   compactStateProfile,
+  developmentEfficiencyScore,
+  effectiveQualityFromDisplayedQuality,
+  militaryCombatModifiers,
   militaryProfile,
 } from "../src/core/game/FortressBalance";
 
@@ -20,7 +26,8 @@ function unit(type: UnitType, level: number, troops = 0): Unit {
 }
 function player(options: {
   cityLevels?: number[];
-  factories?: number;
+  factoryLevels?: number[];
+  portLevels?: number[];
   troops?: number;
   attackTroops?: number[];
   embarkedTroops?: number[];
@@ -29,8 +36,11 @@ function player(options: {
   const cities = (options.cityLevels ?? []).map((level) =>
     unit(UnitType.City, level),
   );
-  const factories = Array.from({ length: options.factories ?? 0 }, () =>
-    unit(UnitType.Factory, 1),
+  const factories = (options.factoryLevels ?? []).map((level) =>
+    unit(UnitType.Factory, level),
+  );
+  const ports = (options.portLevels ?? []).map((level) =>
+    unit(UnitType.Port, level),
   );
   const ships = (options.embarkedTroops ?? []).map((troops) =>
     unit(UnitType.TransportShip, 1, troops),
@@ -39,8 +49,9 @@ function player(options: {
     units: (type?: UnitType) => {
       if (type === UnitType.City) return cities;
       if (type === UnitType.Factory) return factories;
+      if (type === UnitType.Port) return ports;
       if (type === UnitType.TransportShip) return ships;
-      return [...cities, ...factories, ...ships];
+      return [...cities, ...factories, ...ports, ...ships];
     },
     troops: () => options.troops ?? 0,
     outgoingAttacks: () =>
@@ -72,46 +83,118 @@ describe("Fortress military quality", () => {
     expect(profile.coverage).toBeCloseTo(0.65, 5);
     expect(profile.quality).toBeCloseTo(1.455, 5);
   });
+
+  it("compresses displayed quality into a bounded combat power curve", () => {
+    expect(effectiveQualityFromDisplayedQuality(1)).toBe(1);
+    expect(effectiveQualityFromDisplayedQuality(2)).toBeCloseTo(1.464086, 5);
+
+    const guard = player({ cityLevels: [9, 7, 5], troops: 1_000_000 });
+    const levy = player({ cityLevels: [1], troops: 1_000_000 });
+    expect(militaryProfile(guard).quality).toBe(2);
+    expect(militaryProfile(levy).quality).toBe(1);
+    const modifiers = militaryCombatModifiers(guard, levy);
+    expect(modifiers.qualityRatio).toBeCloseTo(1.464086, 5);
+    expect(modifiers.exchangeModifier).toBeCloseTo(1.210, 3);
+    expect(modifiers.tempoModifier).toBe(1.06);
+  });
+
+  it("caps extreme exchange and tempo modifiers symmetrically enough for recovery", () => {
+    const elite = player({ cityLevels: [9, 9, 9], troops: 1 });
+    const untrained = player({ troops: 10_000_000 });
+    const advantage = militaryCombatModifiers(elite, untrained);
+    const disadvantage = militaryCombatModifiers(untrained, elite);
+    expect(advantage.exchangeModifier).toBeLessThanOrEqual(1.22);
+    expect(disadvantage.exchangeModifier).toBeGreaterThanOrEqual(0.82);
+    expect(advantage.tempoModifier).toBeLessThanOrEqual(1.06);
+    expect(disadvantage.tempoModifier).toBeGreaterThanOrEqual(0.94);
+  });
 });
 
-describe("compact-state development efficiency", () => {
-  it("never applies a negative territory multiplier", () => {
-    const sparse = compactStateProfile(
-      player({ cityLevels: [1], tiles: 100_000 }),
-    );
-    expect(sparse.economyMultiplier).toBeGreaterThanOrEqual(1);
-    expect(sparse.reinforcementMultiplier).toBeGreaterThanOrEqual(1);
-    expect(sparse.combatMultiplier).toBeGreaterThanOrEqual(1);
+describe("investment-backed compact development", () => {
+  it("grants no development bonus before structures are completed", () => {
+    for (const tiles of [5_000, 25_000, 100_000]) {
+      const profile = compactStateProfile(player({ tiles }));
+      expect(profile.developmentInvestment).toBe(0);
+      expect(profile.efficiencyScore).toBe(0);
+      expect(profile.domesticIncomeMultiplier).toBe(1);
+      expect(profile.commercialIncomeMultiplier).toBe(1);
+      expect(profile.reinforcementMultiplier).toBe(1);
+      expect(profile.logisticsMultiplier).toBe(1);
+    }
   });
-  it("rewards compact development with the full bonus", () => {
-    const compact = compactStateProfile(
-      player({ cityLevels: [5, 3], factories: 1, tiles: 25_000 }),
-    );
-    expect(compact.efficiencyScore).toBe(1);
-    expect(compact.economyMultiplier).toBeCloseTo(1.3, 5);
-    expect(compact.reinforcementMultiplier).toBeCloseTo(1.22, 5);
-    expect(compact.combatMultiplier).toBeCloseTo(1.1, 5);
+
+  it("uses a smooth investment band instead of a binary threshold", () => {
+    expect(developmentEfficiencyScore(0.19)).toBe(0);
+    expect(developmentEfficiencyScore(0.575)).toBeCloseTo(0.5, 5);
+    expect(developmentEfficiencyScore(0.96)).toBe(1);
   });
-  it("lets an expanded state regain efficiency through investment", () => {
+
+  it("counts city, factory and port levels as distinct investment", () => {
+    const profile = compactStateProfile(
+      player({
+        cityLevels: [3],
+        factoryLevels: [2],
+        portLevels: [2],
+        tiles: 25_000,
+      }),
+    );
+    expect(profile.totalCityLevels).toBe(3);
+    expect(profile.totalFactoryLevels).toBe(2);
+    expect(profile.totalPortLevels).toBe(2);
+    expect(profile.developmentInvestment).toBe(30_000);
+    expect(profile.developmentRequirement).toBe(25_750);
+    expect(profile.efficiencyScore).toBe(1);
+  });
+
+  it("requires visible investment before a compact state reaches full benefit", () => {
+    const lightlyDeveloped = compactStateProfile(
+      player({ cityLevels: [3], tiles: 25_000 }),
+    );
+    const developed = compactStateProfile(
+      player({ cityLevels: [5], factoryLevels: [1], tiles: 25_000 }),
+    );
+    expect(lightlyDeveloped.efficiencyScore).toBeCloseTo(0.103379, 5);
+    expect(developed.efficiencyScore).toBeCloseTo(0.955371, 5);
+    expect(developed.domesticIncomeMultiplier).toBeCloseTo(1.191074, 5);
+    expect(developed.reinforcementMultiplier).toBeCloseTo(1.143306, 5);
+    expect(developed.logisticsMultiplier).toBeCloseTo(1.047769, 5);
+  });
+
+  it("lets an expanded state regain efficiency through proportionate investment", () => {
     const sparse = compactStateProfile(
       player({ cityLevels: [3], tiles: 80_000 }),
     );
     const developed = compactStateProfile(
-      player({ cityLevels: [9, 7, 5], factories: 3, tiles: 80_000 }),
+      player({ cityLevels: [9, 4], factoryLevels: [2], tiles: 80_000 }),
     );
-    expect(developed.efficiencyScore).toBeGreaterThan(sparse.efficiencyScore);
-    expect(developed.reinforcementMultiplier).toBeCloseTo(1.22, 5);
+    expect(sparse.efficiencyScore).toBe(0);
+    expect(developed.efficiencyScore).toBeCloseTo(0.999932, 5);
+    expect(developed.reinforcementMultiplier).toBeCloseTo(1.14999, 5);
   });
 });
 
 describe("combat integration", () => {
-  it("uses development bonuses instead of map-share penalties", () => {
+  it("removes every direct territory-size combat debuff", () => {
     const config = source("src/core/configuration/Config.ts");
-    expect(config).toContain("compactStateProfile(attacker).combatMultiplier");
+    expect(config).not.toContain("DEFENSE_DEBUFF_MIDPOINT");
+    expect(config).not.toContain("DEFENSE_DEBUFF_DECAY_RATE");
+    expect(config).not.toContain("largeDefenderSpeedDebuff");
+    expect(config).not.toContain("largeDefenderAttackDebuff");
+    expect(config).not.toContain("combatMultiplier");
+    expect(config).toContain("militaryCombatModifiers(attacker, defender)");
+    expect(config).toContain("compactStateProfile(attacker).logisticsMultiplier");
+    expect(source("src/core/execution/AttackExecution.ts")).toContain(
+      "effectiveMilitaryQuality",
+    );
+  });
+
+  it("integrates the bounded domestic and reinforcement multipliers", () => {
+    const config = source("src/core/configuration/Config.ts");
     expect(config).toContain("compactStateProfile(player).reinforcementMultiplier");
-    expect(config).toContain("compactStateProfile(player).economyMultiplier");
+    expect(config).toContain("compactStateProfile(player).domesticIncomeMultiplier");
     expect(config).not.toContain("overextensionPenalties");
   });
+
   it("keeps mobile attacks direct and owned-land menus intact", () => {
     const touch = source("src/client/controllers/WarshipSelectionController.ts");
     expect(touch).toContain("this.game.hasOwner(clickRef)");

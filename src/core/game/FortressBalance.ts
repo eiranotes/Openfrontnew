@@ -2,9 +2,28 @@ import { UnitType } from "./Game";
 import { within } from "../Util";
 
 export const TRAINING_CAPACITY_PER_CITY_LEVEL = 200_000;
-export const BASE_ADMINISTRATIVE_CAPACITY = 12_000;
-export const ADMINISTRATIVE_CAPACITY_PER_CITY_LEVEL = 5_000;
-export const ADMINISTRATIVE_CAPACITY_PER_FACTORY = 8_000;
+
+export const BASE_DEVELOPMENT_REQUIREMENT = 12_000;
+export const DEVELOPMENT_REQUIREMENT_PER_TILE = 0.55;
+export const DEVELOPMENT_INVESTMENT_PER_CITY_LEVEL = 3_000;
+export const DEVELOPMENT_INVESTMENT_PER_FACTORY_LEVEL = 7_000;
+export const DEVELOPMENT_INVESTMENT_PER_PORT_LEVEL = 3_500;
+export const DEVELOPMENT_RATIO_START = 0.2;
+export const DEVELOPMENT_RATIO_FULL = 0.95;
+
+export const MAX_DOMESTIC_INCOME_BONUS = 0.2;
+export const MAX_COMMERCIAL_INCOME_BONUS = 0.08;
+export const MAX_REINFORCEMENT_BONUS = 0.15;
+export const MAX_LOGISTICS_BONUS = 0.05;
+
+// The displayed tier quality remains legible to players, but combat uses a
+// compressed power curve so development matters without creating a runaway
+// two-for-one casualty exchange.
+export const MILITARY_QUALITY_POWER_EXPONENT = 0.55;
+export const MIN_MILITARY_EXCHANGE_MODIFIER = 0.82;
+export const MAX_MILITARY_EXCHANGE_MODIFIER = 1.22;
+export const MIN_MILITARY_TEMPO_MODIFIER = 0.94;
+export const MAX_MILITARY_TEMPO_MODIFIER = 1.06;
 
 export interface MilitaryProfile {
   tier: number;
@@ -19,14 +38,17 @@ export interface MilitaryProfile {
 }
 
 export interface CompactStateProfile {
-  administrativeCapacity: number;
-  developmentDensity: number;
+  developmentInvestment: number;
+  developmentRequirement: number;
+  investmentRatio: number;
   efficiencyScore: number;
-  economyMultiplier: number;
+  domesticIncomeMultiplier: number;
+  commercialIncomeMultiplier: number;
   reinforcementMultiplier: number;
-  combatMultiplier: number;
-  activeFactories: number;
+  logisticsMultiplier: number;
   totalCityLevels: number;
+  totalFactoryLevels: number;
+  totalPortLevels: number;
 }
 
 const MILITARY_TIERS = [
@@ -65,8 +87,29 @@ function completedUnits(player: MilitaryPlayerLike, type: UnitType) {
     .filter((unit) => unit.isActive() && !unit.isUnderConstruction());
 }
 
-function completedCityLevels(player: MilitaryPlayerLike): number[] {
-  return completedUnits(player, UnitType.City).map((city) => city.level());
+function completedLevels(
+  player: MilitaryPlayerLike,
+  type: UnitType,
+): number[] {
+  return completedUnits(player, type).map((unit) => unit.level());
+}
+
+function totalLevels(player: MilitaryPlayerLike, type: UnitType): number {
+  return completedLevels(player, type).reduce((sum, level) => sum + level, 0);
+}
+
+function smoothstep(value: number): number {
+  return value * value * (3 - 2 * value);
+}
+
+export function developmentEfficiencyScore(investmentRatio: number): number {
+  const normalized = within(
+    (investmentRatio - DEVELOPMENT_RATIO_START) /
+      (DEVELOPMENT_RATIO_FULL - DEVELOPMENT_RATIO_START),
+    0,
+    1,
+  );
+  return smoothstep(normalized);
 }
 
 export function totalMilitaryManpower(player: MilitaryPlayerLike): number {
@@ -83,34 +126,39 @@ export function totalMilitaryManpower(player: MilitaryPlayerLike): number {
 export function compactStateProfile(
   player: MilitaryPlayerLike,
 ): CompactStateProfile {
-  const cityLevels = completedCityLevels(player);
-  const totalCityLevels = cityLevels.reduce((sum, level) => sum + level, 0);
-  const activeFactories = completedUnits(player, UnitType.Factory).length;
-  const administrativeCapacity =
-    BASE_ADMINISTRATIVE_CAPACITY +
-    totalCityLevels * ADMINISTRATIVE_CAPACITY_PER_CITY_LEVEL +
-    activeFactories * ADMINISTRATIVE_CAPACITY_PER_FACTORY;
-  const developmentDensity =
-    administrativeCapacity / Math.max(1, player.numTilesOwned());
-
-  // Territory has no negative multiplier. Dense internal investment earns a
-  // positive bonus, while expansion still increases absolute capacity.
-  const efficiencyScore = within((developmentDensity - 0.25) / 0.75, 0, 1);
+  const totalCityLevels = totalLevels(player, UnitType.City);
+  const totalFactoryLevels = totalLevels(player, UnitType.Factory);
+  const totalPortLevels = totalLevels(player, UnitType.Port);
+  const developmentInvestment =
+    totalCityLevels * DEVELOPMENT_INVESTMENT_PER_CITY_LEVEL +
+    totalFactoryLevels * DEVELOPMENT_INVESTMENT_PER_FACTORY_LEVEL +
+    totalPortLevels * DEVELOPMENT_INVESTMENT_PER_PORT_LEVEL;
+  const developmentRequirement =
+    BASE_DEVELOPMENT_REQUIREMENT +
+    Math.max(0, player.numTilesOwned()) * DEVELOPMENT_REQUIREMENT_PER_TILE;
+  const investmentRatio =
+    developmentInvestment / Math.max(1, developmentRequirement);
+  const efficiencyScore = developmentEfficiencyScore(investmentRatio);
 
   return {
-    administrativeCapacity,
-    developmentDensity,
+    developmentInvestment,
+    developmentRequirement,
+    investmentRatio,
     efficiencyScore,
-    economyMultiplier: 1 + 0.3 * efficiencyScore,
-    reinforcementMultiplier: 1 + 0.22 * efficiencyScore,
-    combatMultiplier: 1 + 0.1 * efficiencyScore,
-    activeFactories,
+    domesticIncomeMultiplier: 1 + MAX_DOMESTIC_INCOME_BONUS * efficiencyScore,
+    commercialIncomeMultiplier:
+      1 + MAX_COMMERCIAL_INCOME_BONUS * efficiencyScore,
+    reinforcementMultiplier:
+      1 + MAX_REINFORCEMENT_BONUS * efficiencyScore,
+    logisticsMultiplier: 1 + MAX_LOGISTICS_BONUS * efficiencyScore,
     totalCityLevels,
+    totalFactoryLevels,
+    totalPortLevels,
   };
 }
 
 export function militaryProfile(player: MilitaryPlayerLike): MilitaryProfile {
-  const levels = completedCityLevels(player);
+  const levels = completedLevels(player, UnitType.City);
   const highestCityLevel = levels.length === 0 ? 0 : Math.max(...levels);
   const totalCityLevels = levels.reduce((sum, level) => sum + level, 0);
   let tierIndex = 0;
@@ -146,4 +194,53 @@ export function militaryProfile(player: MilitaryPlayerLike): MilitaryProfile {
 
 export function militaryQuality(player: MilitaryPlayerLike): MilitaryProfile {
   return militaryProfile(player);
+}
+
+export function effectiveQualityFromDisplayedQuality(quality: number): number {
+  return Math.pow(
+    Math.max(0.01, quality),
+    MILITARY_QUALITY_POWER_EXPONENT,
+  );
+}
+
+export function effectiveMilitaryQuality(
+  player: MilitaryPlayerLike,
+): number {
+  return effectiveQualityFromDisplayedQuality(militaryProfile(player).quality);
+}
+
+export function militaryQualityRatio(
+  attacker: MilitaryPlayerLike,
+  defender: MilitaryPlayerLike,
+): number {
+  return (
+    effectiveMilitaryQuality(attacker) /
+    Math.max(0.01, effectiveMilitaryQuality(defender))
+  );
+}
+
+export interface MilitaryCombatModifiers {
+  qualityRatio: number;
+  exchangeModifier: number;
+  tempoModifier: number;
+}
+
+export function militaryCombatModifiers(
+  attacker: MilitaryPlayerLike,
+  defender: MilitaryPlayerLike,
+): MilitaryCombatModifiers {
+  const qualityRatio = militaryQualityRatio(attacker, defender);
+  return {
+    qualityRatio,
+    exchangeModifier: within(
+      Math.sqrt(qualityRatio),
+      MIN_MILITARY_EXCHANGE_MODIFIER,
+      MAX_MILITARY_EXCHANGE_MODIFIER,
+    ),
+    tempoModifier: within(
+      Math.pow(qualityRatio, 0.25),
+      MIN_MILITARY_TEMPO_MODIFIER,
+      MAX_MILITARY_TEMPO_MODIFIER,
+    ),
+  };
 }
