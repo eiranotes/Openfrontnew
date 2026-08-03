@@ -56,7 +56,7 @@ const encoded = partNames
   .replace(/\s/g, "");
 const encodedDigest = createHash("sha256").update(encoded).digest("hex");
 const expectedEncodedDigest =
-  "34695b85937acf140b40e85351a2c2f980d7a03cdfa53cb0ea3c9a15fb96df8a";
+  "24ca650596395a601a06c770098962e4220fe33e4a6cb83b56007f9e34e46420";
 if (encodedDigest !== expectedEncodedDigest) {
   throw new Error(
     `Fortress P1/P2 encoded checksum mismatch: ${encodedDigest}`,
@@ -66,7 +66,7 @@ if (encodedDigest !== expectedEncodedDigest) {
 const patch = gunzipSync(Buffer.from(encoded, "base64"));
 const patchDigest = createHash("sha256").update(patch).digest("hex");
 const expectedPatchDigest =
-  "f568ca5035f32073e567f210bf44cc061efec15cb25c3d27a8fe61075070dbd0";
+  "830d4de34aea13a5d617b5779b544e983eade9bf980bbbd916aed451b202179e";
 if (patchDigest !== expectedPatchDigest) {
   throw new Error(`Fortress P1/P2 patch checksum mismatch: ${patchDigest}`);
 }
