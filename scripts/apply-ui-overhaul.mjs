@@ -19,6 +19,19 @@ function run(relativeScript, label) {
   }
 }
 
+function interfaceV3Materialized() {
+  const style = path.join(root, "src/client/styles/fortress-interface-v3.css");
+  const main = path.join(root, "src/client/Main.ts");
+  return (
+    fs.existsSync(style) &&
+    fs.readFileSync(style, "utf8").includes("Fortress Interface V3") &&
+    fs.existsSync(main) &&
+    fs.readFileSync(main, "utf8").includes(
+      'import "./styles/fortress-interface-v3.css"',
+    )
+  );
+}
+
 function restoreStrategicBalancePatch() {
   const scriptsDir = path.join(root, "scripts");
   const driver = path.join(scriptsDir, "apply-strategic-balance-pages.mjs");
@@ -49,23 +62,33 @@ function restoreStrategicBalancePatch() {
   }
 }
 
+if (!interfaceV3Materialized()) {
+  run(
+    "scripts/apply-alliance-command-fixes.mjs",
+    "Fortress, landing and command patch chain",
+  );
+  run("scripts/apply-operational-atlas-ui.mjs", "Operational Atlas UI patch");
+  run(
+    "scripts/apply-release-home-ui.mjs",
+    "Release stabilization and clean homepage patch",
+  );
+  run(
+    "scripts/apply-fortress-balance-p0.mjs",
+    "Fortress P0 investment and territory balance patch",
+  );
+  run(
+    "scripts/apply-fortress-balance-p1-p2.mjs",
+    "Fortress P1/P2 combat and economy balance patch",
+  );
+  restoreStrategicBalancePatch();
+} else {
+  console.log(
+    "Fortress Interface V3 detected; the complete prior patch chain is already materialized.",
+  );
+}
 run(
-  "scripts/apply-alliance-command-fixes.mjs",
-  "Fortress, landing and command patch chain",
+  "scripts/apply-fortress-interface-v3.mjs",
+  "Fortress Interface V3 and scenario doctrine patch",
 );
-run("scripts/apply-operational-atlas-ui.mjs", "Operational Atlas UI patch");
-run(
-  "scripts/apply-release-home-ui.mjs",
-  "Release stabilization and clean homepage patch",
-);
-run(
-  "scripts/apply-fortress-balance-p0.mjs",
-  "Fortress P0 investment and territory balance patch",
-);
-run(
-  "scripts/apply-fortress-balance-p1-p2.mjs",
-  "Fortress P1/P2 combat and economy balance patch",
-);
-restoreStrategicBalancePatch();
 
-console.log("Applied the complete Fortress UI and balance patch chain.");
+console.log("Applied the complete Fortress UI, scenario and balance patch chain.");
