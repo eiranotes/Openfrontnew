@@ -1,0 +1,118 @@
+name: Materialize strategic balance and Pages routing
+
+on:
+  push:
+    branches:
+      - agent/strategic-balance-pages-routing-2026-08-08
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: strategic-balance-materialize-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  materialize-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout working branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Restore and apply the strategic patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if compgen -G 'scripts/strategic-balance-pages.part-*' > /dev/null; then
+            cat scripts/strategic-balance-pages.part-* \
+              | tr -d '[:space:]' \
+              | base64 -d \
+              | gzip -d > scripts/apply-strategic-balance-pages.mjs
+          fi
+          test -s scripts/apply-strategic-balance-pages.mjs
+          node --check scripts/apply-strategic-balance-pages.mjs
+          node scripts/apply-strategic-balance-pages.mjs .
+          first_hash=$(sha256sum \
+            src/core/game/FortressBalance.ts \
+            src/core/configuration/Config.ts \
+            src/core/execution/NukeExecution.ts \
+            src/client/AppPaths.ts \
+            | sha256sum | cut -d' ' -f1)
+          node scripts/apply-strategic-balance-pages.mjs .
+          second_hash=$(sha256sum \
+            src/core/game/FortressBalance.ts \
+            src/core/configuration/Config.ts \
+            src/core/execution/NukeExecution.ts \
+            src/client/AppPaths.ts \
+            | sha256sum | cut -d' ' -f1)
+          test "${first_hash}" = "${second_hash}"
+          rm -f scripts/strategic-balance-pages.part-*
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Verify source invariants
+        run: |
+          node scripts/verify-fortress.mjs
+          node scripts/verify-pages-routing.mjs
+
+      - name: Run focused balance and routing tests
+        run: >-
+          npx vitest run
+          tests/FortressBalance.test.ts
+          tests/FortressEconomyBalance.test.ts
+          tests/StrategicBalanceV2.test.ts
+          tests/AppPaths.test.ts
+          tests/PagesNavigation.test.ts
+          tests/core/game/TrainStation.test.ts
+          tests/SinglePlayerOptions.test.ts
+          tests/ConquerGold.test.ts
+          tests/core/executions/NukeExecution.test.ts
+          tests/core/executions/SAMLauncherExecution.test.ts
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Build and inspect the GitHub Pages artifact
+        env:
+          GITHUB_PAGES: 'true'
+          CDN_BASE: /Openfrontnew
+          GAME_ENV: dev
+          DOMAIN: localhost
+          NUM_WORKERS: '2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build-dev
+          touch static/.nojekyll
+          cp static/index.html static/404.html
+          test -s static/index.html
+          test -s static/404.html
+          grep -Fq '/Openfrontnew/assets/' static/index.html
+          grep -Fq '"start_url": "./"' static/manifest.json
+          cmp -s static/index.html static/404.html
+
+      - name: Commit the validated materialized source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'openai-codex[bot]'
+          git config user.email 'openai-codex[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No materialized changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Apply strategic balance and Pages routing pass'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
