@@ -59,6 +59,20 @@ jobs:
           test "${first_hash}" = "${second_hash}"
           rm -f scripts/strategic-balance-pages.part-*
 
+      - name: Commit materialized source for review
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'openai-codex[bot]'
+          git config user.email 'openai-codex[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No materialized changes to commit.'
+          else
+            git commit -m 'Apply strategic balance and Pages routing pass'
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
@@ -102,17 +116,3 @@ jobs:
           grep -Fq '/Openfrontnew/assets/' static/index.html
           grep -Fq '"start_url": "./"' static/manifest.json
           cmp -s static/index.html static/404.html
-
-      - name: Commit the validated materialized source
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'openai-codex[bot]'
-          git config user.email 'openai-codex[bot]@users.noreply.github.com'
-          git add -A
-          if git diff --cached --quiet; then
-            echo 'No materialized changes to commit.'
-            exit 0
-          fi
-          git commit -m 'Apply strategic balance and Pages routing pass'
-          git push origin "HEAD:${GITHUB_REF_NAME}"
