@@ -1,0 +1,40 @@
+name: Export PR working tree snapshot
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    if: github.head_ref == 'agent/strategic-balance-pages-routing-2026-08-08'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Pack reviewable working tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf /tmp/openfront-pr-working-tree.tar.gz \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            src scripts tests .github docs \
+            package.json package-lock.json tsconfig.json vite.config.ts index.html \
+            README.md FORTRESS_MODE.md \
+            resources/lang/en.json resources/manifest.json
+
+      - name: Upload snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: openfront-pr-working-tree
+          path: /tmp/openfront-pr-working-tree.tar.gz
+          if-no-files-found: error
+          retention-days: 1
