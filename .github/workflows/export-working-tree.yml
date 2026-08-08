@@ -1,0 +1,41 @@
+name: Export working tree snapshot
+
+on:
+  push:
+    branches:
+      - agent/strategic-balance-pages-routing-2026-08-08
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout working branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Pack reviewable source
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf /tmp/openfront-working-tree.tar.gz \
+            --exclude='.git' \
+            src scripts tests .github \
+            package.json package-lock.json tsconfig.json vite.config.ts index.html \
+            README.md FORTRESS_MODE.md docs \
+            resources/lang/en.json resources/manifest.json
+
+      - name: Upload snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: openfront-working-tree
+          path: /tmp/openfront-working-tree.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+# Temporary workflow; removed after the interface audit is materialized.
