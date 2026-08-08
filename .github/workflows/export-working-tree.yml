@@ -37,3 +37,5 @@ jobs:
           path: /tmp/openfront-working-tree.tar.gz
           if-no-files-found: error
           retention-days: 1
+
+# Temporary workflow; removed after the interface audit is materialized.
